@@ -8,6 +8,7 @@ require(ebal)
 #' @export
 #' @examples
 #' cat_function()
+
 buildgauss = function(X,sigma=NULL){
 	X = as.matrix(X)
 	if (is.numeric(X) == FALSE) {stop("X must be numeric")}

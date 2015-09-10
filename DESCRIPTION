@@ -4,7 +4,9 @@ Title: Kernel Balancing
 Version: 0.1
 Date: 2015-09-10
 Authors@R: person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre"))
-Description: More about what it does (maybe more than one line)
+Description: A weighting approach that seeks balance on a kernel expansion
+of the data. Achieves balance on non-treatment potential outcomes and
+on estimated multivariated densities of treated and control.
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes
