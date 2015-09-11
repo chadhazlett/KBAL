@@ -1,14 +1,10 @@
 require(ebal)
 
-#' Build Gaussian kernel matrix
-#'
-#' This function allows you to express your love of cats.
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @export
+#' Build Gaussian kernel matrix.
+#' Centers and rescales X then computes Guassian
+#' kernel matrix. The $j^{th}$ row and $i^th$
 #' @examples
-#' cat_function()
-
+#' K=buildgauss(X,sigma=ncol(X))
 buildgauss = function(X,sigma=NULL){
 	X = as.matrix(X)
 	if (is.numeric(X) == FALSE) {stop("X must be numeric")}
@@ -21,10 +17,8 @@ buildgauss = function(X,sigma=NULL){
   return(K)
 }
 
-#' kbal main function
-#'
-#' This function allows you to express your love of cats.
-#' @param love Do you love cats? Defaults to TRUE.
+#' Main kernel balancing function.
+#' @X love Do you love cats? Defaults to TRUE.
 #' @keywords cats
 #' @export
 #' @examples
