@@ -2,19 +2,34 @@
 % Please edit documentation in R/kbal.R
 \name{kbal}
 \alias{kbal}
-\title{kbal main function}
+\title{Kernel balancing function.}
 \usage{
 kbal(X, D, K = NULL, whiten = TRUE, trimratio = NULL, numdims = NULL,
-  maxnumdims = NULL, minnumdims = NULL, sigma = NULL)
+  maxnumdims = NULL, minnumdims = NULL, sigma = NULL, method = "ebal")
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{X}{The original covariate data, as a numeric matrix.}
+
+\item{D}{The treatment assignment variable taking values of 1 for treatet units and 0 for control units.}
+
+\item{K}{Optional user-provided kernel matrix. Typically this is not user-specified, but rather is computed internally by a call to \code{buildgauss}.}
+
+\item{whiten}{Optional pre-whitening of the data prior to construction of K. If used, rotates the data by \code{solve(chol(var(X)))}, then centers and rescales.}
+
+\item{trimratio}{Optional \code{logical}}
+
+\item{numdims}{Optional user-specified number of projectionss of \code{K} to balance upon.}
+
+\item{minnumdims}{Optional user-specified choice for the minimum number of projections of \code{K}}
+
+\item{sigma}{Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.}
 }
 \description{
-This function allows you to express your love of cats.
+Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
 }
 \examples{
-cat_function()
+X=matrix(rnorm(50),nrow=10,ncol=5)
+D=rbinom(10,1,.5)
+kbal.out=kbal(X,D)
 }
-\keyword{cats}
 

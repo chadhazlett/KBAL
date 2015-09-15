@@ -2,18 +2,20 @@
 % Please edit documentation in R/kbal.R
 \name{buildgauss}
 \alias{buildgauss}
-\title{Build Gaussian kernel matrix}
+\title{Build Gaussian kernel matrix.}
 \usage{
 buildgauss(X, sigma = NULL)
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{X}{A numeric matrix of data, typically a design matrix.}
+
+\item{sigma}{The kernel ``bandwidth''. If NULL, defaults to ncol(X)}
 }
 \description{
-This function allows you to express your love of cats.
+Centers and rescales X then computes Guassian
+kernel matrix. Entry {i,j} correspond to k(X_i,X_j) where k is the (Gaussian) kernel.
 }
 \examples{
-cat_function()
+K=buildgauss(rnorm(10))
 }
-\keyword{cats}
 

@@ -1,10 +1,13 @@
 require(ebal)
+require(glmc)
 
 #' Build Gaussian kernel matrix.
-#' Centers and rescales X then computes Guassian
-#' kernel matrix. The $j^{th}$ row and $i^th$
+#' @description  Centers and rescales X then computes Guassian
+#' kernel matrix. Entry {i,j} correspond to k(X_i,X_j) where k is the (Gaussian) kernel.
+#' @param X A numeric matrix of data, typically a design matrix.
+#' @param sigma The kernel ``bandwidth''. If NULL, defaults to ncol(X)
 #' @examples
-#' K=buildgauss(X,sigma=ncol(X))
+#' K=buildgauss(rnorm(10))
 buildgauss = function(X,sigma=NULL){
 	X = as.matrix(X)
 	if (is.numeric(X) == FALSE) {stop("X must be numeric")}
@@ -17,20 +20,28 @@ buildgauss = function(X,sigma=NULL){
   return(K)
 }
 
-#' Main kernel balancing function.
-#' @X love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @export
-#' @examples
-#' cat_function()
-kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=NULL,minnumdims=NULL,sigma=NULL){
+#' Kernel balancing function.
+#' @description Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
+#' @param X The original covariate data, as a numeric matrix.
+#' @param D The treatment assignment variable taking values of 1 for treatet units and 0 for control units.
+#' @param K Optional user-provided kernel matrix. Typically this is not user-specified, but rather is computed internally by a call to \code{buildgauss}.
+#' @param whiten Optional pre-whitening of the data prior to construction of K. If used, rotates the data by \code{solve(chol(var(X)))}, then centers and rescales.
+#' @param trimratio Optional \code{logical}
+#' @param numdims Optional user-specified number of projectionss of \code{K} to balance upon.
+#' @param minnumdims Optional user-specified choice for the minimum number of projections of \code{K}
+#' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
+#' @examples X=matrix(rnorm(50),nrow=10,ncol=5)
+#' D=rbinom(10,1,.5)
+#' kbal.out=kbal(X,D)
+kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=NULL,minnumdims=NULL,sigma=NULL, method="ebal"){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
 
-	#Rather than Mahalanobis distance in Gaussian kernel, give option to pre-whiten X
+	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
 	if (whiten){ X=X%*%solve(chol(var(X)))}
-  X=scale(X, center=TRUE, scale=TRUE)
+
+	X=scale(X, center=TRUE, scale=TRUE)
 
   if (is.null(sigma)){
 		sigma=2*dim(X)[2]
@@ -72,32 +83,36 @@ kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=N
   K2=K+diag(lambda,N)
   prcomp.out=prcomp(K2, retx = TRUE)
 	Kpc=prcomp.out$x
-
+  #Kpc=K2%*%prcomp.out$rotation
   cum.var.pct=cumsum(prcomp.out$sdev^2)[1:N]/sum(prcomp.out$sdev^2)
-  #plot(cum.var.pct)
-  #abline(v=min(which(cum.var.pct>.99)))
-
-  #eig=eigen(K)
-	#prcomp.out=list()
-	#prcomp.out$sdev=sqrt(eig$values)
-	#prcomp.out$rotation=eig$vectors
-
-
 
   #Function to return distance for given numdims balanced upon. And everything else.
   get.dist= function(numdims, Kpc, K, ...){
+    R=list()
     K2=Kpc[,1:numdims]
+    if (method=="ebal"){bal.out.pc=try(ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
 
-	  ebal.out.pc=try(ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)
+    if (method=="el"){
+      yfake=rnorm(sum(D==0))
+      #get mean row of K2 among the treated, which will be our target.
+      meanK2tx=apply(K2[D==1,],2,mean)
+      K2_0=K2[D==0,]
+      z=t(t(K2_0)-meanK2tx)
+      bal.out.pc=try(glmc(yfake~+1, Amat=z))
+  }
 
-    if (class(ebal.out.pc)=="try-error") {dist=999}
-	  if (class(ebal.out.pc)!="try-error"){
+    #if (class(bal.out.pc)=="try-error"){
+    if ("try-error"%in%class(bal.out.pc)){
+      dist=999
+      #w=rep(1,N)
+      R$dist=dist
+      }
+	  if (class(bal.out.pc)[1]!="try-error"){
 	    w=rep(1,N)
-	    w[D==0]=ebal.out.pc$w
+	    w[D==0]=bal.out.pc$w
       #rescale to mean=1 among the controls
       w[D==0]=w[D==0]/mean(w[D==0])
 	    w[treatdrop]=0
-
 
 	    pX_D1=K_t%*%matrix(1,sum(D==1),1)
 	    pX_D0=K_c%*%matrix(1,sum(D==0),1)
@@ -107,28 +122,22 @@ kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=N
 	    pX_D0=pX_D0/sum(pX_D0)
 	    pX_D0w=pX_D0w/sum(pX_D0w)
 
-	    #Try a new distance relating to how far pscores are from flat.
-      dist= mean((pX_D1/pX_D0w-1)^2)
-      #L1=.5*sum(abs(density_treat-density_weighted_control))
-      #dist=L1
+	    L1=.5*sum(abs(pX_D1-pX_D0w))
+      dist=L1
+      R$dist=dist
+      R$w=w
+      R$pX_D1=pX_D1
+      R$pX_D0=pX_D0
+      R$pX_D0w=pX_D0w
 	  }
-
-    R=list()
-    R$dist=dist
-    R$w=w
-    R$pX_D1=pX_D1
-    R$pX_D0=pX_D0
-    R$pX_D0w=pX_D0w
 	  return(R)
 	}
 
 	if (is.null(numdims)){
     if (is.null(minnumdims)){minnumdims=2}
-
     thisnumdims=2
-		dist.record=rep(NA, N)
+		dist.record=rep(NA, N_c)
 		if (is.null(maxnumdims)){maxnumdims=N_c}
-
     keepgoing=TRUE
 		wayover=FALSE
 		mindistsofar=1
@@ -146,8 +155,7 @@ kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=N
 			wayover=(dist.now/mindistsofar)>2
 			keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
-
-		numdims=which(dist.record==min(dist.record,na.rm=T))
+		numdims=which(dist.record==min(dist.record,na.rm=TRUE))
 	}   #end for null numdims
 
 	#get pctvarK
