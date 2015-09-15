@@ -8,5 +8,6 @@ Description: A weighting approach to ensure unbiased ATT estimation with minimal
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes
-Depends: R (>= 2.14), ebal, glmc
+Depends: R (>= 2.14)
+Imports: ebal, glmc
 Maintainer: Chad Hazlett <chazlett@ucla.edu>

@@ -1,5 +1,5 @@
-require(ebal)
-require(glmc)
+require(ebal, glmc)
+
 
 #' Build Gaussian kernel matrix.
 #' @description  Centers and rescales X then computes Guassian
