@@ -28,8 +28,10 @@ buildgauss = function(X,sigma=NULL){
 #' @param whiten Optional pre-whitening of the data prior to construction of K. If used, rotates the data by \code{solve(chol(var(X)))}, then centers and rescales.
 #' @param trimratio Optional \code{logical}
 #' @param numdims Optional user-specified number of projectionss of \code{K} to balance upon.
-#' @param minnumdims Optional user-specified choice for the minimum number of projections of \code{K}
+#' @param minnumdims Optional user-specified choice for the minimum number of projections of \code{K}. Defualts to 2.
+#' @param maxnumdims Optional user-specified choice for the maximum number of projectsion ffo \code{K} to attempt balance on. Defaults to the number of control units.
 #' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
+#' @param method "ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")
 #' @examples X=matrix(rnorm(50),nrow=10,ncol=5)
 #' D=rbinom(10,1,.5)
 #' kbal.out=kbal(X,D)

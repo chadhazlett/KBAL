@@ -20,9 +20,13 @@ kbal(X, D, K = NULL, whiten = TRUE, trimratio = NULL, numdims = NULL,
 
 \item{numdims}{Optional user-specified number of projectionss of \code{K} to balance upon.}
 
-\item{minnumdims}{Optional user-specified choice for the minimum number of projections of \code{K}}
+\item{maxnumdims}{Optional user-specified choice for the maximum number of projectsion ffo \code{K} to attempt balance on. Defaults to the number of control units.}
+
+\item{minnumdims}{Optional user-specified choice for the minimum number of projections of \code{K}. Defualts to 2.}
 
 \item{sigma}{Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.}
+
+\item{method}{"ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")}
 }
 \description{
 Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
