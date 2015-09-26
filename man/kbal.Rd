@@ -4,7 +4,7 @@
 \alias{kbal}
 \title{Kernel balancing function.}
 \usage{
-kbal(X, D, K = NULL, whiten = TRUE, trimratio = NULL, numdims = NULL,
+kbal(X, D, K = NULL, whiten = FALSE, trimratio = NULL, numdims = NULL,
   maxnumdims = NULL, minnumdims = NULL, sigma = NULL, method = "ebal")
 }
 \arguments{
@@ -32,8 +32,22 @@ kbal(X, D, K = NULL, whiten = TRUE, trimratio = NULL, numdims = NULL,
 Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
 }
 \examples{
-X=matrix(rnorm(50),nrow=10,ncol=5)
-D=rbinom(10,1,.5)
-kbal.out=kbal(X,D)
+#Run Lalonde example as in paper:
+data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+attach(lalonde)
+
+#Raw diff-in-means: way off, -$15205
+mean(re78[nsw==1])-mean(re78[nsw==0])
+
+#OLS with covariates:
+summary(lm(re78~nsw+., data=lalonde[,xvars]))
+
+#Kbal at defaults: $1806
+kbalout=kbal(D=nsw,X=lalonde[,xvars])
+summary(lm(re78~nsw,w=kbalout$w))
+plot(x=seq(2:41),kbalout$dist.record[2:41],
+ylab="L1 imbalance", xlab="Num. dims of K balanced")
 }
 

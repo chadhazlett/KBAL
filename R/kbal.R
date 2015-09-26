@@ -1,6 +1,4 @@
 require(ebal, glmc)
-
-
 #' Build Gaussian kernel matrix.
 #' @description  Centers and rescales X then computes Guassian
 #' kernel matrix. Entry {i,j} correspond to k(X_i,X_j) where k is the (Gaussian) kernel.
@@ -32,10 +30,25 @@ buildgauss = function(X,sigma=NULL){
 #' @param maxnumdims Optional user-specified choice for the maximum number of projectsion ffo \code{K} to attempt balance on. Defaults to the number of control units.
 #' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
 #' @param method "ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")
-#' @examples X=matrix(rnorm(50),nrow=10,ncol=5)
-#' D=rbinom(10,1,.5)
-#' kbal.out=kbal(X,D)
-kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=NULL,minnumdims=NULL,sigma=NULL, method="ebal"){
+#' @examples #Run Lalonde example as in paper:
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' attach(lalonde)
+#'
+#' #Raw diff-in-means: way off, -$15205
+#' mean(re78[nsw==1])-mean(re78[nsw==0])
+#'
+#' #OLS with covariates:
+#' summary(lm(re78~nsw+., data=lalonde[,xvars]))
+#'
+#' #Kbal at defaults: $1806
+#' kbalout=kbal(D=nsw,X=lalonde[,xvars])
+#' summary(lm(re78~nsw,w=kbalout$w))
+#' plot(x=seq(2:41),kbalout$dist.record[2:41],
+#' ylab="L1 imbalance", xlab="Num. dims of K balanced")
+#'
+kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=NULL,minnumdims=NULL,sigma=NULL, method="ebal"){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
@@ -185,7 +198,7 @@ kbal=function(X,D, K=NULL, whiten=TRUE, trimratio=NULL,numdims=NULL,maxnumdims=N
 	r$numdims=numdims
 	r$sigma=sigma
 	r$min90=min(which(cumsum(sort(best.out$w[D==0],decreasing=TRUE))/sum(D==0)>=.90))
-  r$dist.record=dist.record
+  r$dist.record=dist.record[1:max(which(!is.na(dist.record)))]
 	return(r)
 }
 
