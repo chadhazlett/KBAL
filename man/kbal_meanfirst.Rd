@@ -45,23 +45,4 @@ exact mean balance on X, before adding components from K as per the usual KBAL.
 The multivariate distance metrics are still based on balance in K, not the mean balance.
 The mean balance must be made exact first, then it attempts to add components of K until optimized.
 }
-\examples{
-#Run Lalonde example as in paper:
-data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
-xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
-attach(lalonde)
-
-#Raw diff-in-means: way off, -$15205
-mean(re78[nsw==1])-mean(re78[nsw==0])
-
-#OLS with covariates:
-summary(lm(re78~nsw+., data=lalonde[,xvars]))
-
-#Kbal at defaults: $1806
-kbalout=kbal(D=nsw,X=lalonde[,xvars])
-summary(lm(re78~nsw,w=kbalout$w))
-plot(x=seq(2:41),kbalout$dist.record[2:41],
-ylab="L1 imbalance", xlab="Num. dims of K balanced")
-}
 
