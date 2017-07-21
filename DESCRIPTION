@@ -4,10 +4,15 @@ Title: Kernel Balancing
 Version: 0.1
 Date: 2015-09-10
 Authors@R: person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre"))
-Description: A weighting approach to ensure unbiased ATT estimation with minimal assumptions.
+Description: A weighting approach to ensure unbiased ATT estimation with minimal
+    assumptions.
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes
-Depends: R (>= 2.14)
-Imports: ebal, glmc
+Depends:
+    R (>= 2.14)
+Imports:
+    ebal,
+    glmc
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
+RoxygenNote: 5.0.1

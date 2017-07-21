@@ -30,6 +30,14 @@ buildgauss = function(X,sigma=NULL){
 #' @param maxnumdims Optional user-specified choice for the maximum number of projectsion ffo \code{K} to attempt balance on. Defaults to the number of control units.
 #' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
 #' @param method "ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")
+#' @return \item{w}{The weights, taking value of 1 for treated unit and the estimated weight for each control.}
+#' \item{L1_orig}{The L1 imbalance metric on the original data}
+#' \item{L1_kbal}{The L1 imbalance metric on the weighted data}
+#' \item{dist.record}{The record of L1 imbalances at each number of principap components of K balanced upon}
+#' \item{K}{The kernel matrix used}
+#' \item{pX_D0}{The estimated density measure for the control, as measured at each X-coordinate observed (for both treated and control units)}
+#' \item{pX_D1}{The estimated density measure for the treated, as measured at each X-coordinate observed (for both treated and control units)}
+#' \item{sigma}{The choice of kernel bandwidth used}
 #' @examples #Run Lalonde example as in paper:
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
