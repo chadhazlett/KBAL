@@ -1,4 +1,6 @@
-require(ebal, glmc)
+require(ebal)
+require(glmc)
+
 #' Build Gaussian kernel matrix.
 #' @description  Centers and rescales X then computes Guassian
 #' kernel matrix. Entry {i,j} correspond to k(X_i,X_j) where k is the (Gaussian) kernel.
@@ -21,7 +23,7 @@ buildgauss = function(X,sigma=NULL){
 #' Kernel balancing function.
 #' @description Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
 #' @param X The original covariate data, as a numeric matrix.
-#' @param D The treatment assignment variable taking values of 1 for treatet units and 0 for control units.
+#' @param D The treatment assignment variable taking values of 1 for treated units and 0 for control units.
 #' @param K Optional user-provided kernel matrix. Typically this is not user-specified, but rather is computed internally by a call to \code{buildgauss}.
 #' @param whiten Optional pre-whitening of the data prior to construction of K. If used, rotates the data by \code{solve(chol(var(X)))}, then centers and rescales.
 #' @param trimratio Optional \code{logical}
@@ -83,7 +85,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
 
 	#For readability, construct these first:
 	K_c=K[,D==0]
-	K_t=K[,D==1]
+	K_t=K[,D==1, drop=FALSE]
 	K_t_bar=as.matrix(apply(K_t,1,mean))
 	N_t=sum(D==1)
 	N_c=sum(D==0)
@@ -121,8 +123,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
   #Function to return distance for given numdims balanced upon. And everything else.
   get.dist= function(numdims, Kpc, K, ...){
     R=list()
-    K2=Kpc[,1:numdims]
-    if (method=="ebal"){bal.out.pc=try(ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
+    K2=Kpc[,1:numdims, drop=FALSE]
+    if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
 
     if (method=="el"){
       yfake=rnorm(sum(D==0))
@@ -166,8 +168,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
 	}
 
 	if (is.null(numdims)){
-    if (is.null(minnumdims)){minnumdims=2}
-    thisnumdims=2
+    if (is.null(minnumdims)){minnumdims=1}
+    thisnumdims=1
 		dist.record=rep(NA, N_c)
 		if (is.null(maxnumdims)){maxnumdims=N_c}
     keepgoing=TRUE
@@ -304,7 +306,7 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
     R=list()
     XKpc=cbind(X,Kpc)
     K2=XKpc[,1:(P+numdims)]
-    if (method=="ebal"){bal.out.pc=try(ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
+    if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
 
     if (method=="el"){
       yfake=rnorm(sum(D==0))
@@ -348,9 +350,9 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
   }
 
   if (is.null(numdims)){
-    if (is.null(minnumdims)){minnumdims=1}
-    thisnumdims=1
-    dist.record=rep(NA, N_c)
+    if (is.null(minnumdims)){minnumdims=0}
+    thisnumdims=minnumdims
+    dist.record=rep(NA, N_c+1)
     if (is.null(maxnumdims)){maxnumdims=N_c}
     keepgoing=TRUE
     wayover=FALSE

@@ -15,7 +15,7 @@ kbalout=kbal(D=nsw,X=lalonde[,xvars])
 summary(lm(re78~nsw,w=kbalout$w))
 
 #Kbal with mean balance ensured first, at defaults: $1806
-kbalout_mean=kbal_meanfirst(D=nsw,X=lalonde[,xvars])
+kbalout_mean=kbal_meanfirst(D=nsw,X=lalonde[,xvars], sigma=5)
 summary(lm(re78~nsw,w=kbalout_mean$w))
 
 #Plot both:

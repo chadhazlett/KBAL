@@ -10,7 +10,7 @@ kbal(X, D, K = NULL, whiten = FALSE, trimratio = NULL, numdims = NULL,
 \arguments{
 \item{X}{The original covariate data, as a numeric matrix.}
 
-\item{D}{The treatment assignment variable taking values of 1 for treatet units and 0 for control units.}
+\item{D}{The treatment assignment variable taking values of 1 for treated units and 0 for control units.}
 
 \item{K}{Optional user-provided kernel matrix. Typically this is not user-specified, but rather is computed internally by a call to \code{buildgauss}.}
 
