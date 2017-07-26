@@ -129,7 +129,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
     if (method=="el"){
       yfake=rnorm(sum(D==0))
       #get mean row of K2 among the treated, which will be our target.
-      meanK2tx=apply(K2[D==1,],2,mean)
+      meanK2tx= apply(rbind(K2[D==1,],K2[D==1,]),2,mean)
       K2_0=K2[D==0,]
       z=t(t(K2_0)-meanK2tx)
       bal.out.pc=try(glmc(yfake~+1, Amat=z))
@@ -165,33 +165,38 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
       R$pX_D0w=pX_D0w
 	  }
 	  return(R)
-	}
+	} ## end of get.dist
 
-	if (is.null(numdims)){
+  if (is.null(numdims)){
     if (is.null(minnumdims)){minnumdims=1}
-    thisnumdims=1
-		dist.record=rep(NA, N_c)
-		if (is.null(maxnumdims)){maxnumdims=N_c}
+    thisnumdims=minnumdims
+    dist.record=NULL
+    #rep(NA, N_c+1)
+    if (is.null(maxnumdims)){maxnumdims=N_c}
     keepgoing=TRUE
-		wayover=FALSE
-		mindistsofar=1
-		dist.now=1
-
+    wayover=FALSE
+    mindistsofar=1
+    dist.now=1
+    
     while (keepgoing==TRUE){
-			#keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
-			get.dist.out=get.dist(numdims = thisnumdims,Kpc = Kpc, K=K)
-			dist.now=get.dist.out$dist
-      print(dist.now)
-			dist.record[thisnumdims]=dist.now
-			thisnumdims=thisnumdims+1
-
-			if (dist.now<mindistsofar){mindistsofar=dist.now}
-			wayover=(dist.now/mindistsofar)>2
-			keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
+      #keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
+      get.dist.out=get.dist(numdims=thisnumdims,
+                            X=X, Kpc=Kpc, K=K)
+      dist.now=get.dist.out$dist
+      #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
+      print(paste("Trying",thisnumdims,"dims of K; L1 dist. at", round(dist.now, 5)))
+      dist.record=c(dist.record,dist.now)
+      thisnumdims=thisnumdims+1
+      
+      if (dist.now<mindistsofar){mindistsofar=dist.now}
+      wayover=(dist.now/mindistsofar)>2
+      keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
-		numdims=which(dist.record==min(dist.record,na.rm=TRUE))
-	}   #end for null numdims
-
+    
+    dimseq=seq(minnumdims,maxnumdims,1) 
+    numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+  }   #end for null numdims
+  
 	#get pctvarK
 
 	pctvarK=cum.var.pct[numdims]
@@ -305,7 +310,8 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
   get.dist= function(numdims, X, Kpc, K, ...){
     R=list()
     XKpc=cbind(X,Kpc)
-    K2=XKpc[,1:(P+numdims)]
+    trydims=P+numdims
+    K2=XKpc[,1:trydims]
     if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
 
     if (method=="el"){
@@ -347,12 +353,14 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
       R$pX_D0w=pX_D0w
     }
     return(R)
-  }
+  } ## End of get.dist function
 
+  
   if (is.null(numdims)){
     if (is.null(minnumdims)){minnumdims=0}
     thisnumdims=minnumdims
-    dist.record=rep(NA, N_c+1)
+    dist.record=NULL
+    #rep(NA, N_c+1)
     if (is.null(maxnumdims)){maxnumdims=N_c}
     keepgoing=TRUE
     wayover=FALSE
@@ -364,15 +372,18 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
       get.dist.out=get.dist(numdims=thisnumdims,
                             X=X, Kpc=Kpc, K=K)
       dist.now=get.dist.out$dist
-      print(paste("L1 distance currently at", round(dist.now, 5)))
-      dist.record[thisnumdims]=dist.now
+      if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
+      print(paste(thisnumdims,"dims of K; L1 dist. at", round(dist.now, 5)))
+      dist.record=c(dist.record,dist.now)
       thisnumdims=thisnumdims+1
 
       if (dist.now<mindistsofar){mindistsofar=dist.now}
       wayover=(dist.now/mindistsofar)>2
       keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
-    numdims=which(dist.record==min(dist.record,na.rm=TRUE))
+
+     dimseq=seq(minnumdims,maxnumdims,1) 
+     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
   }   #end for null numdims
 
   #get pctvarK
