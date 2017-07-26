@@ -132,7 +132,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
       meanK2tx= apply(rbind(K2[D==1,],K2[D==1,]),2,mean)
       K2_0=K2[D==0,]
       z=t(t(K2_0)-meanK2tx)
-      bal.out.pc=try(glmc(yfake~+1, Amat=z))
+      bal.out.pc=try(glmc::glmc(yfake~+1, Amat=z))
   }
 
     #if (class(bal.out.pc)=="try-error"){
@@ -177,7 +177,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
     wayover=FALSE
     mindistsofar=1
     dist.now=1
-    
+
     while (keepgoing==TRUE){
       #keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
       get.dist.out=get.dist(numdims=thisnumdims,
@@ -187,16 +187,16 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,maxnumdims=
       print(paste("Trying",thisnumdims,"dims of K; L1 dist. at", round(dist.now, 5)))
       dist.record=c(dist.record,dist.now)
       thisnumdims=thisnumdims+1
-      
+
       if (dist.now<mindistsofar){mindistsofar=dist.now}
       wayover=(dist.now/mindistsofar)>2
       keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
-    
-    dimseq=seq(minnumdims,maxnumdims,1) 
+
+    dimseq=seq(minnumdims,maxnumdims,1)
     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
   }   #end for null numdims
-  
+
 	#get pctvarK
 
 	pctvarK=cum.var.pct[numdims]
@@ -320,7 +320,7 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
       meanK2tx=apply(K2[D==1,],2,mean)
       K2_0=K2[D==0,]
       z=t(t(K2_0)-meanK2tx)
-      bal.out.pc=try(glmc(yfake~+1, Amat=z))
+      bal.out.pc=try(glmc::glmc(yfake~+1, Amat=z))
     }
 
     #if (class(bal.out.pc)=="try-error"){
@@ -355,7 +355,7 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
     return(R)
   } ## End of get.dist function
 
-  
+
   if (is.null(numdims)){
     if (is.null(minnumdims)){minnumdims=0}
     thisnumdims=minnumdims
@@ -382,7 +382,7 @@ kbal_meanfirst=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL,numdims=NULL,m
       keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
 
-     dimseq=seq(minnumdims,maxnumdims,1) 
+     dimseq=seq(minnumdims,maxnumdims,1)
      numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
   }   #end for null numdims
 
