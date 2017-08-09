@@ -135,7 +135,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 
     while (keepgoing==TRUE){
       #keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
-      get.dist.out=get.dist(numdims=thisnumdims,
+      get.dist.out=get.dist(numdims=thisnumdims, D=D,
                             X=X, Kpc=Kpc, K=K, K_t=K_t, K_c=K_c,
                             method=method, treatdrop=treatdrop)
       dist.now=get.dist.out$dist
@@ -159,7 +159,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 
   #Recover optimal answer:
 	#most of the goodies will be in here:
-  best.out=get.dist(numdims = numdims,Kpc = Kpc, K=K, K_t=K_t,
+  best.out=get.dist(numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
                     K_c=K_c, method=method, treatdrop=treatdrop)
 
 	L1_orig=.5*sum(abs(best.out$pX_D1-best.out$pX_D0))
@@ -184,9 +184,11 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 }
 
 
-#Function to return distance for given numdims balanced upon. And everything else.
+#' Find weights and compute L1 distance.
+#' @description  Get's the weights at the desired settings and computes
+#' the objective function, L1.
 #' @export
-get.dist= function(numdims, Kpc, K, K_t, K_c, method, treatdrop, ...){
+get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, ...){
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
