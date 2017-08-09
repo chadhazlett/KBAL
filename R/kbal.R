@@ -73,7 +73,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 	if (method=="el") library(glmc)
 
 	if (is.null(maxnumdims)) maxnumdims=sum(D==0)
-	if (maxnumdims>P) maxnumdims=sum(D==0)
+	if (maxnumdims>sum(D==0)) maxnumdims=sum(D==0)
 	if (is.null(minnumdims)){minnumdims=1}
 	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
 	if (whiten){ X=X%*%solve(chol(var(X)))}
