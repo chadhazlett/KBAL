@@ -1,6 +1,3 @@
-require(ebal)
-require(glmc)
-
 #' Build Gaussian kernel matrix.
 #' @description  Centers and rescales X then computes Guassian
 #' kernel matrix. Entry {i,j} correspond to k(X_i,X_j) where k is the (Gaussian) kernel.

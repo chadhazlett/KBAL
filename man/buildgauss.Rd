@@ -18,4 +18,3 @@ kernel matrix. Entry {i,j} correspond to k(X_i,X_j) where k is the (Gaussian) ke
 \examples{
 K=buildgauss(rnorm(10))
 }
-

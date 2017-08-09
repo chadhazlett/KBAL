@@ -68,4 +68,3 @@ plot(x=seq(2:41),kbalout$dist.record[2:41], pch=16,
 points(kbalout_mean$dist.record[2:41], col=2, pch=16)
 legend("topright", col=c(1,2), pch=16, legend=c("full kbal","kbal after mean"))
 }
-

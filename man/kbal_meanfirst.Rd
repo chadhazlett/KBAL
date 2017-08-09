@@ -45,4 +45,3 @@ exact mean balance on X, before adding components from K as per the usual KBAL.
 The multivariate distance metrics are still based on balance in K, not the mean balance.
 The mean balance must be made exact first, then it attempts to add components of K until optimized.
 }
-

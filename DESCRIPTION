@@ -1,7 +1,7 @@
 Package: KBAL
 Type: Package
 Title: Kernel Balancing
-Version: 0.1
+Version: 0.0.0.9000
 Date: 2015-09-10
 Authors@R: person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre"))
 Description: A weighting approach to ensure unbiased ATT estimation with minimal
@@ -13,6 +13,7 @@ Depends:
     R (>= 2.14)
 Imports:
     ebal,
+    emplik,
     glmc
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
