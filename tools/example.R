@@ -11,10 +11,10 @@ mean(re78[nsw==1])-mean(re78[nsw==0])
 summary(lm(re78~nsw+., data=lalonde[,xvars]))
 
 #Kbal at defaults: $1806
-kbalout=kbal(D=nsw,X=lalonde[,xvars])
+kbalout=kbal(D=nsw,X=lalonde[,xvars], method="ebal")
 summary(lm(re78~nsw,w=kbalout$w))
 
-#Kbal with mean balance ensured first, at defaults: $1806
+#Kbal with mean balance ensured first, at defaults
 kbalout_mean=kbal_meanfirst(D=nsw,X=lalonde[,xvars], sigma=5)
 summary(lm(re78~nsw,w=kbalout_mean$w))
 
