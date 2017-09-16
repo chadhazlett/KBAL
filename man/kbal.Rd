@@ -5,7 +5,8 @@
 \title{Kernel balancing function.}
 \usage{
 kbal(X, D, K = NULL, whiten = FALSE, trimratio = NULL, numdims = NULL,
-  maxnumdims = NULL, minnumdims = NULL, sigma = NULL, method = "ebal")
+  maxnumdims = NULL, minnumdims = NULL, sigma = NULL, method = "ebal",
+  linkernel = FALSE)
 }
 \arguments{
 \item{X}{The original covariate data, as a numeric matrix.}

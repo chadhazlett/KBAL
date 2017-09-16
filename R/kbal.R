@@ -65,7 +65,8 @@ buildgauss = function(X,sigma=NULL){
 #' legend("topright", col=c(1,2), pch=16, legend=c("full kbal","kbal after mean"))
 #' @export
 
-kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal"){
+kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
+          maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
@@ -76,6 +77,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 	if (maxnumdims>sum(D==0)) maxnumdims=sum(D==0)
 	if (is.null(minnumdims)){minnumdims=1}
 
+	if (linkernel==TRUE) maxnumdims=ncol(X)
+
 	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
 	if (whiten){ X=X%*%solve(chol(var(X)))}
 
@@ -85,7 +88,13 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 		sigma=2*dim(X)[2]
 	}
 
-	K=buildgauss(X,sigma=sigma)
+	if (linkernel==TRUE){
+	 	K=X%*%t(X)
+	}
+
+	if (linkernel==FALSE){
+	  K=buildgauss(X,sigma=sigma)
+	}
 
 	#For readability, construct these first:
 	K_c=K[,D==0]
@@ -94,13 +103,13 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 	N_t=sum(D==1)
 	N_c=sum(D==0)
 
+	#Disabling this here - 15 Sept. I think it's elsewhere.
 	#Pseudo-Density of treated, p(X|D=1), taken at all points
-  pX_D1=K_t%*%matrix(1/(sqrt(sigma*pi)*sum(D==1)),sum(D==1),1)
+  #pX_D1=K_t%*%matrix(1/(sqrt(sigma*pi)*sum(D==1)),sum(D==1),1)
 	#Pseudo-Density of controls, p(X|D=0), taken at all points
-  pX_D0=K_c%*%matrix(1/(sqrt(sigma*pi)*sum(D==0)),sum(D==0),1)
-
-  pX_D1=pX_D1/sum(pX_D1)
-  pX_D0=pX_D0/sum(pX_D0)
+  #pX_D0=K_c%*%matrix(1/(sqrt(sigma*pi)*sum(D==0)),sum(D==0),1)
+  #pX_D1=pX_D1/sum(pX_D1)
+  #pX_D0=pX_D0/sum(pX_D0)
 
 	badbals=NULL
 	treatdrop=NULL
@@ -137,7 +146,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
       #keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
       get.dist.out=get.dist(numdims=thisnumdims, D=D,
                             X=X, Kpc=Kpc, K=K, K_t=K_t, K_c=K_c,
-                            method=method, treatdrop=treatdrop)
+                            method=method, treatdrop=treatdrop, linkernel=linkernel)
       dist.now=get.dist.out$dist
       #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
       print(paste("Trying",thisnumdims,"dims of K; L1 dist. at", round(dist.now, 5)))
@@ -159,8 +168,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 
   #Recover optimal answer:
 	#most of the goodies will be in here:
-  best.out=get.dist(numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
-                    K_c=K_c, method=method, treatdrop=treatdrop)
+  best.out=get.dist(X=X, numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
+                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel)
 
 	L1_orig=.5*sum(abs(best.out$pX_D1-best.out$pX_D0))
 	L1_kbal=.5*sum(abs(best.out$pX_D1-best.out$pX_D0w))
@@ -188,7 +197,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL, maxnumdim
 #' @description  Get's the weights at the desired settings and computes
 #' the objective function, L1.
 #' @export
-get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, ...){
+get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, ...){
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
@@ -223,15 +232,27 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, ...){
     w[D==0]=w[D==0]/mean(w[D==0])
     w[treatdrop]=0
 
-    pX_D1=K_t%*%matrix(1,sum(D==1),1)
-    pX_D0=K_c%*%matrix(1,sum(D==0),1)
-    pX_D0w=K_c%*%w[D==0]
+    if (linkernel==FALSE){
+      pX_D1=K_t%*%matrix(1,sum(D==1),1)
+      pX_D0=K_c%*%matrix(1,sum(D==0),1)
+      pX_D0w=K_c%*%w[D==0]
 
-    pX_D1=pX_D1/sum(pX_D1)
-    pX_D0=pX_D0/sum(pX_D0)
-    pX_D0w=pX_D0w/sum(pX_D0w)
+      pX_D1=pX_D1/sum(pX_D1)
+      pX_D0=pX_D0/sum(pX_D0)
+      pX_D0w=pX_D0w/sum(pX_D0w)
+    }
 
-    L1=.5*sum(abs(pX_D1-pX_D0w))
+    if (linkernel==TRUE){
+      pX_D1=colMeans(X[D==1,])
+      pX_D0=colMeans(X[D==0,])
+      pX_D0w=w[D==0]%*%X[D==0,]/sum(D==0)
+      L1=sum(abs(pX_D1-pX_D0w))
+    }
+
+    if (linkernel==FALSE){
+      L1=.5*sum(abs(pX_D1-pX_D0w))
+    }
+
     dist=L1
     R$dist=dist
     R$w=w
