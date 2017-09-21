@@ -82,17 +82,18 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
 	if (whiten){ X=X%*%solve(chol(var(X)))}
 
-	X=scale(X, center=TRUE, scale=TRUE)
 
   if (is.null(sigma)){
 		sigma=2*dim(X)[2]
 	}
 
 	if (linkernel==TRUE){
+	  #X=scale(X, center=FALSE, scale=TRUE)
 	 	K=X%*%t(X)
 	}
 
 	if (linkernel==FALSE){
+	  X=scale(X, center=TRUE, scale=TRUE)
 	  K=buildgauss(X,sigma=sigma)
 	}
 
