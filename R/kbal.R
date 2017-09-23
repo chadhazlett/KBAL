@@ -244,8 +244,8 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
     }
 
     if (linkernel==TRUE){
-      pX_D1=colMeans(X[D==1,])
-      pX_D0=colMeans(X[D==0,])
+      pX_D1=colMeans(X[D==1, , drop=FALSE])
+      pX_D0=colMeans(X[D==0, , drop=FALSE])
       pX_D0w=w[D==0]%*%X[D==0,]/sum(D==0)
       L1=sum(abs(pX_D1-pX_D0w))
     }
