@@ -77,7 +77,11 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	if (maxnumdims>sum(D==0)) maxnumdims=sum(D==0)
 	if (is.null(minnumdims)){minnumdims=1}
 
-	if (linkernel==TRUE) maxnumdims=ncol(X)
+	if (linkernel==TRUE){
+	  X = scale(X, center = FALSE, scale = TRUE)
+  	}
+
+	maxnumdims=ncol(X)
 
 	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
 	if (whiten){ X=X%*%solve(chol(var(X)))}
