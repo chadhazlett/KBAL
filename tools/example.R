@@ -1,3 +1,5 @@
+rm(list=ls())
+library(KBAL)
 #Run Lalonde example as in paper:
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -13,6 +15,13 @@ summary(lm(re78~nsw+., data=lalonde[,xvars]))
 #Kbal at defaults: $1806
 kbalout=kbal(D=nsw,X=lalonde[,xvars], method="ebal")
 summary(lm(re78~nsw,w=kbalout$w))
+kbalout$biasbound_orig*sd(re78)*sqrt(55)
+kbalout$biasbound_kbal*sd(re78)*sqrt(55)
+#note that using KRLS, c'Kc for the related regression is 55.37
+plot(x=seq(1:59),kbalout$dist.record[1:59],ylab="biasbound", xlab="Num. dims of K balanced")
+
+
+
 
 #Kbal with mean balance ensured first, at defaults
 kbalout_mean=kbal_meanfirst(D=nsw,X=lalonde[,xvars], sigma=5)

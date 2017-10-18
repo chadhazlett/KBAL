@@ -18,6 +18,50 @@ buildgauss = function(X,sigma=NULL){
   return(K)
 }
 
+#' Get the bound on the bias due to incomplete balance
+#' @description XXX
+#' @param D xxx .
+#' @param w xxx .
+#' @param V xxx .
+#' @param a xxx .
+#' @param hilbertnorm xxx .
+#' @examples
+#' biasbound=(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
+#' @export
+biasbound=function(D,w,V,a, hilbertnorm=1){
+  w1=w[D==1]/sum(D==1)
+  w0=w[D==0]/sum(D==0)
+
+  #optionally look only at remaining imbalance assuming first numdims
+  #components were perfectly balanced.
+  #V=V[,(numdimsbalanced+1):length(w)]
+  #a=a[(numdimsbalanced+1):length(w)]
+
+  V1=V[D==1, , drop=FALSE]
+  V0=V[D==0, , drop=FALSE]
+  eigenimbal=t(w1)%*%V1 -t(w0)%*%V0
+
+  #eigenimbal*(a^.5)%*%t(V)
+  effectiveimbal=(eigenimbal*(a^.5))%*%t(V)
+  biasbound=sqrt(hilbertnorm)*sqrt(effectiveimbal%*%t(effectiveimbal))
+  return(biasbound)
+}
+
+#' Function to multiply a square matrix, X, with a diagonal matrix, diag(d)
+#' @description  Fast multiplication by a diagonal matrix
+#' @param X A numeric matrix of data, typically a design matrix.
+#' @param d a vector, such that you want to know X%*%diag(d)
+#' @examples
+#' Xd=multdiag(X,d)
+multdiag <- function(X,d){
+  R=matrix(NA,nrow=dim(X)[1],ncol=dim(X)[2])
+  for (i in 1:dim(X)[2]){
+    R[,i]=X[,i]*d[i]
+  }
+  return(R)
+}
+
+
 #' Kernel balancing function.
 #' @description Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
 #' @param X The original covariate data, as a numeric matrix.
@@ -38,6 +82,7 @@ buildgauss = function(X,sigma=NULL){
 #' \item{pX_D0}{The estimated density measure for the control, as measured at each X-coordinate observed (for both treated and control units)}
 #' \item{pX_D1}{The estimated density measure for the treated, as measured at each X-coordinate observed (for both treated and control units)}
 #' \item{sigma}{The choice of kernel bandwidth used}
+#' \item{biasbound}{The maximum bias that can be due to incomplete balancing, or not balancing at all. For a function with RKHS norm of gamma, the maximal bias possible due to incomplete balance is sqrt(gamma)*biasbound }
 #' @examples #Run Lalonde example as in paper:
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -79,9 +124,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 
 	if (linkernel==TRUE){
 	  X = scale(X, center = FALSE, scale = TRUE)
-  	}
-
-	maxnumdims=ncol(X)
+	  maxnumdims=ncol(X)
+	  }
 
 	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
 	if (whiten){ X=X%*%solve(chol(var(X)))}
@@ -92,7 +136,6 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	}
 
 	if (linkernel==TRUE){
-	  #X=scale(X, center=FALSE, scale=TRUE)
 	 	K=X%*%t(X)
 	}
 
@@ -130,13 +173,31 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 		K=K[-treatdrop,-treatdrop]
 	}
 
-  #Return to these options later...
+  #Optional improving of rank by adding to diagonal. Set to 0 for now.
 	lambda=0
   Klambda=K+diag(lambda,N)
-  prcomp.out=prcomp(Klambda, retx = TRUE)
-	Kpc=prcomp.out$x
-  #Kpc=K2%*%prcomp.out$rotation
-  cum.var.pct=cumsum(prcomp.out$sdev^2)[1:N]/sum(prcomp.out$sdev^2)
+
+  #SVD version: 11 Oct 2017
+  #svd.out=svd(scale(Klambda,center = TRUE, scale=TRUE)) #Scaling messes it up.
+  svd.out=svd(Klambda)
+
+  # Could just use eigenvectors directly using svd.out$u and
+  # balance on these. However, performance better when projecting K,
+  # which is really just rescaling the eigenvector by their
+  # eigenvalues. I think this helps ebal in case of minor imperfections.
+  #Kpc=multdiag(svd.out$u, svd.out$d)
+  Kpc=svd.out$u
+  cum.var.pct=cumsum(svd.out$d)[1:N]/N
+
+  #Eigen? 11 Oct 2017
+  #eig.out=eigen(Klambda, symmetric = TRUE)
+  #Kpc=eig.out$vectors
+  #cum.var.pct=cumsum(eig.out$values)[1:N]/N
+
+  #Prcomp -- used in drafts
+  #prcomp.out=prcomp(Klambda, retx = TRUE)
+	#Kpc=prcomp.out$x
+  #cum.var.pct=cumsum(prcomp.out$sdev^2)[1:N]/sum(prcomp.out$sdev^2)
 
   if (is.null(numdims)){
     thisnumdims=minnumdims
@@ -144,23 +205,24 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
     #rep(NA, N_c+1)
     keepgoing=TRUE
     wayover=FALSE
-    mindistsofar=1
-    dist.now=1
+    mindistsofar=998
+    dist.now=998
 
     while (keepgoing==TRUE){
       #keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
       get.dist.out=get.dist(numdims=thisnumdims, D=D,
                             X=X, Kpc=Kpc, K=K, K_t=K_t, K_c=K_c,
-                            method=method, treatdrop=treatdrop, linkernel=linkernel)
+                            method=method, treatdrop=treatdrop, linkernel=linkernel,
+                            svd.out=svd.out)
       dist.now=get.dist.out$dist
       #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
-      print(paste("Trying",thisnumdims,"dims of K; L1 dist. at", round(dist.now, 5)))
+      print(paste("Trying",thisnumdims,"dims of K; distance at", round(dist.now, 5)))
       dist.record=c(dist.record,dist.now)
       thisnumdims=thisnumdims+1
 
       if (dist.now<mindistsofar){mindistsofar=dist.now}
 
-      wayover=(dist.now/mindistsofar)>2
+      wayover=(dist.now/mindistsofar)>1.25
       keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
 
@@ -174,14 +236,17 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
   #Recover optimal answer:
 	#most of the goodies will be in here:
   best.out=get.dist(X=X, numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
-                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel)
+                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel, svd.out)
 
 	L1_orig=.5*sum(abs(best.out$pX_D1-best.out$pX_D0))
-	L1_kbal=.5*sum(abs(best.out$pX_D1-best.out$pX_D0w))
+	L1_kbal=best.out$L1  #.5*sum(abs(best.out$pX_D1-best.out$pX_D0w))
+
+	biasbound_orig = 	biasbound(D = D, w = rep(1,N), V = svd.out$u, a = svd.out$d)
+	biasbound_kbal = best.out$biasbound
 
 	r=list()
 	r$K=K
-  r$dist=best.out$dist
+  r$L1=best.out$dist
 	r$w=best.out$w
 	#r$treatdrop=treatdrop
 	r$L1_orig=L1_orig
@@ -194,6 +259,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	r$sigma=sigma
 	r$min90=min(which(cumsum(sort(best.out$w[D==0],decreasing=TRUE))/sum(D==0)>=.90))
   r$dist.record=dist.record[1:max(which(!is.na(dist.record)))]
+  r$biasbound_orig=biasbound_orig
+  r$biasbound_kbal=biasbound_kbal
 	return(r)
 }
 
@@ -202,7 +269,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 #' @description  Get's the weights at the desired settings and computes
 #' the objective function, L1.
 #' @export
-get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, ...){
+get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, svd.out, ...){
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
@@ -255,11 +322,13 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
     }
 
     if (linkernel==FALSE){
-      L1=.5*sum(abs(pX_D1-pX_D0w))
+      L1 = .5*sum(abs(pX_D1-pX_D0w))
+      biasbound = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
     }
 
-    dist=L1
-    R$dist=dist
+    R$dist= biasbound  ##experimenting with using biasbound instead of L1
+    R$L1=L1
+    R$biasbound=biasbound
     R$w=w
     R$pX_D1=pX_D1
     R$pX_D0=pX_D0
@@ -267,7 +336,6 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
   }
   return(R)
 } ## end of get.dist
-
 
 #--------------------------------------------
 

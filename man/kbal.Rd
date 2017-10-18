@@ -38,6 +38,7 @@ kbal(X, D, K = NULL, whiten = FALSE, trimratio = NULL, numdims = NULL,
 \item{pX_D0}{The estimated density measure for the control, as measured at each X-coordinate observed (for both treated and control units)}
 \item{pX_D1}{The estimated density measure for the treated, as measured at each X-coordinate observed (for both treated and control units)}
 \item{sigma}{The choice of kernel bandwidth used}
+\item{biasbound}{The maximum bias that can be due to incomplete balancing, or not balancing at all. For a function with RKHS norm of gamma, the maximal bias possible due to incomplete balance is sqrt(gamma)*biasbound }
 }
 \description{
 Chooses weights on control units that produces equal means on a kernel matrix, K, rather than the original design matrix, X.
