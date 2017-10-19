@@ -42,7 +42,7 @@ biasbound=function(D,w,V,a, hilbertnorm=1){
   eigenimbal=t(w1)%*%V1 -t(w0)%*%V0
 
   #eigenimbal*(a^.5)%*%t(V)
-  effectiveimbal=(eigenimbal*(a^.5))%*%t(V)
+  effectiveimbal=(eigenimbal*(a^.5)) #%*%t(V)
   biasbound=sqrt(hilbertnorm)*sqrt(effectiveimbal%*%t(effectiveimbal))
   return(biasbound)
 }
