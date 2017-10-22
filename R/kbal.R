@@ -238,19 +238,24 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
   best.out=get.dist(X=X, numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
                     K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel, svd.out)
 
-	L1_orig=.5*sum(abs(best.out$pX_D1-best.out$pX_D0))
+  if(!is.null(numdims)){
+    dist.record=best.out$dist
+  }
+
+  L1_orig=sum(abs(best.out$pX_D1-best.out$pX_D0)) #removing 0.5
 	L1_kbal=best.out$L1  #.5*sum(abs(best.out$pX_D1-best.out$pX_D0w))
+	L2_kbal=sqrt(sum((best.out$pX_D1-best.out$pX_D0w)^2)) #removing 0.5
 
 	biasbound_orig = 	biasbound(D = D, w = rep(1,N), V = svd.out$u, a = svd.out$d)
 	biasbound_kbal = best.out$biasbound
 
 	r=list()
 	r$K=K
-  r$L1=best.out$dist
 	r$w=best.out$w
 	#r$treatdrop=treatdrop
 	r$L1_orig=L1_orig
 	r$L1_kbal=L1_kbal
+	r$L2_kbal=L2_kbal
 	r$pX_D1=best.out$pX_D1
 	r$pX_D0=best.out$pX_D0
 	r$pX_D0w=best.out$pX_D0w
@@ -305,10 +310,14 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
     w[treatdrop]=0
 
     if (linkernel==FALSE){
-      pX_D1=K_t%*%matrix(1,sum(D==1),1)
-      pX_D0=K_c%*%matrix(1,sum(D==0),1)
-      pX_D0w=K_c%*%w[D==0]
+      pX_D1=K_t%*%matrix(1,sum(D==1),1)/sum(D==1)
+      pX_D0=K_c%*%matrix(1,sum(D==0),1)/sum(D==0)
+      pX_D0w=K_c%*%w[D==0]/sum(w[D==0])
 
+      #Commenting out this rescaling, instead using a rescaling
+      #above by the number of treated and control, and sum of weights
+      #so that these are all like averages. This will look more
+      #like the biasbound scaling. 20 Oct 2017
       pX_D1=pX_D1/sum(pX_D1)
       pX_D0=pX_D0/sum(pX_D0)
       pX_D0w=pX_D0w/sum(pX_D0w)
@@ -322,7 +331,7 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
     }
 
     if (linkernel==FALSE){
-      L1 = .5*sum(abs(pX_D1-pX_D0w))
+      L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
       biasbound = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
     }
 
