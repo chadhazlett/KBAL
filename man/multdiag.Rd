@@ -9,7 +9,7 @@ multdiag(X, d)
 \arguments{
 \item{X}{A numeric matrix of data, typically a design matrix.}
 
-\item{d}{a vector, such that you want to know X%*%diag(d)}
+\item{d}{a vector, such that you want to know matrix product of X and diag(d)}
 }
 \description{
 Fast multiplication by a diagonal matrix

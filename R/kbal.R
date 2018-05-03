@@ -50,7 +50,7 @@ biasbound=function(D,w,V,a, hilbertnorm=1){
 #' Function to multiply a square matrix, X, with a diagonal matrix, diag(d)
 #' @description  Fast multiplication by a diagonal matrix
 #' @param X A numeric matrix of data, typically a design matrix.
-#' @param d a vector, such that you want to know X%*%diag(d)
+#' @param d a vector, such that you want to know matrix product of X and diag(d)
 #' @examples
 #' Xd=multdiag(X,d)
 multdiag <- function(X,d){
