@@ -186,7 +186,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
   # eigenvalues. I think this helps ebal in case of minor imperfections.
   #Kpc=multdiag(svd.out$u, svd.out$d)
   Kpc=svd.out$u
-  cum.var.pct=cumsum(svd.out$d)[1:N]/sum(svd.out$d)
+  cum.var.pct=cumsum(svd.out$d)[1:maxnumdims]/sum(svd.out$d)
 
   #Eigen? 11 Oct 2017
   #eig.out=eigen(Klambda, symmetric = TRUE)
@@ -334,14 +334,15 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
       pX_D0=colMeans(X[D==0, , drop=FALSE])
       pX_D0w=w[D==0]%*%X[D==0,]/sum(D==0)
       L1=sum(abs(pX_D1-pX_D0w))
+      R$dist=L1
     }
 
     if (linkernel==FALSE){
       L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
-      biasbound = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
+      biasbound.out = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
+      R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     }
 
-    R$dist= biasbound  ##experimenting with using biasbound instead of L1
     R$L1=L1
     R$biasbound=biasbound
     R$w=w
