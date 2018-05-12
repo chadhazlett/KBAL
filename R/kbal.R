@@ -128,8 +128,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	  }
 
 	#Option to pre-whiten X, as if using Mahalanobis distance in the kernel
-	if (whiten){ X=X%*%solve(chol(var(X)))}
-
+	if (whiten){X=X%*%solve(chol(var(X)))}
 
   if (is.null(sigma)){
 		sigma=2*dim(X)[2]
@@ -187,7 +186,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
   # eigenvalues. I think this helps ebal in case of minor imperfections.
   #Kpc=multdiag(svd.out$u, svd.out$d)
   Kpc=svd.out$u
-  cum.var.pct=cumsum(svd.out$d)[1:N]/N
+  cum.var.pct=cumsum(svd.out$d)[1:N]/sum(svd.out$d)
 
   #Eigen? 11 Oct 2017
   #eig.out=eigen(Klambda, symmetric = TRUE)
@@ -216,19 +215,26 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
                             svd.out=svd.out)
       dist.now=get.dist.out$dist
       #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
-      print(paste("Trying",thisnumdims,"dims of K; distance at", round(dist.now, 5)))
+      print(paste("Trying", thisnumdims,"dims of K; distance at", round(dist.now, 5)))
       dist.record=c(dist.record,dist.now)
       thisnumdims=thisnumdims+1
 
       if (dist.now<mindistsofar){mindistsofar=dist.now}
-
       wayover=(dist.now/mindistsofar)>1.25
       keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
 
     dimseq=seq(minnumdims,maxnumdims,1)
     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
-  }   #end for null numdims
+
+    #if nothing improved balance, there will be "many" minima.
+    # throw warning, and choose the fewest numdims.
+    if (length(numdims)>1){
+    warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.")
+      numdims=min(numdims)
+    }
+
+      }   #end for null numdims
 
 	#get pctvarK
 	pctvarK=cum.var.pct[numdims]
