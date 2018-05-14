@@ -111,7 +111,8 @@ multdiag <- function(X,d){
 #' @export
 
 kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
-          maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE){
+          maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE,
+          ebal.tol=1e-4){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
@@ -284,7 +285,8 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
-  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
+  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),
+                                        constraint.tolerance=ebal.tol, X=K2, print.level=-1),silent=TRUE)}
 
   if (method=="el"){
     yfake=rnorm(sum(D==0))
