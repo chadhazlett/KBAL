@@ -74,6 +74,7 @@ multdiag <- function(X,d){
 #' @param maxnumdims Optional user-specified choice for the maximum number of projectsion ffo \code{K} to attempt balance on. Defaults to the number of control units.
 #' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
 #' @param method "ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")
+#' @param ebal.tol Optional argument to control tolerance of ebal; defaults to 1e-4 while ebalance normally defauls to 1.
 #' @return \item{w}{The weights, taking value of 1 for treated unit and the estimated weight for each control.}
 #' \item{L1_orig}{The L1 imbalance metric on the original data}
 #' \item{L1_kbal}{The L1 imbalance metric on the weighted data}

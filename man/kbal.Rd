@@ -6,7 +6,7 @@
 \usage{
 kbal(X, D, K = NULL, whiten = FALSE, trimratio = NULL, numdims = NULL,
   maxnumdims = NULL, minnumdims = NULL, sigma = NULL, method = "ebal",
-  linkernel = FALSE)
+  linkernel = FALSE, ebal.tol = 1e-04)
 }
 \arguments{
 \item{X}{The original covariate data, as a numeric matrix.}
@@ -28,6 +28,8 @@ kbal(X, D, K = NULL, whiten = FALSE, trimratio = NULL, numdims = NULL,
 \item{sigma}{Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.}
 
 \item{method}{"ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")}
+
+\item{ebal.tol}{Optional argument to control tolerance of ebal; defaults to 1e-4 while ebalance normally defauls to 1.}
 }
 \value{
 \item{w}{The weights, taking value of 1 for treated unit and the estimated weight for each control.}
