@@ -236,7 +236,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
       numdims=min(numdims)
     }
 
-      }   #end for null numdims
+}   #end for null numdims
 
 	#get pctvarK
 	pctvarK=cum.var.pct[numdims]
@@ -286,8 +286,7 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
-  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),
-                                        constraint.tolerance=ebal.tol, X=K2, print.level=-1),silent=TRUE)}
+  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),constraint.tolerance=ebal.tol, X=K2, print.level=-1),silent=TRUE)}
 
   if (method=="el"){
     yfake=rnorm(sum(D==0))
