@@ -214,7 +214,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
       get.dist.out=get.dist(numdims=thisnumdims, D=D,
                             X=X, Kpc=Kpc, K=K, K_t=K_t, K_c=K_c,
                             method=method, treatdrop=treatdrop, linkernel=linkernel,
-                            svd.out=svd.out)
+                            svd.out=svd.out, ebal.tol)
       dist.now=get.dist.out$dist
       #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
       print(paste("Trying", thisnumdims,"dims of K; distance at", round(dist.now, 5)))
@@ -244,7 +244,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
   #Recover optimal answer:
 	#most of the goodies will be in here:
   best.out=get.dist(X=X, numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
-                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel, svd.out)
+                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel, svd.out, ebal.tol)
 
   if(!is.null(numdims)){
     dist.record=best.out$dist
@@ -282,7 +282,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 #' @description  Get's the weights at the desired settings and computes
 #' the objective function, L1.
 #' @export
-get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, svd.out, ...){
+get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, svd.out, ebal.tol, ...){
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
