@@ -343,10 +343,11 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
       L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
       biasbound.out = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
       R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
+      R$biasbound = biasbound.out
     }
 
     R$L1=L1
-    R$biasbound=biasbound
+    #R$biasbound=biasbound
     R$w=w
     R$pX_D1=pX_D1
     R$pX_D0=pX_D0
