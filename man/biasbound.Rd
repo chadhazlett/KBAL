@@ -21,5 +21,5 @@ biasbound(D, w, V, a, hilbertnorm = 1)
 XXX
 }
 \examples{
-biasbound=(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
+biasbound(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
 }

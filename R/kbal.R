@@ -26,7 +26,7 @@ buildgauss = function(X,sigma=NULL){
 #' @param a xxx .
 #' @param hilbertnorm xxx .
 #' @examples
-#' biasbound=(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
+#' biasbound(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
 #' @export
 biasbound=function(D,w,V,a, hilbertnorm=1){
   w1=w[D==1]/sum(D==1)
@@ -43,8 +43,8 @@ biasbound=function(D,w,V,a, hilbertnorm=1){
 
   #eigenimbal*(a^.5)%*%t(V)
   effectiveimbal=(eigenimbal*(a^.5)) #%*%t(V)
-  biasbound=sqrt(hilbertnorm)*sqrt(effectiveimbal%*%t(effectiveimbal))
-  return(biasbound)
+  biasboundx=sqrt(hilbertnorm)*sqrt(effectiveimbal%*%t(effectiveimbal))
+  return(biasboundx)
 }
 
 #' Function to multiply a square matrix, X, with a diagonal matrix, diag(d)
