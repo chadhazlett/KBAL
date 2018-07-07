@@ -75,6 +75,7 @@ multdiag <- function(X,d){
 #' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
 #' @param method "ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")
 #' @param ebal.tol Optional argument to control tolerance of ebal; defaults to 1e-4 while ebalance normally defauls to 1.
+#' @param dist.min Optional argument to stop search when the remainin imbalance (distance) falls below this value. Rarely necessary.
 #' @return \item{w}{The weights, taking value of 1 for treated unit and the estimated weight for each control.}
 #' \item{L1_orig}{The L1 imbalance metric on the original data}
 #' \item{L1_kbal}{The L1 imbalance metric on the weighted data}
@@ -104,7 +105,7 @@ multdiag <- function(X,d){
 
 kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
           maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE,
-          ebal.tol=1e-4){
+          ebal.tol=1e-4, dist.min=1e-5){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
@@ -214,7 +215,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 
       if (dist.now<mindistsofar){mindistsofar=dist.now}
       wayover=(dist.now/mindistsofar)>1.25
-      keepgoing=(dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
+      keepgoing=(dist.now>dist.min) & (dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
 
     dimseq=seq(minnumdims,maxnumdims,1)
