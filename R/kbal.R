@@ -105,7 +105,7 @@ multdiag <- function(X,d){
 
 kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
           maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE,
-          ebal.tol=1e-4, dist.min=1e-5){
+          ebal.tol=1e-4, dist.min=1e-8){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
