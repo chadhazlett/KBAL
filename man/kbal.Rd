@@ -58,17 +58,8 @@ mean(re78[nsw==1])-mean(re78[nsw==0])
 #OLS with covariates:
 summary(lm(re78~nsw+., data=lalonde[,xvars]))
 
-#Kbal at defaults: $1806
+#Kbal at defaults:
 kbalout=kbal(D=nsw,X=lalonde[,xvars])
 summary(lm(re78~nsw,w=kbalout$w))
-plot(x=seq(2:41),kbalout$dist.record[2:41],
-ylab="L1 imbalance", xlab="Num. dims of K balanced")
 
-#Kbal with mean balance ensured first, at defaults: $2455
-kbalout_mean=kbal_mean(D=nsw,X=lalonde[,xvars])
-summary(lm(re78~nsw,w=kbalout_mean$w))
-plot(x=seq(2:41),kbalout$dist.record[2:41], pch=16,
-    ylab="L1 imbalance", xlab="Num. dims of K balanced")
-points(kbalout_mean$dist.record[2:41], col=2, pch=16)
-legend("topright", col=c(1,2), pch=16, legend=c("full kbal","kbal after mean"))
 }
