@@ -105,7 +105,7 @@ multdiag <- function(X,d){
 
 kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
           maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE,
-          ebal.tol=1e-4, dist.min=1e-8){
+          ebal.tol=1e-4, dist.min=1e-8, incrementby=1){
 	N=dim(X)[1]
   P=dim(X)[2]
 	X=as.matrix(X)
@@ -211,14 +211,14 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
       #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
       print(paste("Trying", thisnumdims,"dims of K; distance at", round(dist.now, 5)))
       dist.record=c(dist.record,dist.now)
-      thisnumdims=thisnumdims+1
+      thisnumdims=thisnumdims+incrementby
 
       if (dist.now<mindistsofar){mindistsofar=dist.now}
       wayover=(dist.now/mindistsofar)>1.25
       keepgoing=(dist.now>dist.min) & (dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
     }
 
-    dimseq=seq(minnumdims,maxnumdims,1)
+    dimseq=seq(minnumdims,maxnumdims,incrementby)
     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
 
     #if nothing improved balance, there will be "many" minima.
