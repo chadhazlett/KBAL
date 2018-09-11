@@ -74,7 +74,7 @@ multdiag <- function(X,d){
 #' @param maxnumdims Optional user-specified choice for the maximum number of projectsion ffo \code{K} to attempt balance on. Defaults to the number of control units.
 #' @param sigma Optional user-specificied paramater for the Gaussian kernel. If blank, defaults to \code{nrow(X)}.
 #' @param method "ebal" or "el". Whether balance should be obtained on each projection of \code{K} using entropy balancing ("ebal", default) or empirical likelihood ("el")
-#' @param ebal.tol Optional argument to control tolerance of ebal; defaults to 1e-4 while ebalance normally defauls to 1.
+#' @param ebal.tol Optional argument to control tolerance of ebal; defaults to 1e-4 while ebalance_custom normally defauls to 1.
 #' @param dist.min Optional argument to stop search when the remainin imbalance (distance) falls below this value. Rarely necessary.
 #' @return \item{w}{The weights, taking value of 1 for treated unit and the estimated weight for each control.}
 #' \item{L1_orig}{The L1 imbalance metric on the original data}
@@ -216,6 +216,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
       if (dist.now<mindistsofar){mindistsofar=dist.now}
       wayover=(dist.now/mindistsofar)>1.25
       keepgoing=(dist.now>dist.min) & (dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
+      # XXX error above? dist.min not defined?
     }
 
     dimseq=seq(minnumdims,maxnumdims,incrementby)
@@ -278,7 +279,7 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
-  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),constraint.tolerance=ebal.tol, X=K2, print.level=-1),silent=TRUE)}
+  if (method=="ebal"){bal.out.pc=try(ebalance_custom(Treatment=as.vector(D),constraint.tolerance=ebal.tol, X=K2, print.level=-1),silent=TRUE)}
 
   if (method=="el"){
     yfake=rnorm(sum(D==0))
