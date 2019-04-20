@@ -213,9 +213,9 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
       dist.record=c(dist.record,dist.now)
       thisnumdims=thisnumdims+incrementby
 
-      if (dist.now<mindistsofar){mindistsofar=dist.now}
+      if (dist.now < mindistsofar & is.na(dist.now) == FALSE){mindistsofar=dist.now}
       wayover=(dist.now/mindistsofar)>1.25
-      keepgoing=(dist.now>dist.min) & (dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE
+      keepgoing=(dist.now>dist.min) & (dist.now!=999) & thisnumdims<=maxnumdims & wayover==FALSE & (is.na(dist.now) == FALSE)
       # XXX error above? dist.min not defined?
     }
 
