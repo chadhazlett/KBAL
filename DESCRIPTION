@@ -4,8 +4,9 @@ Title: Kernel Balancing
 Version: 0.0.0.9000
 Date: 2015-09-10
 Authors@R: person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre"))
-Description: A weighting approach to ensure unbiased ATT estimation with minimal
-    assumptions.
+Description: A weighting approach to make one group ``look like'' another,  with application to 
+ATT estimation (making control group look like treated), survey reweighting 
+(making a sampled group look like a population), etc.
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes
