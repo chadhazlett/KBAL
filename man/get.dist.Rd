@@ -4,8 +4,8 @@
 \alias{get.dist}
 \title{Find weights and compute L1 distance.}
 \usage{
-get.dist(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, svd.out,
-  ...)
+get.dist(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X,
+  svd.out, ...)
 }
 \description{
 Get's the weights at the desired settings and computes
