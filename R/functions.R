@@ -12,16 +12,16 @@ makeK = function(allx, useasbases=NULL, b=NULL){
 
 ### Get bias bound, which will be the distance
 ### function to drive the optimization
-biasbound=function(sampled, target, svd.out, w, hilbertnorm=1){
+biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
   wtarget=w[target==1]/sum(target==1)
-  wsample=w[sampled==1]/sum(sampled==1)
+  wobserved=w[observed==1]/sum(observed==1)
   
   V=svd.out$u
   eigenvals=svd.out$d
   
   V1=V[target==1, , drop=FALSE]
   V0=V[sampled==1, , drop=FALSE]
-  eigenimbal=as.vector(t(wtarget)%*%V1 - t(wsample)%*%V0)
+  eigenimbal=as.vector(t(wtarget)%*%V1 - t(wobserved)%*%V0)
   
   effectiveimbal=(eigenimbal*(eigenvals^.5)) #%*%t(V)
   biasbound=sqrt(hilbertnorm)*sqrt(t(effectiveimbal)%*%(effectiveimbal))
@@ -47,17 +47,17 @@ dimw = function(X,w,target){
 # Currently just uses ebal, but we could to others
 # or give options.
 # Will need some work to better carry error messages from ebal.
-getw = function(target, sampled, allrows, ebal.tol=1e-6,...){
+getw = function(target, observed, allrows, ebal.tol=1e-6,...){
   
   # To trick ebal into using a control group that corresponds to the 
-  # sampled and a treated that corresponds to the "target" group, 
-  # (1) anybody who is "sampled" but also considered part of the target
+  # observed and a treated that corresponds to the "target" group, 
+  # (1) anybody who is "observed" but also considered part of the target
   # group has to get a duplicate row in the data 
   # (2) construct a variables target_ebal that = 1 when target=1
-  # but =0 in the appended data, i.e. for the sampled who are 
+  # but =0 in the appended data, i.e. for the observed who are 
   # entering a second time. 
-  Xappended = rbind(allrows,  allrows[sampled==1 & target==1, , drop=FALSE] )
-  target_ebal = c(target, rep(0, sum(sampled==1 & target==1)))
+  Xappended = rbind(allrows,  allrows[observed==1 & target==1, , drop=FALSE] )
+  target_ebal = c(target, rep(0, sum(observed==1 & target==1)))
 
     bal.out.pc=try(ebal::ebalance(Treatment=target_ebal,X=Xappended,
         constraint.tolerance=ebal.tol, print.level=-1),
@@ -71,9 +71,9 @@ getw = function(target, sampled, allrows, ebal.tol=1e-6,...){
   
   if (class(bal.out.pc)[1]!="try-error"){
     w=rep(1,N)
-    w[sampled==1]=bal.out.pc$w
+    w[observed==1]=bal.out.pc$w
     #rescale to mean=1 among the donors
-    w[sampled==1]=w[sampled==1]/mean(w[sampled==1])
+    w[observed==1]=w[observed==1]/mean(w[observed==1])
     #biasbound.out = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
     #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     #R$biasbound = biasbound.out
@@ -82,6 +82,17 @@ getw = function(target, sampled, allrows, ebal.tol=1e-6,...){
   return(R)
 } # end of getw.
 
+
+# Oct 16 2019 Update on reasoning of names; two forms of input to kpop and 
+#a third language change to the whole code
+# 1. pass in "sampled" and a logical "sampledinpop" that when true indicates 
+#that the sampled pop should be re-incorperated into the target population
+# 2. pass in "treatment" only which specifies the target population;
+#zeros in this matrix are inferred to be the "sampled" or observed popultion
+# 3. throughout the code itself use "target" to refer to the target populationtion (or the treated)
+#use "observed" to refer to the sampled population (or the controls)
+#note that this just means that "sampled"  and "treatment" only appear as an inputs to the kpop function
+#and "observed"  and "target" are used everywhere else internally in the code (biasbound, getw etc)
 
 # 10 Oct 2019 -- re-reasoning about how to manage sample vs. target
 # Please note this may not match what is implemented below!!!
@@ -105,15 +116,37 @@ getw = function(target, sampled, allrows, ebal.tol=1e-6,...){
 
 
 # The main event: Actual kpop function!
-kpop = function(allx, useasbases=NULL, b=NULL, target=NULL, sampled=NULL, 
+kpop = function(allx, useasbases=NULL, b=NULL, 
+                sampled=NULL, sampledinpop=NULL,
+                treatment=NULL,
                 ebal.tol=1e-6, numdims=NULL, 
                 minnumdims=NULL, maxnumdims=NULL, 
                 incrementby=1){
- 
+  #need to throw error if try to pass both sample and target
+  if(!is.null(sampled) & !is.null(treatment)) {
+       stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
+  }
+
+  #throw warning for using default sampledinpop=TRUE
+  if(is.null(sampledinpop)) {
+      warning("using default parameter \"sampledinpop\" = TRUE")
+      sampledinpop = TRUE
+      
+  }
+    
   N=nrow(allx)
-  if (is.null(target)){target=rep(1,N)}
-  
-  if(is.null(sample)){sample=(target!=1)}
+  if(!is.null(sampled) & sampledinpop==FALSE) { 
+      observed = sampled
+      target = 1-sampled
+  } else if(!is.null(sampled)) {
+      observed = sampled
+      target = rep(1,N)
+  } else if(is.null(treatment)) { #error for passing in both as null
+      stop("either the \"sampled\" or \"treatment\" argument is required")
+  } else{ 
+      observed = 1-treatment
+      target = treatment
+  }
   
   # If we don't specify which observations to use as bases, 
   # use just the "sample" set, i.e. the non-targets. 
@@ -136,16 +169,16 @@ kpop = function(allx, useasbases=NULL, b=NULL, target=NULL, sampled=NULL,
   Kpc=svd.out$u
   
   # Get biasbound with no improvement in balance:
-  biasbound_orig=biasbound( w = rep(1,N), sampled=sampled, target = target, svd.out = svd.out, hilbertnorm = 1)
+  biasbound_orig=biasbound( w = rep(1,N), observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
   paste0("Without balancing, biasbound (norm=1) is ",round(biasbound_orig,3))
   
   # If numdims given, just get the weights in one shot:
   if (!is.null(numdims)){
     Kpc2=Kpc[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, sampled=sampled, allrows=Kpc2)
+    getw.out=getw(target=target, observed=observed, allrows=Kpc2)
     # XXX This would be place to add check for non-convergence of ebal.
     w=getw.out$w
-    biasboundnow=biasbound( w = w, sampled=sampled,  target = target, svd.out = svd.out, hilbertnorm = 1)
+    biasboundnow=biasbound( w = w, observed=observed,  target = target, svd.out = svd.out, hilbertnorm = 1)
     print(paste0("With ",numdims," dimensions, biasbound (norm=1) of ", round(biasboundnow,3)))
     }
   
@@ -160,12 +193,12 @@ kpop = function(allx, useasbases=NULL, b=NULL, target=NULL, sampled=NULL,
 
     while (keepgoing==TRUE){
       Kpc_try=Kpc[,1:thisnumdims, drop=FALSE]
-      getw.out=getw(target = target, sampled=sampled, allrows = Kpc_try)
+      getw.out=getw(target = target, observed=observed, allrows = Kpc_try)
       w=getw.out$w
       # Need to work on case where ebal fails and flagging this in result. 
       # For now just returns all even weights. 
       
-      biasboundnow=biasbound( w = w, sampled=sampled, target = target, svd.out = svd.out, hilbertnorm = 1)
+      biasboundnow=biasbound( w = w, observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
       print(paste0("With ",thisnumdims," dimensions, biasbound (norm=1) of ", round(biasboundnow,3)))
       dist.record=c(dist.record,biasboundnow)
       
@@ -199,9 +232,9 @@ kpop = function(allx, useasbases=NULL, b=NULL, target=NULL, sampled=NULL,
     # at optimal  number of dimensions
     paste0("Re-running at optimal choice of numdims, ", numdims)
     Kpc2=Kpc[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, sampled=sampled, allrows=Kpc2)
+    getw.out=getw(target=target, observed=observed, allrows=Kpc2)
     w=getw.out$w
-    biasbound_opt=biasbound( w = w, sampled=sampled, target = target, svd.out = svd.out, hilbertnorm = 1)
+    biasbound_opt=biasbound( w = w, observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
 }   #end for "if null numdims"
   
   
