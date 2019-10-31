@@ -12,6 +12,17 @@ makeK = function(allx, useasbases=NULL, b=NULL){
 
 ### Get bias bound, which will be the distance
 ### function to drive the optimization
+#similar to biasboud in kbal
+#' Get the bound on the bias due to incomplete balance
+#' @description XXX
+#' @param observed xxx .
+#' @param target xxx .
+#' @param svd.out xxx .
+#' @param w xxx .
+#' @param hilbertnorm xxx .
+#' @examples
+#' biasbound=(observed=xxx, target=xxx, svd.out = xxx, w = xxx, hilbertnorm=1)
+#' @export
 biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
   wtarget=w[target==1]/sum(target==1)
   wobserved=w[observed==1]/sum(observed==1)
@@ -20,7 +31,7 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
   eigenvals=svd.out$d
   
   V1=V[target==1, , drop=FALSE]
-  V0=V[sampled==1, , drop=FALSE]
+  V0=V[observed==1, , drop=FALSE]
   eigenimbal=as.vector(t(wtarget)%*%V1 - t(wobserved)%*%V0)
   
   effectiveimbal=(eigenimbal*(eigenvals^.5)) #%*%t(V)
@@ -30,6 +41,16 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 
 # Simple diffference in mean and in weighted means
 # (Not actually used right now but can be convenient)
+#' Difference in means and Difference in weighted means
+#' 
+#' Calcuates the simple difference in means or weighted difference in means between the treated/sample population and the control/target popultion.
+#' 
+#' @param X Matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.
+#' @param w vector of weights
+#' @param target vector taking values of 0 or 1's indicating which observations (whuch rows  of X and w) are in the treated/sample population and which are in the control/target population.
+#' @return \code{dim} the simple, unweighted difference in means
+#' @return \code{dimw} the weighted difference in means
+#' @example XXX 
 dimw = function(X,w,target){
   w1=w[target==1]/sum(w[target==1])
   w0=w[target!=1]/sum(w[target!=1])
@@ -47,6 +68,10 @@ dimw = function(X,w,target){
 # Currently just uses ebal, but we could to others
 # or give options.
 # Will need some work to better carry error messages from ebal.
+#' Find weights and compute L1 distance.
+#' @description  Get's the weights at the desired settings and computes
+#' the objective function, L1.
+#' @export
 getw = function(target, observed, allrows, ebal.tol=1e-6,...){
   
   # To trick ebal into using a control group that corresponds to the 
@@ -151,7 +176,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   # If we don't specify which observations to use as bases, 
   # use just the "sample" set, i.e. the non-targets. 
   if (is.null(useasbases)){
-    useasbases=as.numeric(sampled==1)
+    useasbases=as.numeric(observed==1)
     # useasbases=rep(1,N)  #or if you want all obs as bases
   }
  
@@ -248,5 +273,4 @@ kpop = function(allx, useasbases=NULL, b=NULL,
 
   return(R)
 } # end kpop main function
-
 
