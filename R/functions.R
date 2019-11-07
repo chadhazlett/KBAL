@@ -143,7 +143,8 @@ kpop = function(allx, useasbases=NULL, b=NULL,
                 treatment=NULL,
                 ebal.tol=1e-6, numdims=NULL, 
                 minnumdims=NULL, maxnumdims=NULL, 
-                incrementby=1){
+                incrementby=1, 
+                printprogess = TRUE){
     
   #need to throw error if try to pass both sample and target
   if(!is.null(sampled) & !is.null(treatment)) {
@@ -154,7 +155,6 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   if(is.null(sampledinpop)) {
       warning("using default parameter \"sampledinpop\" = TRUE")
       sampledinpop = TRUE
-      
   }
     
   N=nrow(allx)
@@ -243,7 +243,11 @@ kpop = function(allx, useasbases=NULL, b=NULL,
       # For now just returns all even weights. 
       
       biasboundnow=biasbound( w = w, observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
-      print(paste0("With ",thisnumdims," dimensions, biasbound (norm=1) of ", round(biasboundnow,3)))
+      if(printprogress == TRUE) {
+          print(paste0("With ",thisnumdims," dimensions, biasbound (norm=1) of ", 
+                       round(biasboundnow,3)))
+      }
+     
       dist.record=c(dist.record,biasboundnow)
       
       dist.now=biasboundnow # To make more generic, distance could be any measure.
