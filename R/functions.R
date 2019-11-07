@@ -3,9 +3,6 @@
 ### Build kernel, possibly non-square
 makeK = function(allx, useasbases=NULL, b=NULL){
   N=nrow(allx)
-  
-  # If no "useasbasis" given, assume all observations are to be used. 
-  if (is.null(b)){ b=ncol(allx) }
   bases = allx[useasbases==1, ]
   K=KRLS2::newKernel(X = bases , newData = allx , b = b)
 }
@@ -169,9 +166,14 @@ kpop = function(allx, useasbases=NULL, b=NULL,
       target = rep(1,N)
   } else if(is.null(treatment)) { #error for passing in both as null
       stop("either the \"sampled\" or \"treatment\" argument is required")
-  } else{ 
+  } else { 
       observed = 1-treatment
       target = treatment
+      #adding warning that sampleinpop==FALSE with treatment passed in
+      #NB: this may change later if we add ATE option
+      if(sampleinpop == TRUE) { 
+          warning("\"treatment\" input requires \"sampleinpop\" to be FALSE. Proceeding with \"sampleinpop\" as FALSE.") 
+          }
   }
   
   #error catch for passing in all 1's for either sampled or treated
@@ -181,9 +183,8 @@ kpop = function(allx, useasbases=NULL, b=NULL,
       stop("\"target\" contains only target units (all entries are 1)")
   }
   
-  
   # If we don't specify which observations to use as bases, 
-  # use just the "sample" set, i.e. the non-targets. 
+  # use all as default unless K is very large, then use sample set. 
   if (is.null(useasbases) & N <= 2000){
       useasbases = rep(1,N) 
   } else if(is.null(useasbases)) {
@@ -200,6 +201,10 @@ kpop = function(allx, useasbases=NULL, b=NULL,
     }
   if (is.null(maxnumdims)){maxnumdims=sum(useasbases)}
 
+  #adding default b within the kpop function rather than in makeK
+  #changing default to be 2*ncol to match kbal
+  if (is.null(b)){ b = 2*ncol(allx) }
+  
   K = makeK(allx = allx, useasbases = useasbases, b=b)
   svd.out=svd(K)
   Kpc=svd.out$u
