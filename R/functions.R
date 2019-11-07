@@ -147,6 +147,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
                 ebal.tol=1e-6, numdims=NULL, 
                 minnumdims=NULL, maxnumdims=NULL, 
                 incrementby=1){
+    
   #need to throw error if try to pass both sample and target
   if(!is.null(sampled) & !is.null(treatment)) {
        stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
@@ -172,6 +173,14 @@ kpop = function(allx, useasbases=NULL, b=NULL,
       observed = 1-treatment
       target = treatment
   }
+  
+  #error catch for passing in all 1's for either sampled or treated
+  if(sum(observed != 1) == 0) {
+      stop("\"sampled\" contains only sampled units (all entries are 1)")
+  } else if(sum(target != 1) == 0 ){
+      stop("\"target\" contains only target units (all entries are 1)")
+  }
+  
   
   # If we don't specify which observations to use as bases, 
   # use just the "sample" set, i.e. the non-targets. 
