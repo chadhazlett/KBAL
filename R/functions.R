@@ -184,16 +184,18 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   
   # If we don't specify which observations to use as bases, 
   # use just the "sample" set, i.e. the non-targets. 
-  if (is.null(useasbases)){
-    useasbases=as.numeric(observed==1)
-    # useasbases=rep(1,N)  #or if you want all obs as bases
+  if (is.null(useasbases) & N <= 2000){
+      useasbases = rep(1,N) 
+  } else if(is.null(useasbases)) {
+      warning("Dimensions of K greater than 2000, using sampled as default bases")
+      useasbases = as.numeric(observed==1)
   }
  
   if (is.null(minnumdims)){minnumdims=1}
   
   # The most dims you can use is the number of bases
   if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)){
-    warning("Cannot allow more dimensions of K than the number of bases. Reducing maxnumdims.")
+    warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing maxnumdims.")
     maxnumdims=sum(useasbases)
     }
   if (is.null(maxnumdims)){maxnumdims=sum(useasbases)}
@@ -203,7 +205,8 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   Kpc=svd.out$u
   
   # Get biasbound with no improvement in balance:
-  biasbound_orig=biasbound( w = rep(1,N), observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
+  biasbound_orig=biasbound( w = rep(1,N), observed=observed, target = target, 
+                            svd.out = svd.out, hilbertnorm = 1)
   paste0("Without balancing, biasbound (norm=1) is ",round(biasbound_orig,3))
   
   # If numdims given, just get the weights in one shot:
@@ -212,8 +215,10 @@ kpop = function(allx, useasbases=NULL, b=NULL,
     getw.out=getw(target=target, observed=observed, allrows=Kpc2)
     # XXX This would be place to add check for non-convergence of ebal.
     w=getw.out$w
-    biasboundnow=biasbound( w = w, observed=observed,  target = target, svd.out = svd.out, hilbertnorm = 1)
-    print(paste0("With ",numdims," dimensions, biasbound (norm=1) of ", round(biasboundnow,3)))
+    biasboundnow=biasbound( w = w, observed=observed,  target = target, 
+                            svd.out = svd.out, hilbertnorm = 1)
+    print(paste0("With ",numdims," dimensions, biasbound (norm=1) of ", 
+                 round(biasboundnow,3)))
     }
   
   # If numdims not given, we search to minimize biasbound:
