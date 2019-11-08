@@ -3,8 +3,9 @@
 ### Build kernel, possibly non-square
 makeK = function(allx, useasbases=NULL, b=NULL){
   N=nrow(allx)
+
   # If no "useasbasis" given, assume all observations are to be used.
-  #if (is.null(b)){ b=2*ncol(allx) }
+  if (is.null(b)){ b=ncol(allx) }
   bases = allx[useasbases==1, ]
   K=KRLS2::newKernel(X = bases , newData = allx , b = b)
 }
@@ -44,6 +45,7 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' Difference in means and Difference in weighted means
 #'
 #' Calcuates the simple difference in means or weighted difference in means between the treated/sample population and the control/target popultion.
+
 #' 
 #' @param X Matrix of data where rows are observations and columns are covariates.
 #' @param w numeric vector of weights for each observation.
@@ -199,7 +201,6 @@ kpop = function(allx, useasbases=NULL, b=NULL,
                 minnumdims=NULL, maxnumdims=NULL, 
                 incrementby=1, 
                 printprogress = TRUE){
-    
   #need to throw error if try to pass both sample and target
   if(!is.null(sampled) & !is.null(treatment)) {
        stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
@@ -221,7 +222,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
       target = rep(1,N)
   } else if(is.null(treatment)) { #error for passing in both as null
       stop("either the \"sampled\" or \"treatment\" argument is required")
-  } else { 
+  } else{
       observed = 1-treatment
       target = treatment
       #adding warning that sampledinpop==FALSE with treatment passed in
@@ -254,6 +255,13 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   } else if(is.null(useasbases)) {
       warning("Dimensions of K greater than 2000, using sampled as default bases")
       useasbases = as.numeric(observed==1)
+  }
+
+  # If we don't specify which observations to use as bases,
+  # use just the "sample" set, i.e. the non-targets.
+  if (is.null(useasbases)){
+    useasbases=as.numeric(observed==1)
+    # useasbases=rep(1,N)  #or if you want all obs as bases
   }
 
   if (is.null(minnumdims)){minnumdims=1}
