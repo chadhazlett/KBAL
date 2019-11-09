@@ -11,7 +11,7 @@ biasbound(D, w, V, a, hilbertnorm = 1)
 \arguments{
 \item{D}{xxx .}
 
-\item{w}{numeric vector of length equal to the total number of units containing the weight for each corresponding unit.}
+\item{w}{numeric vector of length equal to the total number of units containing the weight for each corresponding unit. Note that these weights should sum to the total number of units not to one. They are divided by the number of units internally within the function.}
 
 \item{V}{xxx .}
 
@@ -23,7 +23,7 @@ biasbound(D, w, V, a, hilbertnorm = 1)
 
 \item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
 
-\item{svd.out}{The object output from \code\link{svd} performed on the kernel matrix.}
+\item{svd.out}{the object output from \code\link{svd} performed on the kernel matrix.}
 
 \item{w}{xxx .}
 
@@ -35,6 +35,24 @@ Calculate the upper bound on the bias induced by approximate balance
 XXX
 }
 \examples{
-biasbound=(observed=xxx, target=xxx, svd.out = xxx, w = xxx, hilbertnorm=1)
+#load and clean data a bit
+data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+
+#need a kernel matrix to run SVD on and pass in so get that first with makeK
+#running makeK with the sampled units as the bases
+K = makeK(allx = lalonde[,xvars], 
+useasbases = as.numeric(1-lalonde$nsw), 
+b = 2*ncol(lalonde[,xvars]))
+
+#svd on this kernel
+svd_pass = svd(K)
+#let's use the original weights of 1/number of sampled units, and 1/numer of target units
+#this is the default if we pass in w as all 1's
+biasbound=(observed=(1-lalonde$nsw),
+ target=lalonde$nsw, 
+ svd.out = svd_pass, 
+ w = rep(1,nrow(lalonde)), hilbertnorm=1)
 biasbound=(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
 }

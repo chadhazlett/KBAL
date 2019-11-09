@@ -2,33 +2,47 @@
 % Please edit documentation in R/functions.R
 \name{kpop}
 \alias{kpop}
-\title{Kernel balancing}
+\title{Kernel Balancing}
 \usage{
 kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
   sampledinpop = NULL, treatment = NULL, ebal.tol = 1e-06,
   numdims = NULL, minnumdims = NULL, maxnumdims = NULL,
-  incrementby = 1, printprogess = TRUE)
+  incrementby = 1, printprogress = TRUE)
 }
 \arguments{
+\item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
+
+\item{useasbases}{optional binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.}
+
+\item{b}{scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.}
+
 \item{sampled}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
-\item{treatment}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+\item{sampledinpop}{a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should be included in the target popultion XXX.}
+
+\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} XXX.}
 
 \item{ebal.tol}{tolerance level used by \code{ebalance}}
 
-\item{printprogress}{}
+\item{numdims}{optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.}
+
+\item{minnumdims}{optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.}
+
+\item{maxnumdims}{optional numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. While the number of observations is under 2000, the default maximum is the total number of observations. Due to the computation burden, when the number of observations is over 2000, the default is the number of sampled units.}
+
+\item{incrementby}{optional argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.}
+
+\item{printprogress}{optional logical argument to print current number of dimensions and bias.}
 }
 \value{
-\code{dist.record}
-
-\code{biasbound}
-
-\code{dist.sequence}
-
-\code{numdims}
-
-\code{biasbound.opt}
+\item{dist.record}{a numeric vector recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
+ \item{dist.sequence}{a numeric vector recording the number of dimensions of the SVD of the kernel matrix used in calculating the bias bound values stored in \code{dist.record}}
+ \item{biasbound.orig}{the bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.}
+ \item{numdims}{the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
+ \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix}
+ \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
+\item{K}{the kernel matrix.}
 }
 \description{
-Th
+The kernel balancing function. XXXXX
 }

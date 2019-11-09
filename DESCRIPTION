@@ -13,6 +13,8 @@ Depends:
 Imports:
     ebal,
     emplik,
-    glmc
+    glmc,
+    Rcpp
+LinkingTo: Rcpp
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
 RoxygenNote: 6.1.1

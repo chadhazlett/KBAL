@@ -16,7 +16,7 @@ getw(target, observed, allrows, ebal.tol = 1e-06, ...)
 \item{ebal.tol}{tolerance level used by \code{ebalance}}
 }
 \value{
-\code{w} numeric vector of weights
+\item{w}{numeric vector of weights}
 }
 \description{
 Using entropy balancing to find and return the weights such that XXXX

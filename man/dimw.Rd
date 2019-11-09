@@ -7,11 +7,17 @@
 dimw(X, w, target)
 }
 \arguments{
-\item{X}{Matrix of data where rows are observations and columns are covariates.}
+\item{X}{matrix of data where rows are observations and columns are covariates.}
 
 \item{w}{numeric vector of weights for each observation.}
 
-\item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+\item{target}{numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+
+\item{X}{matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.}
+
+\item{w}{numeric vector of weights for every obervation}
+
+\item{target}{vector taking values of 0 or 1's indicating which observations (whuch rows  of X and w) are in the treated/sample population and which are in the control/target population.}
 }
 \value{
 \code{dim} the simple, unweighted difference in means
