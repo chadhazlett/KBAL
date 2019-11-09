@@ -227,6 +227,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
                 minnumdims=NULL, maxnumdims=NULL, 
                 incrementby=1, 
                 printprogress = TRUE){
+    
   #need to throw error if try to pass both sample and target
   if(!is.null(sampled) & !is.null(treatment)) {
        stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
@@ -266,12 +267,10 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   }
   
   #error catch for covariates with no variance:
-  check_sd = apply(allx, 2, sd)
   if(0 %in% apply(allx, 2, sd)) {
        stop("One or more column in \"allx\" have zero variance")
       }
-  }
-  
+
   # If we don't specify which observations to use as bases, 
   # use all as default unless K is very large, then use sample set. 
   if (is.null(useasbases) & N <= 2000){
@@ -317,7 +316,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
     Kpc2=Kpc[,1:numdims, drop=FALSE]
     getw.out=getw(target=target, observed=observed, allrows=Kpc2)
     # XXX This would be place to add check for non-convergence of ebal.
-    w=getw.out$w
+    w=getw.out
     biasboundnow=biasbound( w = w, observed=observed,  target = target, 
                             svd.out = svd.out, hilbertnorm = 1)
     print(paste0("With ",numdims," dimensions, biasbound (norm=1) of ", 
@@ -337,7 +336,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
     while (keepgoing==TRUE){
       Kpc_try=Kpc[,1:thisnumdims, drop=FALSE]
       getw.out=getw(target = target, observed=observed, allrows = Kpc_try)
-      w=getw.out$w
+      w=getw.out
       # Need to work on case where ebal fails and flagging this in result.
       # For now just returns all even weights.
 
@@ -382,7 +381,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
     } else {paste0("Running at user-specified choice of numdims, ", numdims)}
     Kpc2=Kpc[,1:numdims, drop=FALSE]
     getw.out=getw(target=target, observed=observed, allrows=Kpc2)
-    w=getw.out$w
+    w=getw.out
     biasbound_opt=biasbound( w = w, observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
 }   #end for "if null numdims"
 
