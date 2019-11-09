@@ -265,6 +265,13 @@ kpop = function(allx, useasbases=NULL, b=NULL,
       stop("\"target\" contains only target units (all entries are 1)")
   }
   
+  #error catch for covariates with no variance:
+  check_sd = apply(allx, 2, sd)
+  if(0 %in% apply(allx, 2, sd)) {
+       stop("One or more column in \"allx\" have zero variance")
+      }
+  }
+  
   # If we don't specify which observations to use as bases, 
   # use all as default unless K is very large, then use sample set. 
   if (is.null(useasbases) & N <= 2000){
