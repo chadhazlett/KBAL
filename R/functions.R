@@ -1,13 +1,39 @@
 ### Helper functions
 
 ### Build kernel, possibly non-square
+#' Build the Kernel Matrix
+#' 
+#' @description Builds the kernel matrix using Rcpp.
+#' @param allx A data matrix containing all observations where rows are units and columns are covariates.
+#' @param useasbases Binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.
+#' @param b Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
+#' @return \item{K}{The Kernel matrix}
+#' @example 
+#' #load and clean data a bit
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' 
+#' #note that lalonde$nsw is the treatment vector, so the observered is 1-lalodne$nsw
+#' #running makeK with the sampled units as the bases given the large size of the data
+#' #and with b as twice the number of covariates
+#' K = makeK(allx = lalonde[,xvars], 
+#' useasbases = as.numeric(1-lalonde$nsw), 
+#' b = 2*ncol(lalonde[,xvars]))
 makeK = function(allx, useasbases=NULL, b=NULL){
   N=nrow(allx)
-
+  
   # If no "useasbasis" given, assume all observations are to be used.
-  if (is.null(b)){ b=ncol(allx) }
+  #default b should be ??? XXX
+  if (is.null(b)){ b=2*ncol(allx) }
   bases = allx[useasbases==1, ]
-  K=KRLS2::newKernel(X = bases , newData = allx , b = b)
+  
+  bases <- scale(bases, center = colMeans(bases), scale = apply(bases, 2, sd))
+  allx <- scale(allx, center = Xmeans, scale = Xsd)
+  
+  K = new_gauss_kern(newx = allx, oldx = bases, b = b) 
+  return(K)
+  #K=KRLS2::newKernel(X = bases , newData = allx , b = b) #if use this then do not rescale above
 }
 
 ### Get bias bound, which will be the distance
@@ -17,11 +43,29 @@ makeK = function(allx, useasbases=NULL, b=NULL){
 #' @description Calculate the upper bound on the bias induced by approximate balance  
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0. 
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
-#' @param svd.out The object output from \code\link{svd} performed on the kernel matrix.
-#' @param w numeric vector of length equal to the total number of units containing the weight for each corresponding unit.
+#' @param svd.out the object output from \code\link{svd} performed on the kernel matrix.
+#' @param w numeric vector of length equal to the total number of units containing the weight for each corresponding unit. Note that these weights should sum to the total number of units not to one. They are divided by the number of units internally within the function. 
 #' @param hilbertnorm numeric value of the hilbertnorm.
 #' @examples
-#' biasbound=(observed=xxx, target=xxx, svd.out = xxx, w = xxx, hilbertnorm=1)
+#' #load and clean data a bit
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' 
+#' #need a kernel matrix to run SVD on and pass in so get that first with makeK
+#' #running makeK with the sampled units as the bases
+#' K = makeK(allx = lalonde[,xvars], 
+#' useasbases = as.numeric(1-lalonde$nsw), 
+#' b = 2*ncol(lalonde[,xvars]))
+#' 
+#' #svd on this kernel
+#' svd_pass = svd(K)
+#' #let's use the original weights of 1/number of sampled units, and 1/numer of target units
+#' #this is the default if we pass in w as all 1's
+#' biasbound=(observed=(1-lalonde$nsw),
+#'  target=lalonde$nsw, 
+#'  svd.out = svd_pass, 
+#'  w = rep(1,nrow(lalonde)), hilbertnorm=1)
 #' @export
 biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
   wtarget=w[target==1]/sum(target==1)
@@ -45,14 +89,12 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' Difference in means and Difference in weighted means
 #'
 #' Calcuates the simple difference in means or weighted difference in means between the treated/sample population and the control/target popultion.
-
-#' 
-#' @param X Matrix of data where rows are observations and columns are covariates.
+#' @param X matrix of data where rows are observations and columns are covariates.
 #' @param w numeric vector of weights for each observation.
-#' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. 
+#' @param target numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. 
 #'
-#' @param X Matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.
-#' @param w vector of weights
+#' @param X matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.
+#' @param w numeric vector of weights for every obervation
 #' @param target vector taking values of 0 or 1's indicating which observations (whuch rows  of X and w) are in the treated/sample population and which are in the control/target population.
 #' @return \code{dim} the simple, unweighted difference in means
 #' @return \code{dimw} the weighted difference in means
@@ -76,14 +118,31 @@ dimw = function(X,w,target){
 # Will need some work to better carry error messages from ebal.
 
 #' Find weights using entropy balancing.
-#' @description  Using entropy balancing to find and return the weights such that XXXX
+#' @description Using entropy balancing to find and return the weights such that XXXX
 #' 
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. 
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0. 
 #' @param allrows Matrix whose columns contain the left singular vectors of the kernel matrix 
 #' @param ebal.tol tolerance level used by \code{ebalance}
 #' @return \item{w}{numeric vector of weights}
-#' @example XXX
+#' @example 
+#' #load and clean data a bit
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' 
+#' #need a kernel matrix to run SVD on then find weights with so get that first with makeK
+#' #running makeK with the sampled units as the bases
+#' K = makeK(allx = lalonde[,xvars], 
+#' useasbases = as.numeric(1-lalonde$nsw), 
+#' b = 2*ncol(lalonde[,xvars]))
+#' 
+#' #svdon this kernel and get matrix with left singular values
+#' Kpc = svd(K)$u
+#' #usually we are getting weights using different number of columns of this matrix, the finding
+#' # the bias and looking for the minimum. For now let's just use the first 10
+#' Kpc2=Kpc[,1:10, drop=FALSE]
+#' getw.out=getw(target=target, observed=observed, allrows=Kpc2)
 #' @export
 getw = function(target, observed, allrows, ebal.tol=1e-6,...){
 
@@ -101,7 +160,6 @@ getw = function(target, observed, allrows, ebal.tol=1e-6,...){
         constraint.tolerance=ebal.tol, print.level=-1),
         silent=TRUE)
   N=nrow(allrows)
-  R=list()
   if ("try-error"%in%class(bal.out.pc)){
     w=rep(1,N)
     #R$dist="ebalerror"
@@ -116,66 +174,35 @@ getw = function(target, observed, allrows, ebal.tol=1e-6,...){
     #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     #R$biasbound = biasbound.out
   }
-  R$w=w
-  return(R)
+  return(w)
 } # end of getw.
 
 
-# Oct 16 2019 Update on reasoning of names; two forms of input to kpop and
-#a third language change to the whole code
-# 1. pass in "sampled" and a logical "sampledinpop" that when true indicates
-#that the sampled pop should be re-incorperated into the target population
-# 2. pass in "treatment" only which specifies the target population;
-#zeros in this matrix are inferred to be the "sampled" or observed popultion
-# 3. throughout the code itself use "target" to refer to the target populationtion (or the treated)
-#use "observed" to refer to the sampled population (or the controls)
-#note that this just means that "sampled"  and "treatment" only appear as an inputs to the kpop function
-#and "observed"  and "target" are used everywhere else internally in the code (biasbound, getw etc)
-
-# 10 Oct 2019 -- re-reasoning about how to manage sample vs. target
-# Please note this may not match what is implemented below!!!
-# 1. Only specify "sampled" and a logical flag "sampleinpop" that indicates
-# your intended target population should re-include units who happened to also be sampled.  Throw an error is sampleinpop is not specified (i.e. no default).
-# There will no longer be a "target" vector at all.
-
-# OLD stuff (pre 10 Oct 2019)
-# Added "sampled", in addition to "target".
-# If you tell it only who was sampled, it assumes the targets are
-# the non-sampled.
-# If you don't tell it who was sampled but do tell it who the targets are,
-# it assumes the sampled are the non-targets.
-# If you specify both, you can use sampled to tell it whose data you have
-# and use target to specify who should inform the target group, without restriction.
-# But the usual use case for specifying both would be to say everybody
-# is in the target, and only the sampled are sampled (which also the default
-# if you say nothing about the target.)
-
-
 # The main event: Actual kpop function!
-#' Kernel balancing
+#' Kernel Balancing
 #' 
 #' @description The kernel balancing function. XXXXX
 #' 
-#' @param allx A data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases Optional argument to specify what bases to use when constructing the kernel matrix and finding weights XXXX.
-#' @param b Scaling factor in the calculation of gaussian distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponetial power XXXXXX. 
+#' @param allx a data matrix containing all observations where rows are units and columns are covariates.
+#' @param useasbases optional binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.
+#' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. 
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should be included in the target popultion XXX.
-#' @param treatment An alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} XXX.
-#' @param ebal.tol Tolerance level used by \code{ebalance}
-#' @param numdims Optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
-#' @param minnumdims Optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
-#' @param maxnumdims Optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. While the number of observations is under 2000, the default maximum is the total number of observations. Due to the computation burden, when the number of observations is over 2000, the default is the number of sampled units. 
-#' @param incrementby Optional argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
-#' @param printprogress Optional logical argument to print current number of dimensions and bias. 
+#' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} XXX.
+#' @param ebal.tol tolerance level used by \code{ebalance}
+#' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
+#' @param minnumdims optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
+#' @param maxnumdims optional numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. While the number of observations is under 2000, the default maximum is the total number of observations. Due to the computation burden, when the number of observations is over 2000, the default is the number of sampled units. 
+#' @param incrementby optional argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
+#' @param printprogress optional logical argument to print current number of dimensions and bias. 
 #' 
-#' @return \item{dist.record}{A numeric vector recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
-#'  \item{dist.sequence}{A numeric vector recording the number of dimensions of the SVD of the kernel matrix used in calculating the bias bound values stored in \code{dist.record}}
-#'  \item{biasbound.orig}{The bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.XX}
-#'  \item{numdims}{The optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
-#'  \item{w}{The weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix}
-#'  \item{biasbound.opt}{The minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
-#' \item{K}{The kernel matrix.}
+#' @return \item{dist.record}{a numeric vector recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
+#'  \item{dist.sequence}{a numeric vector recording the number of dimensions of the SVD of the kernel matrix used in calculating the bias bound values stored in \code{dist.record}}
+#'  \item{biasbound.orig}{the bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.}
+#'  \item{numdims}{the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
+#'  \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix}
+#'  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
+#' \item{K}{the kernel matrix.}
 #' @example 
 #' library(KBAL)
 #' #Run Lalonde example as in paper:
@@ -193,7 +220,6 @@ getw = function(target, observed, allrows, ebal.tol=1e-6,...){
 #'                printprogress =TRUE)
 #'  summary(lm(re78~nsw,w=kpopout$w))
 #' @export
-
 kpop = function(allx, useasbases=NULL, b=NULL, 
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
@@ -255,13 +281,6 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   } else if(is.null(useasbases)) {
       warning("Dimensions of K greater than 2000, using sampled as default bases")
       useasbases = as.numeric(observed==1)
-  }
-
-  # If we don't specify which observations to use as bases,
-  # use just the "sample" set, i.e. the non-targets.
-  if (is.null(useasbases)){
-    useasbases=as.numeric(observed==1)
-    # useasbases=rep(1,N)  #or if you want all obs as bases
   }
 
   if (is.null(minnumdims)){minnumdims=1}
@@ -372,4 +391,6 @@ kpop = function(allx, useasbases=NULL, b=NULL,
 
   return(R)
 } # end kpop main function
+
+
 
