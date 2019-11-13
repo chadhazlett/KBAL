@@ -27,8 +27,8 @@ buildgauss = function(X,sigma=NULL){
 #' @param hilbertnorm xxx .
 #' @examples
 #' biasbound=(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
-#' @export
-biasbound=function(D,w,V,a, hilbertnorm=1){
+#no longer exporting after building kpop functions.R
+biasbound_kbal=function(D,w,V,a, hilbertnorm=1){
   w1=w[D==1]/sum(D==1)
   w0=w[D==0]/sum(D==0)
 
@@ -246,8 +246,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	L1_kbal=best.out$L1  #.5*sum(abs(best.out$pX_D1-best.out$pX_D0w))
 	L2_kbal=sqrt(sum((best.out$pX_D1-best.out$pX_D0w)^2)) #removing 0.5
 
-	biasbound_orig = 	biasbound(D = D, w = rep(1,N), V = svd.out$u, a = svd.out$d)
-	biasbound_kbal = best.out$biasbound
+	biasbound_orig =	biasbound_kbal(D = D, w = rep(1,N), V = svd.out$u, a = svd.out$d)
+	biasbound_kbal_out = best.out$biasbound
 
 	r=list()
 	r$K=K
@@ -265,7 +265,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	r$min90=min(which(cumsum(sort(best.out$w[D==0],decreasing=TRUE))/sum(D==0)>=.90))
   r$dist.record=dist.record[1:max(which(!is.na(dist.record)))]
   r$biasbound_orig=biasbound_orig
-  r$biasbound_kbal=biasbound_kbal
+  r$biasbound_kbal=biasbound_kbal_out
 	return(r)
 }
 
@@ -332,7 +332,7 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
 
     if (linkernel==FALSE){
       L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
-      biasbound = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
+      biasbound = biasbound_kbal(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
     }
 
     R$dist= biasbound  ##experimenting with using biasbound instead of L1
