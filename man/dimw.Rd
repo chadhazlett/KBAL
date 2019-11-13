@@ -27,3 +27,6 @@ dimw(X, w, target)
 \description{
 Calcuates the simple difference in means or weighted difference in means between the treated/sample population and the control/target popultion.
 }
+\examples{
+XXX
+}

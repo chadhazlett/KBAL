@@ -4,7 +4,7 @@
 \alias{getw}
 \title{Find weights using entropy balancing.}
 \usage{
-getw(target, observed, allrows, ebal.tol = 1e-06, ...)
+getw(target, observed, allrows, ebal.tol = 1e-06)
 }
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
@@ -20,4 +20,23 @@ getw(target, observed, allrows, ebal.tol = 1e-06, ...)
 }
 \description{
 Using entropy balancing to find and return the weights such that XXXX
+}
+\examples{
+#load and clean data a bit
+data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+
+#need a kernel matrix to run SVD on then find weights with so get that first with makeK
+#running makeK with the sampled units as the bases
+K = makeK(allx = lalonde[,xvars], 
+useasbases = as.numeric(1-lalonde$nsw), 
+b = 2*ncol(lalonde[,xvars]))
+
+#svdon this kernel and get matrix with left singular values
+Kpc = svd(K)$u
+#usually we are getting weights using different number of columns of this matrix, the finding
+# the bias and looking for the minimum. For now let's just use the first 10
+Kpc2=Kpc[,1:10, drop=FALSE]
+getw.out=getw(target=target, observed=observed, allrows=Kpc2)
 }

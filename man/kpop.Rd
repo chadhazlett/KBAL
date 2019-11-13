@@ -35,8 +35,7 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{printprogress}{optional logical argument to print current number of dimensions and bias.}
 }
 \value{
-\item{dist.record}{a numeric vector recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
- \item{dist.sequence}{a numeric vector recording the number of dimensions of the SVD of the kernel matrix used in calculating the bias bound values stored in \code{dist.record}}
+\item{dist.record}{a numeric matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
  \item{biasbound.orig}{the bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.}
  \item{numdims}{the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
  \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix}
@@ -45,4 +44,21 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 }
 \description{
 The kernel balancing function. XXXXX
+}
+\examples{
+library(KBAL)
+#Run Lalonde example as in paper:
+data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#kpop at defaults: 
+kpopout= kpop(allx=lalonde[,xvars],
+               useasbases=NULL, b=NULL,
+               sampled=NULL, sampledinpop=FALSE,
+               treatment=lalonde$nsw,
+               ebal.tol=1e-6, numdims=NULL, 
+               minnumdims=NULL, maxnumdims=NULL, 
+               incrementby=1,
+               printprogress =TRUE)
+ summary(lm(re78~nsw,w=kpopout$w))
 }
