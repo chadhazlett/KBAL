@@ -28,5 +28,22 @@ dimw(X, w, target)
 Calcuates the simple difference in means or weighted difference in means between the treated/sample population and the control/target popultion.
 }
 \examples{
-XXX
+#let's say we want to get the unweighted DIM and the weighted DIM using weights from the kpop
+#function with the lalonde data:
+#load and clean data a bit
+data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+
+#get the kpop weights
+kpopout= kpop(allx=lalonde[,xvars],
+               useasbases=NULL, b=NULL,
+               sampled=NULL, sampledinpop=FALSE,
+               treatment=lalonde$nsw,
+               ebal.tol=1e-6, numdims=NULL, 
+               minnumdims=NULL, maxnumdims=NULL, 
+               incrementby=1,
+               printprogress =TRUE)
+ #now use dimw to get the DIMs
+ dimw(X = lalonde[,xvars], w = kpopout$w, target = lalonde$nsw)
 }

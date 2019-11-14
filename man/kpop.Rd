@@ -12,15 +12,13 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
 
-\item{useasbases}{optional binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.}
-
 \item{b}{scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.}
 
 \item{sampled}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
 \item{sampledinpop}{a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should be included in the target popultion XXX.}
 
-\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} XXX.}
+\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} only XXX.}
 
 \item{ebal.tol}{tolerance level used by \code{ebalance}}
 
@@ -46,7 +44,6 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 The kernel balancing function. XXXXX
 }
 \examples{
-library(KBAL)
 #Run Lalonde example as in paper:
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -60,5 +57,5 @@ kpopout= kpop(allx=lalonde[,xvars],
                minnumdims=NULL, maxnumdims=NULL, 
                incrementby=1,
                printprogress =TRUE)
- summary(lm(re78~nsw,w=kpopout$w))
+ summary(lm(re78~nsw,w=kpopout$w, data = lalonde))
 }

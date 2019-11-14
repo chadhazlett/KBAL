@@ -36,7 +36,7 @@ b = 2*ncol(lalonde[,xvars]))
 svd_pass = svd(K)
 #let's use the original weights of 1/number of sampled units, and 1/numer of target units
 #this is the default if we pass in w as all 1's
-biasbound=(observed=(1-lalonde$nsw),
+biasbound(observed=(1-lalonde$nsw),
  target=lalonde$nsw, 
  svd.out = svd_pass, 
  w = rep(1,nrow(lalonde)), hilbertnorm=1)

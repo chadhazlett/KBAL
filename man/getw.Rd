@@ -33,10 +33,10 @@ K = makeK(allx = lalonde[,xvars],
 useasbases = as.numeric(1-lalonde$nsw), 
 b = 2*ncol(lalonde[,xvars]))
 
-#svdon this kernel and get matrix with left singular values
+#svd on this kernel and get matrix with left singular values
 Kpc = svd(K)$u
 #usually we are getting weights using different number of columns of this matrix, the finding
 # the bias and looking for the minimum. For now let's just use the first 10
 Kpc2=Kpc[,1:10, drop=FALSE]
-getw.out=getw(target=target, observed=observed, allrows=Kpc2)
+getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, allrows=Kpc2)
 }
