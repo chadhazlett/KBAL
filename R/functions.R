@@ -22,6 +22,7 @@
 #' b = 2*ncol(lalonde[,xvars]))
 #' @useDynLib KBAL
 #' @importFrom Rcpp sourceCpp
+#' @export
 makeK = function(allx, useasbases=NULL, b=NULL){
   N=nrow(allx)
   
@@ -66,7 +67,7 @@ makeK = function(allx, useasbases=NULL, b=NULL){
 #' svd_pass = svd(K)
 #' #let's use the original weights of 1/number of sampled units, and 1/numer of target units
 #' #this is the default if we pass in w as all 1's
-#' biasbound=(observed=(1-lalonde$nsw),
+#' biasbound(observed=(1-lalonde$nsw),
 #'  target=lalonde$nsw, 
 #'  svd.out = svd_pass, 
 #'  w = rep(1,nrow(lalonde)), hilbertnorm=1)
@@ -102,17 +103,37 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' @param target vector taking values of 0 or 1's indicating which observations (whuch rows  of X and w) are in the treated/sample population and which are in the control/target population.
 #' @return \code{dim} the simple, unweighted difference in means
 #' @return \code{dimw} the weighted difference in means
-#' @examples XXX
+#' @examples 
+#' #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kpop
+#' #function with the lalonde data:
+#' #load and clean data a bit
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' 
+#' #get the kpop weights
+#' kpopout= kpop(allx=lalonde[,xvars],
+#'                useasbases=NULL, b=NULL,
+#'                sampled=NULL, sampledinpop=FALSE,
+#'                treatment=lalonde$nsw,
+#'                ebal.tol=1e-6, numdims=NULL, 
+#'                minnumdims=NULL, maxnumdims=NULL, 
+#'                incrementby=1,
+#'                printprogress =TRUE)
+#'  #now use dimw to get the DIMs
+#'  dimw(X = lalonde[,xvars], w = kpopout$w, target = lalonde$nsw)
+#' @export
 dimw = function(X,w,target){
   w1=w[target==1]/sum(w[target==1])
   w0=w[target!=1]/sum(w[target!=1])
 
-  X1=X[target==1, , drop=FALSE]
-  X0=X[target!=1, , drop=FALSE]
+  X1=as.matrix(X[target==1, , drop=FALSE])
+  X0=as.matrix(X[target!=1, , drop=FALSE])
 
   R=list()
   R$dim=colMeans(X1)-colMeans(X0)
   R$dimw=t(as.vector(w1))%*%X1-t(w0)%*%X0
+  return(R)
 }
 
 # Function to get the moments that solve the constraints
@@ -141,12 +162,12 @@ dimw = function(X,w,target){
 #' useasbases = as.numeric(1-lalonde$nsw), 
 #' b = 2*ncol(lalonde[,xvars]))
 #' 
-#' #svdon this kernel and get matrix with left singular values
+#' #svd on this kernel and get matrix with left singular values
 #' Kpc = svd(K)$u
 #' #usually we are getting weights using different number of columns of this matrix, the finding
 #' # the bias and looking for the minimum. For now let's just use the first 10
 #' Kpc2=Kpc[,1:10, drop=FALSE]
-#' getw.out=getw(target=target, observed=observed, allrows=Kpc2)
+#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, allrows=Kpc2)
 #' @export
 getw = function(target, observed, allrows, ebal.tol=1e-6){
 
@@ -164,7 +185,11 @@ getw = function(target, observed, allrows, ebal.tol=1e-6){
         constraint.tolerance=ebal.tol, print.level=-1),
         silent=TRUE)
   N=nrow(allrows)
+  
   if ("try-error"%in%class(bal.out.pc)){
+      if(ncol(allrows) <= 2) {
+          stop("ebalance convergence failed within first two dimensions")
+      }
     w=rep(1,N)
     #R$dist="ebalerror"
   }
@@ -207,7 +232,6 @@ getw = function(target, observed, allrows, ebal.tol=1e-6){
 #'  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
 #' \item{K}{the kernel matrix.}
 #' @examples 
-#' library(KBAL)
 #' #Run Lalonde example as in paper:
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -221,7 +245,7 @@ getw = function(target, observed, allrows, ebal.tol=1e-6){
 #'                minnumdims=NULL, maxnumdims=NULL, 
 #'                incrementby=1,
 #'                printprogress =TRUE)
-#'  summary(lm(re78~nsw,w=kpopout$w))
+#'  summary(lm(re78~nsw,w=kpopout$w, data = lalonde))
 #' @export
 kpop = function(allx, useasbases=NULL, b=NULL, 
                 sampled=NULL, sampledinpop=NULL,
@@ -327,7 +351,9 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   #changing default to be 2*ncol to match kbal
   if (is.null(b)){ b = 2*ncol(allx) }
   
+  if(printprogress == TRUE) {print(paste0("Building Kernel matrix"))}
   K = makeK(allx = allx, useasbases = useasbases, b=b)
+  if(printprogress == TRUE) {print(paste0("Running SVD on Kernel matrix"))}
   svd.out=svd(K)
   Kpc=svd.out$u
 
