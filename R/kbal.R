@@ -116,8 +116,9 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 	N=dim(X)[1]
     P=dim(X)[2]
 	X=as.matrix(X)
-
-	if (method=="el") library(glmc)
+    
+	#removing glmc import
+	#if (method=="el") library(glmc)
 
 	if (is.null(maxnumdims)) maxnumdims=sum(D==0)
 	if (maxnumdims>sum(D==0)) maxnumdims=sum(D==0)
@@ -284,15 +285,15 @@ get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X
   if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D), X=K2, 
                                                     constraint.tolerance=ebal.tol,
                                                     print.level=-1),silent=TRUE)}
-
-  if (method=="el"){
-    yfake=rnorm(sum(D==0))
-    #get mean row of K2 among the treated, which will be our target.
-    meanK2tx= apply(K2[D==1, , drop=FALSE],2,mean)
-    K2_0=K2[D==0,]
-    z=t(t(K2_0)-meanK2tx)
-    bal.out.pc=try(glmc::glmc(yfake~+1, Amat=z))
-  }
+# removing glmc import
+#   if (method=="el"){
+#     yfake=rnorm(sum(D==0))
+#     #get mean row of K2 among the treated, which will be our target.
+#     meanK2tx= apply(K2[D==1, , drop=FALSE],2,mean)
+#     K2_0=K2[D==0,]
+#     z=t(t(K2_0)-meanK2tx)
+#     bal.out.pc=try(glmc::glmc(yfake~+1, Amat=z))
+#   }
 
   if (method=="el_custom"){
     meanK2tx= apply(K2[D==1, , drop=FALSE],2,mean)
