@@ -16,11 +16,11 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 
 \item{sampled}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
-\item{sampledinpop}{a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should be included in the target popultion XXX.}
+\item{sampledinpop}{a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.}
 
-\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} only XXX.}
+\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} only.}
 
-\item{ebal.tol}{tolerance level used by \code{ebalance}}
+\item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
 
 \item{numdims}{optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.}
 
@@ -36,12 +36,12 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{dist.record}{a numeric matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
  \item{biasbound.orig}{the bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.}
  \item{numdims}{the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
- \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix}
+ \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
 \item{K}{the kernel matrix.}
 }
 \description{
-The kernel balancing function. XXXXX
+Kernel balancing assumes the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. This function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
 }
 \examples{
 #Run Lalonde example as in paper:

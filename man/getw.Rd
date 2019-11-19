@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{getw}
 \alias{getw}
-\title{Find weights using entropy balancing.}
+\title{Find Weights using Entropy Balancing.}
 \usage{
 getw(target, observed, allrows, ebal.tol = 1e-06)
 }
@@ -11,15 +11,15 @@ getw(target, observed, allrows, ebal.tol = 1e-06)
 
 \item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
-\item{allrows}{Matrix whose columns contain the left singular vectors of the kernel matrix}
+\item{allrows}{Matrix whose columns contain the left singular vectors of the kernel matrix.}
 
-\item{ebal.tol}{tolerance level used by \code{ebalance}}
+\item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
 }
 \value{
-\item{w}{numeric vector of weights}
+\item{w}{numeric vector of weights.}
 }
 \description{
-Using entropy balancing to find and return the weights such that XXXX
+Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
 }
 \examples{
 #load and clean data a bit

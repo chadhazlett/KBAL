@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{dimw}
 \alias{dimw}
-\title{Difference in means and Difference in weighted means}
+\title{Difference in Means and Difference in Weighted Means}
 \usage{
 dimw(X, w, target)
 }
@@ -15,17 +15,16 @@ dimw(X, w, target)
 
 \item{X}{matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.}
 
-\item{w}{numeric vector of weights for every obervation}
+\item{w}{numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.}
 
-\item{target}{vector taking values of 0 or 1's indicating which observations (whuch rows  of X and w) are in the treated/sample population and which are in the control/target population.}
+\item{target}{vector taking values of 0 or 1's indicating which observations (which rows  of X and w) are in the control or sample population and which are in the treated or target population.}
 }
 \value{
-\code{dim} the simple, unweighted difference in means
-
-\code{dimw} the weighted difference in means
+\item{dim}{the simple, unweighted difference in means.}
+\item{dimw}{the weighted difference in means.}
 }
 \description{
-Calcuates the simple difference in means or weighted difference in means between the treated/sample population and the control/target popultion.
+Calcuates the simple difference in means or weighted difference in means between the control or sample population and the treated or target popultion.
 }
 \examples{
 #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kpop

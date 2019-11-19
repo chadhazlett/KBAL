@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{makeK}
 \alias{makeK}
-\title{Build the Kernel Matrix}
+\title{Build the Gaussian Kernel Matrix}
 \usage{
 makeK(allx, useasbases = NULL, b = NULL)
 }
@@ -17,7 +17,7 @@ makeK(allx, useasbases = NULL, b = NULL)
 \item{K}{The Kernel matrix}
 }
 \description{
-Builds the kernel matrix using Rcpp.
+Builds the Gaussian kernel matrix using Rcpp.
 }
 \examples{
 #load and clean data a bit
