@@ -28,7 +28,7 @@ buildgauss = function(X,sigma=NULL){
 #' @examples
 #' biasbound=(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
 #no longer exporting after building kpop functions.R
-biasbound_kbal=function(D,w,V,a, hilbertnorm=1){
+biasbound_kbal =function(D,w,V,a, hilbertnorm=1){
   w1=w[D==1]/sum(D==1)
   w0=w[D==0]/sum(D==0)
 
@@ -111,9 +111,10 @@ multdiag <- function(X,d){
 #' @export
 
 kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
-          maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE){
+          maxnumdims=NULL, minnumdims=NULL, sigma=NULL, method="ebal", linkernel=FALSE, 
+          ebal.tol=1e-4){
 	N=dim(X)[1]
-  P=dim(X)[2]
+    P=dim(X)[2]
 	X=as.matrix(X)
 
 	if (method=="el") library(glmc)
@@ -213,6 +214,7 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
       get.dist.out=get.dist(numdims=thisnumdims, D=D,
                             X=X, Kpc=Kpc, K=K, K_t=K_t, K_c=K_c,
                             method=method, treatdrop=treatdrop, linkernel=linkernel,
+                            ebal.tol = ebal.tol,
                             svd.out=svd.out)
       dist.now=get.dist.out$dist
       #if(thisnumdims==minnumdims){paste("Starting with ",P, "mean balance dims, plus...")}
@@ -236,7 +238,8 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
   #Recover optimal answer:
 	#most of the goodies will be in here:
   best.out=get.dist(X=X, numdims = numdims, D=D, Kpc = Kpc, K=K, K_t=K_t,
-                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel, svd.out)
+                    K_c=K_c, method=method, treatdrop=treatdrop, linkernel=linkernel, svd.out, 
+                    ebal.tol)
 
   if(!is.null(numdims)){
     dist.record=best.out$dist
@@ -274,11 +277,13 @@ kbal=function(X,D, K=NULL, whiten=FALSE, trimratio=NULL, numdims=NULL,
 #' @description  Get's the weights at the desired settings and computes
 #' the objective function, L1.
 #' @export
-get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, svd.out, ...){
+get.dist= function(numdims, D, Kpc, K, K_t, K_c, method, treatdrop, linkernel, X, svd.out, ebal.tol){
   R=list()
   K2=Kpc[,1:numdims, drop=FALSE]
   N=nrow(K2)
-  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D),X=K2, print.level=-1),silent=TRUE)}
+  if (method=="ebal"){bal.out.pc=try(ebal::ebalance(Treatment=as.vector(D), X=K2, 
+                                                    constraint.tolerance=ebal.tol,
+                                                    print.level=-1),silent=TRUE)}
 
   if (method=="el"){
     yfake=rnorm(sum(D==0))
