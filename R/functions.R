@@ -287,9 +287,9 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
             #above by the number of treated and control, and sum of weights (aka n_0)
             #so that these are all like averages. This will look more
             #like the biasbound scaling. 20 Oct 2017
-            pX_D1=pX_D1/sum(pX_D1)
-            pX_D0=pX_D0/sum(pX_D0)
-            pX_D0w=pX_D0w/sum(pX_D0w)
+            #pX_D1=pX_D1/sum(pX_D1)
+            #pX_D0=pX_D0/sum(pX_D0)
+            #pX_D0w=pX_D0w/sum(pX_D0w)
                 
             L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
         }
