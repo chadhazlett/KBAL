@@ -5,7 +5,7 @@
 #' 
 #' @description Builds the Gaussian kernel matrix using Rcpp.
 #' @param allx A data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases Binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.
+#' @param useasbases Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
 #' @return \item{K}{The Kernel matrix}
 #' @examples
@@ -15,10 +15,10 @@
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #' 
 #' #note that lalonde$nsw is the treatment vector, so the observered is 1-lalodne$nsw
-#' #running makeK with the sampled units as the bases given the large size of the data
+#' #running makeK with the sampled/observed units as the bases given the large size of the data
 #' #and with b as twice the number of covariates
 #' K = makeK(allx = lalonde[,xvars], 
-#' useasbases = as.numeric(1-lalonde$nsw), 
+#' useasbases = 1-lalonde$nsw, 
 #' b = 2*ncol(lalonde[,xvars]))
 #' @useDynLib KBAL
 #' @importFrom Rcpp sourceCpp
@@ -29,6 +29,7 @@ makeK = function(allx, useasbases=NULL, b=NULL){
   # If no "useasbasis" given, assume all observations are to be used.
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
+  if(is.null(useasbases)) {useasbases = rep(1, N)}
   bases = allx[useasbases==1, ]
   
   Xmeans <- colMeans(bases)
@@ -48,7 +49,7 @@ makeK = function(allx, useasbases=NULL, b=NULL){
 #' @description Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kpop()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0. 
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
-#' @param svd.out the object output from \code{svd()} performed on the kernel matrix.
+#' @param svd.out the list object output from \code{svd()} performed on the kernel matrix.
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param hilbertnorm numeric value of the hilbertnorm. Default value is 1.
 #' @examples
@@ -98,7 +99,7 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' @param w numeric vector of weights for each observation.
 #' @param target numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. 
 #'
-#' @param X matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.
+#' @param X a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
 #' @param w numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param target vector taking values of 0 or 1's indicating which observations (which rows  of X and w) are in the control or sample population and which are in the treated or target population.
 #' @return \item{dim}{the simple, unweighted difference in means.}
@@ -147,7 +148,7 @@ dimw = function(X,w,target){
 #' 
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. 
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0. 
-#' @param allrows Matrix whose columns contain the left singular vectors of the kernel matrix. 
+#' @param svd.K Matrix whose columns contain the left singular vectors of the kernel matrix. 
 #' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
@@ -167,9 +168,9 @@ dimw = function(X,w,target){
 #' #usually we are getting weights using different number of columns of this matrix, the finding
 #' # the bias and looking for the minimum. For now let's just use the first 10
 #' Kpc2=Kpc[,1:10, drop=FALSE]
-#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, allrows=Kpc2)
+#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.K=Kpc2)
 #' @export
-getw = function(target, observed, allrows, ebal.tol=1e-6){
+getw = function(target, observed, svd.K, ebal.tol=1e-6){
 
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -178,16 +179,16 @@ getw = function(target, observed, allrows, ebal.tol=1e-6){
   # (2) construct a variables target_ebal that = 1 when target=1
   # but =0 in the appended data, i.e. for the observed who are
   # entering a second time.
-  Xappended = rbind(allrows,  allrows[observed==1 & target==1, , drop=FALSE] )
+  Xappended = rbind(svd.K,  svd.K[observed==1 & target==1, , drop=FALSE] )
   target_ebal = c(target, rep(0, sum(observed==1 & target==1)))
 
     bal.out.pc=try(ebal::ebalance(Treatment=target_ebal,X=Xappended,
         constraint.tolerance=ebal.tol, print.level=-1),
         silent=TRUE)
-  N=nrow(allrows)
+  N=nrow(svd.K)
   
   if ("try-error"%in%class(bal.out.pc)){
-      if(ncol(allrows) <= 2) {
+      if(ncol(svd.K) <= 2) {
           stop("ebalance convergence failed within first two dimensions")
       }
     w=rep(1,N)
@@ -205,6 +206,109 @@ getw = function(target, observed, allrows, ebal.tol=1e-6){
   }
   return(w)
 } # end of getw.
+
+#' L1 Distance
+#' @description Calculates the L1 distance between the treated or population units and the kernel balanced control or sampled units.
+#' @param target a numeric vector of length equal to the total number of units where population or treated units take a value of 1 and sample or control units take a value of 0. 
+#' @param K the Kernel matrix
+#' @param linkernel a logical which ?????
+#' @param X a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
+#' #' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
+#' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
+#' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified. 
+#' @param ebal.tol an optional numeric input speccifying the tolerance level used by \code{ebal::ebalance} in the case that \code{w} is not specified. When not specified, the default is 1e-6/
+#' @return \item{w}{numeric vector of weights used}
+#' \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
+#' \item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit.}
+#' \item{pX_D0}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every control or sampled unit.}
+#' \item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expaned features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
+#' @examples
+#' #loading and cleaning lalonde data
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' 
+#' #need to first build gaussian kernel matrix
+#' K_pass <- makeK(allx = lalonde[,xvars])
+#' #also need the SVD of this matrix
+#' svd.K_pass <- svd(K_pass)
+#' 
+#' #running without passing weights in directly, using numdims=33 
+#' l1_lalonde <- getdist(target = lalonde$nsw,
+#'                       observed = 1-lalonde$nsw,
+#'                       K = K_pass,
+#'                       linkernel = FALSE,
+#'                       X = lalonde[,xvars],
+#'                       svd.out = svd.K_pass,
+#'                       numdims = 33)
+#'                       
+#'  #alternatively, we can get the weights ourselves and pass them in directly
+#'  w_opt <- getw(target= lalonde$nsw, 
+#'                observed = 1-lalonde$nsw,
+#'                svd.K = svd.K_pass$u[,1:33, drop=FALSE],
+#'                ebal.tol=1e-6)
+#'  l1_lalonde2 <- getdist(target = lalonde$nsw,
+#'                   observed = 1-lalonde$nsw,
+#'                   K = K_pass,
+#'                   linkernel = FALSE,
+#'                   X = lalonde[,xvars],
+#'                   svd.out = svd.K_pass, 
+#'                   w = w_now)
+#' @export
+getdist <- function(target, observed, K, linkernel, X, svd.out, 
+                    w=NULL, numdims = NULL, ebal.tol=NULL) {
+
+        R=list()
+        svd.K = svd.out$u
+        N=nrow(svd.K)
+        K_c=K[,observed==1, drop = FALSE]
+        K_t=K[,target==1, drop=FALSE]
+        
+        #if user does not provide weights, go get them
+        if(is.null(w)) {
+            if(is.null(ebal.tol)) {ebal.tol = 1e-6}
+            if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
+            w = getw(target = target, observed=observed, 
+                     svd.K = svd.K[,1:numdims, drop=FALSE],
+                     ebal.tol=ebal.tol)
+            
+            #if ebal fails we get weights of 1 for everyone
+            if (sum(w ==1) == length(w)){
+                stop("ebalance failed to converge for this choice of numdims dimensions of the SVD of the kernel matrix")
+            } 
+        }
+        
+        if (linkernel==FALSE){
+            pX_D1=K_t%*%matrix(1,sum(target==1),1)/sum(target==1)
+            pX_D0=K_c%*%matrix(1,sum(target!=1),1)/sum(target!=1)
+            pX_D0w=K_c%*%w[target!=1]/sum(w[target!=1])
+                
+            #Commenting out this rescaling, instead using a rescaling
+            #above by the number of treated and control, and sum of weights (aka n_0)
+            #so that these are all like averages. This will look more
+            #like the biasbound scaling. 20 Oct 2017
+            pX_D1=pX_D1/sum(pX_D1)
+            pX_D0=pX_D0/sum(pX_D0)
+            pX_D0w=pX_D0w/sum(pX_D0w)
+                
+            L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
+        }
+            
+        if (linkernel==TRUE){
+            pX_D1=colMeans(X[treated==1, , drop=FALSE])
+            pX_D0=colMeans(X[observed==1, , drop=FALSE])
+            pX_D0w=w[D==0]%*%as.matrix(X[observed==1,])/sum(observed==1)
+            L1=sum(abs(pX_D1-pX_D0w))
+        }
+            
+        R$L1=L1
+        R$w=w
+        R$pX_D1=pX_D1
+        R$pX_D0=pX_D0
+        R$pX_D0w=pX_D0w
+
+        return(R)
+} ## end of getdist
 
 
 # The main event: Actual kpop function!
@@ -365,7 +469,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   # If numdims given, just get the weights in one shot:
   if (!is.null(numdims)){
     Kpc2=Kpc[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, observed=observed, allrows=Kpc2)
+    getw.out=getw(target=target, observed=observed, svd.K=Kpc2)
     # XXX This would be place to add check for non-convergence of ebal.
     w=getw.out
     biasboundnow=biasbound( w = w, observed=observed,  target = target, 
@@ -386,7 +490,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
 
     while (keepgoing==TRUE){
       Kpc_try=Kpc[,1:thisnumdims, drop=FALSE]
-      getw.out=getw(target = target, observed=observed, allrows = Kpc_try)
+      getw.out=getw(target = target, observed=observed, svd.K = Kpc_try)
       w=getw.out
       # Need to work on case where ebal fails and flagging this in result.
       # For now just returns all even weights.
@@ -432,7 +536,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
         paste0("Re-running at optimal choice of numdims, ", numdims) 
     } else {paste0("Running at user-specified choice of numdims, ", numdims)}
     Kpc2=Kpc[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, observed=observed, allrows=Kpc2)
+    getw.out=getw(target=target, observed=observed, svd.K=Kpc2)
     w=getw.out
     biasbound_opt=biasbound( w = w, observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
 }   #end for "if null numdims"

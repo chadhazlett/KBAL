@@ -13,7 +13,7 @@ dimw(X, w, target)
 
 \item{target}{numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
 
-\item{X}{matrix of combined treated/sample population and control/target population data. Rows are observations, columns are covariates.}
+\item{X}{a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.}
 
 \item{w}{numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.}
 

@@ -9,7 +9,7 @@ makeK(allx, useasbases = NULL, b = NULL)
 \arguments{
 \item{allx}{A data matrix containing all observations where rows are units and columns are covariates.}
 
-\item{useasbases}{Binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.}
+\item{useasbases}{Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.}
 
 \item{b}{Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.}
 }
@@ -26,9 +26,9 @@ lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #note that lalonde$nsw is the treatment vector, so the observered is 1-lalodne$nsw
-#running makeK with the sampled units as the bases given the large size of the data
+#running makeK with the sampled/observed units as the bases given the large size of the data
 #and with b as twice the number of covariates
 K = makeK(allx = lalonde[,xvars], 
-useasbases = as.numeric(1-lalonde$nsw), 
+useasbases = 1-lalonde$nsw, 
 b = 2*ncol(lalonde[,xvars]))
 }
