@@ -472,10 +472,9 @@ kpop = function(allx, useasbases=NULL, b=NULL,
         stop("Specified \"numdims\" must be greater than zero")
     }
     
-    #10. incrementby not null
-    if(is.null(incrementby)){
-        warning(" \"incrementby\" must not be NULL. Setting \"incrementby\" to be 1.", 
-                immediate. = TRUE)
+    #10. incrementby not null and geq 1
+    if(is.null(incrementby) || incrementby < 1){
+        warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.", immediate. = TRUE)
         incrementby = 1
     }
 #####end of big error catch series and data setup
