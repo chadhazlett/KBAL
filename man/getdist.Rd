@@ -42,27 +42,27 @@ xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75"
 #need to first build gaussian kernel matrix
 K_pass <- makeK(allx = lalonde[,xvars])
 #also need the SVD of this matrix
-svd.K_pass <- svd(K_pass)
+svd.U_pass <- svd(K_pass)
 
-#running without passing weights in directly, using numdims=33 
+#running without passing weights in directly, using numdims=33
 l1_lalonde <- getdist(target = lalonde$nsw,
                       observed = 1-lalonde$nsw,
                       K = K_pass,
                       linkernel = FALSE,
                       X = lalonde[,xvars],
-                      svd.out = svd.K_pass,
+                      svd.out = svd.U_pass,
                       numdims = 33)
-                      
+
  #alternatively, we can get the weights ourselves and pass them in directly
- w_opt <- getw(target= lalonde$nsw, 
+ w_opt <- getw(target= lalonde$nsw,
                observed = 1-lalonde$nsw,
-               svd.K = svd.K_pass$u[,1:33, drop=FALSE],
+               svd.U = svd.U_pass$u[,1:33, drop=FALSE],
                ebal.tol=1e-6)
  l1_lalonde2 <- getdist(target = lalonde$nsw,
                   observed = 1-lalonde$nsw,
                   K = K_pass,
                   linkernel = FALSE,
                   X = lalonde[,xvars],
-                  svd.out = svd.K_pass, 
+                  svd.out = svd.U_pass,
                   w = w_now)
 }

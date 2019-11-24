@@ -18,7 +18,7 @@ kpop(allx, useasbases = NULL, b = NULL, sampled = NULL,
 
 \item{sampledinpop}{a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.}
 
-\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} only.}
+\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that, current version only supports finding the ATT whihc implies \code{sampledinpop} is \code{FALSE}.}
 
 \item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
 
@@ -48,13 +48,13 @@ Kernel balancing assumes the expectation of the non-treatment potential outcome 
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
-#kpop at defaults: 
+#kpop at defaults:
 kpopout= kpop(allx=lalonde[,xvars],
                useasbases=NULL, b=NULL,
                sampled=NULL, sampledinpop=FALSE,
                treatment=lalonde$nsw,
-               ebal.tol=1e-6, numdims=NULL, 
-               minnumdims=NULL, maxnumdims=NULL, 
+               ebal.tol=1e-6, numdims=NULL,
+               minnumdims=NULL, maxnumdims=NULL,
                incrementby=1,
                printprogress =TRUE)
  summary(lm(re78~nsw,w=kpopout$w, data = lalonde))

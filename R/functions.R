@@ -149,7 +149,7 @@ dimw = function(X,w,target){
 #'
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
-#' @param svd.K Matrix whose columns contain the left singular vectors of the kernel matrix.
+#' @param svd.U Matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
@@ -165,13 +165,13 @@ dimw = function(X,w,target){
 #' b = 2*ncol(lalonde[,xvars]))
 #'
 #' #svd on this kernel and get matrix with left singular values
-#' Kpc = svd(K)$u
+#' U = svd(K)$u
 #' #usually we are getting weights using different number of columns of this matrix, the finding
 #' # the bias and looking for the minimum. For now let's just use the first 10
-#' Kpc2=Kpc[,1:10, drop=FALSE]
-#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.K=Kpc2)
+#' U2=U[,1:10, drop=FALSE]
+#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)
 #' @export
-getw = function(target, observed, svd.K, ebal.tol=1e-6){
+getw = function(target, observed, svd.U, ebal.tol=1e-6){
 
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -180,16 +180,16 @@ getw = function(target, observed, svd.K, ebal.tol=1e-6){
   # (2) construct a variables target_ebal that = 1 when target=1
   # but =0 in the appended data, i.e. for the observed who are
   # entering a second time.
-  Xappended = rbind(svd.K,  svd.K[observed==1 & target==1, , drop=FALSE] )
+  Xappended = rbind(svd.U,  svd.U[observed==1 & target==1, , drop=FALSE] )
   target_ebal = c(target, rep(0, sum(observed==1 & target==1)))
 
     bal.out.pc=try(ebal::ebalance(Treatment=target_ebal,X=Xappended,
         constraint.tolerance=ebal.tol, print.level=-1),
         silent=TRUE)
-  N=nrow(svd.K)
+  N=nrow(svd.U)
 
   if ("try-error"%in%class(bal.out.pc)){
-      if(ncol(svd.K) <= 2) {
+      if(ncol(svd.U) <= 2) {
           stop("ebalance convergence failed within first two dimensions")
       }
     w=rep(1,N)
@@ -232,7 +232,7 @@ getw = function(target, observed, svd.K, ebal.tol=1e-6){
 #' #need to first build gaussian kernel matrix
 #' K_pass <- makeK(allx = lalonde[,xvars])
 #' #also need the SVD of this matrix
-#' svd.K_pass <- svd(K_pass)
+#' svd.U_pass <- svd(K_pass)
 #'
 #' #running without passing weights in directly, using numdims=33
 #' l1_lalonde <- getdist(target = lalonde$nsw,
@@ -240,20 +240,20 @@ getw = function(target, observed, svd.K, ebal.tol=1e-6){
 #'                       K = K_pass,
 #'                       linkernel = FALSE,
 #'                       X = lalonde[,xvars],
-#'                       svd.out = svd.K_pass,
+#'                       svd.out = svd.U_pass,
 #'                       numdims = 33)
 #'
 #'  #alternatively, we can get the weights ourselves and pass them in directly
 #'  w_opt <- getw(target= lalonde$nsw,
 #'                observed = 1-lalonde$nsw,
-#'                svd.K = svd.K_pass$u[,1:33, drop=FALSE],
+#'                svd.U = svd.U_pass$u[,1:33, drop=FALSE],
 #'                ebal.tol=1e-6)
 #'  l1_lalonde2 <- getdist(target = lalonde$nsw,
 #'                   observed = 1-lalonde$nsw,
 #'                   K = K_pass,
 #'                   linkernel = FALSE,
 #'                   X = lalonde[,xvars],
-#'                   svd.out = svd.K_pass,
+#'                   svd.out = svd.U_pass,
 #'                   w = w_now)
 #' @export
 getdist <- function(target, observed, K, linkernel, X, svd.out,
@@ -270,7 +270,7 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
             if(is.null(ebal.tol)) {ebal.tol = 1e-6}
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
             w = getw(target = target, observed=observed,
-                     svd.K = svd.K[,1:numdims, drop=FALSE],
+                     svd.U = U[,1:numdims, drop=FALSE],
                      ebal.tol=ebal.tol)
 
             #if ebal fails we get weights of 1 for everyone
@@ -320,7 +320,7 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 #' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.
-#' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that this input corresponds to \code{sampledinpop} as \code{FALSE} only.
+#' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that, current version only supports finding the ATT whihc implies \code{sampledinpop} is \code{FALSE}.
 #' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
 #' @param minnumdims optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
@@ -358,96 +358,128 @@ kpop = function(allx, useasbases=NULL, b=NULL,
                 incrementby=1,
                 printprogress = TRUE){
 
-
-  #do additional error checking to make sure that things intended to be vectors
-  # of 0/1 are/ T/F.
-
-#For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE.
-  if(!is.null(treatment)){
-    sampledinpop=FALSE
-    warning("Targeting ATT, which implies sampledinpop=FALSE.")
-  }
-
-  #need to throw error if try to pass both sample and target
-  if(!is.null(sampled) & !is.null(treatment)) {
-       stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
-  }
-
-  #throw warning for using default sampledinpop=TRUE
-  if(is.null(sampledinpop) & !is.null(sampled)) {
-      warning("using default parameter \"sampledinpop\" = TRUE", immediate. = TRUE)
-      sampledinpop = TRUE
-  }
-
-  N=nrow(allx)
-  user_numdims = NULL
-  if(!is.null(sampled) & sampledinpop==FALSE) {
-      observed = sampled
-      target = 1-sampled
-  } else if(!is.null(sampled)) {
-      observed = sampled
-      target = rep(1,N)
-  } else if(is.null(treatment)) { #error for passing in both as null
-      stop("either the \"sampled\" or \"treatment\" argument is required")
-  } else{
-      observed = 1-treatment
-      target = treatment
-  }
-
-  #error catch for passing in all 1's for either sampled or treated
-   # replace these with checks that var(.) \neq 0
-  if(sum(observed != 1) == 0) {
-      stop("\"sampled\" contains only sampled units (all entries are 1)")
-  } else if(sum(target != 1) == 0 ){
-      stop("\"target\" contains only target units (all entries are 1)")
-  }
-
-  #error catch for covariates with no variance:
-  if(0 %in% apply(allx, 2, sd)) {
-       stop("One or more column in \"allx\" have zero variance")
-  }
-
-  #error catch for NAs in data
-  if(sum(is.na(allx) != 0)) {
-      stop("\"allx\" contains missing values")
-  }
-
-
-  # If we don't specify which observations to use as bases,
-  # use all as default unless K is very large, then use sample set.
-  if (is.null(useasbases) & N <= 2000){
-      useasbases = rep(1,N)
-  } else if(is.null(useasbases)) {
-      warning("Dimensions of K greater than 2000, using sampled as default bases",
-              immediate. = TRUE)
-      useasbases = as.numeric(observed==1)
-  }
-
-  if (is.null(minnumdims)){minnumdims=1}
-
-  if(!is.null(numdims)) {
-      if(numdims <= 0) {
-          stop("Number of dimensions specified must be greater than zero")
+    N=nrow(allx)
+    
+#####start of big error catch series to check if data is passed in correctly and
+    #default setting/data set up
+  #1. checking sampled and sampledinpop
+  if(!is.null(sampled)) { 
+      if(!(all(sampled %in% c(0,1)))) { #note this is still ok for logicals
+          stop("\"sampled\" contains non-binary elements")
       }
-  }
-
-  # The most dims you can use is the number of bases
-  if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)){
-    warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing maxnumdims.", immediate. = TRUE)
-    maxnumdims=sum(useasbases)
+      if(sd(sampled) == 0) { 
+          stop("\"sampled\" has zero variance")
+      }
+      if(length(sampled) != N) {
+          stop("Dimensions of \"sampled\" do not match data \"allx\"")
+      }
+      #now check sampledinpop
+      if(is.null(sampledinpop)) { 
+          #if pass in sampled and dn specify sampledinpop set default and give warning
+          warning("using default parameter \"sampledinpop\" = TRUE", immediate. = TRUE)
+          sampledinpop = TRUE
+      } else if(!(sampledinpop %in% c(0,1))) { #if pass in sampledinpop check its binary
+          stop("\"sampledinpop\" is not binary" )
+      }
+    #2. now checking treatment if dn pass in sampled 
+  } else if(!is.null(treatment)) { 
+      if(!(all(treatment %in% c(0,1)))) { 
+          stop("\"treated\" contains non-binary elements")
+      }
+      if(sd(treatment) == 0) {
+          stop("\"treated\" has zero variance")
+      }
+      if(length(treatment) != N) {
+          stop("Dimensions of \"treatment\" do not match data \"allx\"")
+      }
+  } else { #only get here if both sampled and treated are null
+      stop("Either \"sampled\" or \"treatment\" must be specified")
+  } #end of sampled/treated if else check
+    
+    #3. checking if user tried to pass in both
+    if(!is.null(sampled) & !is.null(treatment)) {
+        stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
     }
+    #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
+    if(!is.null(treatment)) {
+        sampledinpop=FALSE
+        warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)
+    }
+    #5. checking for covariates with no variance:
+    if(0 %in% apply(allx, 2, sd)) {
+        stop("One or more column in \"allx\" has zero variance")
+    }
+    #6. error catch for NAs in data
+    if(sum(is.na(allx) != 0)) {
+        stop("\"allx\" contains missing values")
+    }
+    
+#####Setting up data: build observed and target from inputs 
+    if(!is.null(sampled) & sampledinpop==FALSE) {
+        observed = sampled
+        target = 1-sampled
+    } else if(!is.null(sampled)) { 
+        observed = sampled
+        target = rep(1,N)
+    } else{ #note that we checked above for both sampled/treated null, so this must be
+        #treated passed in case
+        observed = 1-treatment
+        target = treatment
+    }
+    
+    #7. checking useasbases if passed in
+    if(!is.null(useasbases)) {
+        if(length(useasbases) != N) {
+            stop("Dimensions of \"useasbases\" do not match data \"allx\"")
+        }
+        if(!(all(useasbases %in% c(0,1)))) {
+            stop("\"useasbases\" contains non-binary elements")
+        }
+    }
+    
+    #Setting defaults - useasbases: If we don't specify which observations to use as bases,
+    # use all as default unless K is very large, then use sample set.
+    if (is.null(useasbases) & N <= 2000) {
+        useasbases = rep(1,N)
+    } else if(is.null(useasbases)) {
+        warning("Dimensions of K greater than 2000, using sampled as default bases",
+                immediate. = TRUE)
+        useasbases = as.numeric(observed==1)
+    }
+    
+    #8. now checking maxnumdims: the most dims you can use is the number of bases
+    if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)) {
+        warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing \"maxnumdims\".", immediate. = TRUE)
+        maxnumdims=sum(useasbases)
+    }#make sure don't send in a neg
+    if (!is.null(maxnumdims) && maxnumdims<=0) {
+        stop("\"maxnumdims\" must be greater than zero")
+    }
+    
+    #Setting defaults: minnumdims, maxnumdims
+    if (is.null(minnumdims)){minnumdims=1}
+    if (is.null(maxnumdims)){maxnumdims=sum(useasbases)}
+    #setting defaults - b: dding default b within the kpop function rather than in makeK
+    #changing default to be 2*ncol to match kbal
+    if (is.null(b)){ b = 2*ncol(allx) }
+    
+    #9. now checking numdims if passed in
+    if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
+        warning("\"numdims\" cannot exceed number of bases. Reducing to maximum allowed.",
+                immediate. = TRUE)
+        numdims=sum(useasbases)
+    } else if(!is.null(numdims) && numdims <= 0) { #check not leq zero
+        stop("Specified \"numdims\" must be greater than zero")
+    }
+    
+    #10. incrementby not null
+    if(is.null(incrementby)){
+        warning(" \"incrementby\" must not be NULL. Setting \"incrementby\" to be 1.", 
+                immediate. = TRUE)
+        incrementby = 1
+    }
+#####end of big error catch series and data setup
 
-
-  if (is.null(maxnumdims)){maxnumdims=sum(useasbases)}
-
-  if(!is.null(numdims) && numdims>maxnumdims){
-    warning("Number of dimensions cannot exceed number of bases. Reducing to maximum allowed.", immediate. = TRUE)
-    numdims=sum(useasbases)
-  }
-
-  #adding default b within the kpop function rather than in makeK
-  #changing default to be 2*ncol to match kbal
-  if (is.null(b)){ b = 2*ncol(allx) }
 
   if(printprogress == TRUE) {print(paste0("Building kernel matrix"))}
   K = makeK(allx = allx, useasbases = useasbases, b=b)
@@ -459,7 +491,8 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   biasbound_orig=biasbound(w = rep(1,N), observed=observed, target = target,
                             svd.out = svd.out, hilbertnorm = 1)
 
-  getdist.orig = getdist(target=target, observed = observed, linkernel = FALSE, w = rep(1,N), svd.out = svd.out, X = allW, K=K)
+  getdist.orig = getdist(target=target, observed = observed, linkernel = FALSE,
+                         w = rep(1,N), svd.out = svd.out, X = allW, K=K)
   L1_orig = getdist.orig$L1
 
   paste0("Without balancing, biasbound (norm=1) is ", round(biasbound_orig,3), " and the L1 discrepancy is ", round(L1_orig,3))
@@ -467,13 +500,16 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   # If numdims given, just get the weights in one shot:
   if (!is.null(numdims)){
     U2=U[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, observed=observed, svd.K=U2)
+    getw.out=getw(target=target, observed=observed, svd.U=U2)
     w=getw.out
     biasboundnow=biasbound( w = w, observed=observed,  target = target,
                             svd.out = svd.out, hilbertnorm = 1)
-    print(paste0("With ",numdims," dimensions, biasbound (norm=1) of ",
+    print(paste0("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3)))
-    user_numdims = TRUE
+    #stuff to set so we can skip the entire if statement below and just printout
+    dimseq = 1
+    dist.record = biasboundnow
+    biasbound_opt = biasboundnow
     }
 
   # If numdims not given, we search to minimize biasbound:
@@ -487,7 +523,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
 
     while (keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
-      w=getw(target = target, observed=observed, svd.K = U_try)
+      w=getw(target = target, observed=observed, svd.U = U_try)
       # Need to work on case where ebal fails and flagging this in result.
       # For now just returns all even weights.
 
@@ -530,14 +566,14 @@ kpop = function(allx, useasbases=NULL, b=NULL,
 
     # Finally, we didn't save weights each time, so go back and re-run
     # at optimal  number of dimensions
-    if(is.null(user_numdims)){
-        paste0("Re-running at optimal choice of numdims, ", numdims)
-    } else {paste0("Running at user-specified choice of numdims, ", numdims)}
+    
+    paste0("Re-running at optimal choice of numdims, ", numdims)
     U2=U[,1:numdims, drop=FALSE]
-    w=getw(target=target, observed=observed, svd.K=U2)
-    biasbound_opt=biasbound( w = w, observed=observed, target = target, svd.out = svd.out, hilbertnorm = 1)
-}   #end for "if null numdims"
-
+    w=getw(target= target, observed=observed, svd.U=U2)
+    biasbound_opt= biasbound(w = w, observed=observed, target = target, 
+                             svd.out = svd.out, hilbertnorm = 1)
+    
+  }
   dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   rownames(dist_pass) <- c("Dims", "BiasBound")
 

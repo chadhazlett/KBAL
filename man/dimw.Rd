@@ -39,8 +39,8 @@ kpopout= kpop(allx=lalonde[,xvars],
                useasbases=NULL, b=NULL,
                sampled=NULL, sampledinpop=FALSE,
                treatment=lalonde$nsw,
-               ebal.tol=1e-6, numdims=NULL, 
-               minnumdims=NULL, maxnumdims=NULL, 
+               ebal.tol=1e-6, numdims=NULL,
+               minnumdims=NULL, maxnumdims=NULL,
                incrementby=1,
                printprogress =TRUE)
  #now use dimw to get the DIMs
