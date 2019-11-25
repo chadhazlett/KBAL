@@ -7,7 +7,7 @@
 #' @param allx A data matrix containing all observations where rows are units and columns are covariates.
 #' @param useasbases Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
-#' @return \item{K}{The Kernel matrix}
+#' @return \item{K}{The kernel matrix}
 #' @examples
 #' #load and clean data a bit
 #' data(lalonde)
@@ -211,7 +211,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' L1 Distance
 #' @description Calculates the L1 distance between the treated or population units and the kernel balanced control or sampled units.
 #' @param target a numeric vector of length equal to the total number of units where population or treated units take a value of 1 and sample or control units take a value of 0.
-#' @param K the Kernel matrix
+#' @param K the kernel matrix
 #' @param linkernel a logical which ?????
 #' @param X a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
 #' #' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.

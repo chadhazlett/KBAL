@@ -14,7 +14,7 @@ makeK(allx, useasbases = NULL, b = NULL)
 \item{b}{Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.}
 }
 \value{
-\item{K}{The Kernel matrix}
+\item{K}{The kernel matrix}
 }
 \description{
 Builds the Gaussian kernel matrix using Rcpp.

@@ -10,7 +10,7 @@ getdist(target, observed, K, linkernel, X, svd.out, w = NULL,
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population or treated units take a value of 1 and sample or control units take a value of 0.}
 
-\item{K}{the Kernel matrix}
+\item{K}{the kernel matrix}
 
 \item{linkernel}{a logical which ?????}
 
