@@ -4,15 +4,14 @@ Title: Kernel Balancing
 Version: 0.0.0.9000
 Date: 2015-09-10
 Authors@R: person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre"))
-Description: A weighting approach to ensure unbiased ATT estimation with minimal
-    assumptions.
+Description: A weighting approach to make one group have similar distribution as another,  with application to ATT estimation (making control group look like treated), survey reweighting(making a sampled group look like a population), etc.
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes
 Depends:
     R (>= 2.14)
 Imports:
-    emplik,
-    glmc
+    ebal
+LinkingTo: Rcpp
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
