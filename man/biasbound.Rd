@@ -40,4 +40,6 @@ biasbound(observed=(1-lalonde$nsw),
  target=lalonde$nsw,
  svd.out = svd_pass,
  w = rep(1,nrow(lalonde)), hilbertnorm=1)
+=======
+biasbound(D=D, w=w, V=svd.out$u, a=svd.out$d, hilbertnorm=1)
 }
