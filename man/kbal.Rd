@@ -51,14 +51,8 @@ data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #kbal at defaults:
-kbalout= kbal(allx=lalonde[,xvars],
-               useasbases=NULL, b=NULL,
-               sampled=NULL, sampledinpop=FALSE,
-               treatment=lalonde$nsw,
-               ebal.tol=1e-6, numdims=NULL,
-               minnumdims=NULL, maxnumdims=NULL,
-               incrementby=1,
-               printprogress =TRUE)
+kbalout= kbal(allx=lalonde[,xvars], treatment=lalonde$nsw,
+               ebal.tol=1e-6, printprogress =TRUE)
  summary(lm(re78~nsw,w=kbalout$w, data = lalonde))
  
 #Rerun Lalonde example with settings as in the KBAL paper:
