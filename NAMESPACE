@@ -2,10 +2,11 @@
 
 export(biasbound)
 export(dimw)
+export(ebalance_custom)
 export(el_custom)
 export(getdist)
 export(getw)
-export(kpop)
+export(kbal)
 export(llog_custom)
 export(log_el_custom)
 export(makeK)

@@ -48,7 +48,7 @@ makeK = function(allx, useasbases=NULL, b=NULL){
 ### function to drive the optimization
 #similar to biasboud in kbal
 #' Worst-Case Bias Bound due to Incomplete Balance
-#' @description Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kpop()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
+#' @description Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param svd.out the list object output from \code{svd()} performed on the kernel matrix.
@@ -106,15 +106,15 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' @return \item{dim}{the simple, unweighted difference in means.}
 #' \item{dimw}{the weighted difference in means.}
 #' @examples
-#' #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kpop
+#' #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kbal
 #' #function with the lalonde data:
 #' #load and clean data a bit
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
-#' #get the kpop weights
-#' kpopout= kpop(allx=lalonde[,xvars],
+#' #get the kbal weights
+#' kbalout= kbal(allx=lalonde[,xvars],
 #'                useasbases=NULL, b=NULL,
 #'                sampled=NULL, sampledinpop=FALSE,
 #'                treatment=lalonde$nsw,
@@ -123,7 +123,7 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #'                incrementby=1,
 #'                printprogress =TRUE)
 #'  #now use dimw to get the DIMs
-#'  dimw(X = lalonde[,xvars], w = kpopout$w, target = lalonde$nsw)
+#'  dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)
 #' @export
 dimw = function(X,w,target){
   w1=w[target==1]/sum(w[target==1])
@@ -310,13 +310,13 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 } ## end of getdist
 
 
-# The main event: Actual kpop function!
+# The main event: Actual kbal function!
 #' Kernel Balancing
 #'
 #' @description Kernel balancing assumes the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. This function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
 #'
 #' @param allx a data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases optional binary vector argument to specify what bases to use when constructing the kernel matrix and finding weights. While the number of observations is under 2000, the default maximum is to use all observations. Due to the computation burden, when the number of observations is over 2000, the default is to use sampled units.}
+#' @param useasbases optional vector of 0/1 or FALSE/TRUE to specify what observations are to be used in forming bases (columns of the kernel matrix) balanced upon.  If the number of observations is under 2000, the default is to use all observations. When the number of observations is over 2000, the default is to use the sampled (control) units only.
 #' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.
@@ -339,8 +339,8 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
-#' #kpop at defaults:
-#' kpopout= kpop(allx=lalonde[,xvars],
+#' #kbal at defaults:
+#' kbalout= kbal(allx=lalonde[,xvars],
 #'                useasbases=NULL, b=NULL,
 #'                sampled=NULL, sampledinpop=FALSE,
 #'                treatment=lalonde$nsw,
@@ -348,9 +348,9 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 #'                minnumdims=NULL, maxnumdims=NULL,
 #'                incrementby=1,
 #'                printprogress =TRUE)
-#'  summary(lm(re78~nsw,w=kpopout$w, data = lalonde))
+#'  summary(lm(re78~nsw,w=kbalout$w, data = lalonde))
 #' @export
-kpop = function(allx, useasbases=NULL, b=NULL,
+kbal = function(allx, useasbases=NULL, b=NULL,
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
                 ebal.tol=1e-6, numdims=NULL,
@@ -459,7 +459,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
     #Setting defaults: minnumdims, maxnumdims
     if (is.null(minnumdims)){minnumdims=1}
     if (is.null(maxnumdims)){maxnumdims=sum(useasbases)}
-    #setting defaults - b: dding default b within the kpop function rather than in makeK
+    #setting defaults - b: dding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
     if (is.null(b)){ b = 2*ncol(allx) }
     
@@ -585,7 +585,7 @@ kpop = function(allx, useasbases=NULL, b=NULL,
   R$K = K
 
   return(R)
-} # end kpop main function
+} # end kbal main function
 
 
 
