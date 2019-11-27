@@ -46,7 +46,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 Kernel balancing assumes the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. This function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
 }
 \examples{
-#Run Lalonde example as in paper:
+#Run Lalonde example at (new) defaults:
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
@@ -60,4 +60,19 @@ kbalout= kbal(allx=lalonde[,xvars],
                incrementby=1,
                printprogress =TRUE)
  summary(lm(re78~nsw,w=kbalout$w, data = lalonde))
+ 
+#Rerun Lalonde example with settings as in the KBAL paper:
+data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#kbal at defaults:
+kbalout.full= kbal(allx=lalonde[,xvars],
+               useasbases=rep(1,nrow(lalonde)), b=NULL,
+               sampled=NULL, sampledinpop=FALSE,
+               treatment=lalonde$nsw,
+               ebal.tol=1e-6, numdims=NULL,
+               minnumdims=NULL, maxnumdims=NULL,
+               incrementby=1,
+               printprogress =TRUE)
+ summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
 }

@@ -335,7 +335,7 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 #'  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
 #' \item{K}{the kernel matrix.}
 #' @examples
-#' #Run Lalonde example as in paper:
+#' #Run Lalonde example at (new) defaults:
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
@@ -349,6 +349,21 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 #'                incrementby=1,
 #'                printprogress =TRUE)
 #'  summary(lm(re78~nsw,w=kbalout$w, data = lalonde))
+#'  
+#' #Rerun Lalonde example with settings as in the KBAL paper:
+#' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' #kbal at defaults:
+#' kbalout.full= kbal(allx=lalonde[,xvars],
+#'                useasbases=rep(1,nrow(lalonde)), b=NULL,
+#'                sampled=NULL, sampledinpop=FALSE,
+#'                treatment=lalonde$nsw,
+#'                ebal.tol=1e-6, numdims=NULL,
+#'                minnumdims=NULL, maxnumdims=NULL,
+#'                incrementby=1,
+#'                printprogress =TRUE)
+#'  summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
 #' @export
 kbal = function(allx, useasbases=NULL, b=NULL,
                 sampled=NULL, sampledinpop=NULL,
