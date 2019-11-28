@@ -11,7 +11,8 @@ LazyLoad: yes
 Depends:
     R (>= 2.14)
 Imports:
-    ebal
+    ebal,
+    Rcpp (>= 0.11.0)
 LinkingTo: Rcpp
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
 RoxygenNote: 6.1.1
