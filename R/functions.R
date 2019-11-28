@@ -406,7 +406,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
     }
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
-    if(!is.null(treatment)) {
+    if(!is.null(treatment) & is.null(sampledinpop)) {
         sampledinpop=FALSE
         warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)
     }
