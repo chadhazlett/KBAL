@@ -2,10 +2,11 @@
 
 export(biasbound)
 export(dimw)
-export(ebalance_custom)
 export(getdist)
 export(getw)
 export(kbal)
 export(makeK)
 importFrom(Rcpp,sourceCpp)
+importFrom(stats,sd)
+importFrom(stats,var)
 useDynLib(KBAL)
