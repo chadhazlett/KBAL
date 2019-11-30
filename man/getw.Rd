@@ -11,7 +11,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06)
 
 \item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
-\item{svd.U}{Matrix whose columns contain the left singular vectors of the kernel matrix.}
+\item{svd.U}{matrix whose columns contain the left singular vectors of the kernel matrix.}
 
 \item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
 }
