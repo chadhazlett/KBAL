@@ -4,18 +4,21 @@
 \alias{getdist}
 \title{L1 Distance}
 \usage{
-getdist(target, observed, K, linkernel, X, svd.out, w = NULL,
+getdist(target, observed, K, linkernel = FALSE, X, svd.out, w = NULL,
   numdims = NULL, ebal.tol = NULL)
 }
 \arguments{
-\item{target}{a numeric vector of length equal to the total number of units where population or treated units take a value of 1 and sample or control units take a value of 0.}
+\item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+
+\item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
 \item{K}{the kernel matrix}
 
-\item{linkernel}{a logical which ?????}
+\item{linkernel}{a logical that when true calculates the L1 distances using a linear kernel. Default is false.}
 
-\item{X}{a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
-#' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.}
+\item{X}{a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.}
+
+\item{svd.out}{the list object output from performing \code{svd()} on the kernel matrix.}
 
 \item{w}{a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.}
 
@@ -48,7 +51,6 @@ svd.U_pass <- svd(K_pass)
 l1_lalonde <- getdist(target = lalonde$nsw,
                       observed = 1-lalonde$nsw,
                       K = K_pass,
-                      linkernel = FALSE,
                       X = lalonde[,xvars],
                       svd.out = svd.U_pass,
                       numdims = 33)
@@ -61,8 +63,7 @@ l1_lalonde <- getdist(target = lalonde$nsw,
  l1_lalonde2 <- getdist(target = lalonde$nsw,
                   observed = 1-lalonde$nsw,
                   K = K_pass,
-                  linkernel = FALSE,
                   X = lalonde[,xvars],
                   svd.out = svd.U_pass,
-                  w = w_now)
+                  w = w_opt)
 }
