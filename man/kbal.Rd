@@ -18,9 +18,9 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 
 \item{sampled}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
-\item{sampledinpop}{a logical to be used in compination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.}
+\item{sampledinpop}{a logical to be used in combination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.}
 
-\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0. Note that, current version only supports finding the ATT whihc implies \code{sampledinpop} is \code{FALSE}.}
+\item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.}
 
 \item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
 
