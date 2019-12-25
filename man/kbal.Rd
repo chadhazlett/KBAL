@@ -43,119 +43,90 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{K}{the kernel matrix.}
 }
 \description{
-Kernel balancing assumes the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. This function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
+Kernel balancing (KBAL) is non-parametric reweighting tool for making control and treated groups look alike not only on the means of their covariates, but on general smooth functions and indeed on the estimated distribution of covariates (Hazlett, 2017). It can equally be used to make a sampled group have a similar distributino of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings with simple motivating cases. 
+
+In the causal effect setting, KBAL assumes that the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. This function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
 }
 \examples{
-#Example 1:
-#Run Lalonde example at (new) defaults:
+# Example 1: Reweight a control group to a treated to esimate ATT. 
+# Benchmark using Lalonde et al.
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
  
-#Rerun Lalonde example with settings as in the KBAL paper:
-kbalout.full= kbal(allx=lalonde[,xvars],
+# Rerun Lalonde example with settings as in the KBAL paper:
+kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
                useasbases=rep(1,nrow(lalonde)),
                treatment=lalonde$nsw)
- summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
+summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
  
- ############################################################
- ############################################################
+############################################################
  
- #Example 2:
- #Example of Population Weighting using Kpop as Opposed to Mean Balancing
- ######## Data Generation
+# Example 2: Reweight a sample to a target population.
+# Suppose a population consists of four groups in equal shares: 
+# white republican, non-white republican, white non-republicans, 
+# and non-white non-republicans. A given policy happens to be supported 
+# by all white republicans, and nobody else. Thus the mean level of 
+# support in the population should be 25\%. 
+#
+# However,  suppose the sample is surveyed in such a way that was careful 
+# to startify on party and race, obtaining 50\\\% republican and 50\\\% white,
+# but among republicans three-quarters are white and among non-republicans,
+# three quarters are non-white. This biases the average level of support
+# despite having a sample that matches the population on its marginal distributions. 
+# We'd like to reweight the sample so it resembles the population not just on the margins, 
+# but in the joint distribution of 
+# characteristics. 
+
+pop <- data.frame(
+republican =  c(rep(0,400), rep(1,400)),
+white = c(rep(1,200), rep(0,200), rep(1,200), rep(0,200)),
+support = c(rep(1,200), rep(0,600)))
+  
+mean(pop$support)  # Target value
  
- #Objective:
- #Suppose that we have a sample of 80 respondents giving their support for policy 
- #Our goal is to reweight this sample based on known covariates such that it is 
- #representative of the true population of 800 individuals
- #we want to get a good estimate of the average population support for policy A
+#Sample: right margins, but imbalances within party
+samp <- data.frame( republican = c(rep(1, 40), rep(0,40)),
+   white = c(rep(1,30), rep(0,10), rep(1,10), rep(0,30)),
+   support = c(rep(1,30), rep(0,50)))
+  
+mean(samp$support)  # Appears that support is 37.5\% instead of 25\%.
  
- #Population values: 
- #suppose that there is unequal support for policy A among 4 groups:
- #white republicans, white democrats, non-white republicans, non-white democrats
- #for simplicity, suppose that white republicans support the policy 100\% 
- #and everyone else has support of 0\%
- #further assume the number of people in each of these groups in the population is even
- #since only a quarter of individuals in the population support A(200 white republicans),
- #our target estimate of the average population support for policy A is 25\%
+### Mean Balancing
+# Sample is already mean-balanced to the population on each characteristic. 
+# However for illustrative purposes, use ebal() 
+dat <- rbind(pop,samp)
+
+# Indicate which units are sampled (1) and which are population units(0)
+sampled <- c(rep(0,800), rep(1,80))
  
- #fill population values 
- pop <- matrix(NA, nrow =800, ncol = 3)
- colnames(pop) <- c("Party", "Race", "Support_for_A")
- #fill Republican or Democrat: (400 of each) (1=Rep)
- pop[,1] <- c(rep(0,400), rep(1,400))
- #fill white or nonwhite: (400 of each, and 200 of each interaction with party) (white=1)
- pop[,2] <- c(rep(1,200), rep(0,200), rep(1,200), rep(0,200))
- #now fill the policy support: only 1 for white republicans, the first 200 rows
- pop[,3] <- c(rep(1,200), rep(0,600))
- #we can quickly confirm the target population estimate is 25\%
- mean(pop[,3])
- 
- #Sample values:
- #now suppose that we have a sample of support for A among from 80 respondents
- #for the sake of simplicity, again assume that only white republicans support A w/100\%
- #and that all other groups have 0\% support
- #we know that party and race are probably important, but we do not know that the
- #their interaction is what really matters
- #so we stratify on race and party separately, ensuring equal repsonses from 
- #republicans and democrats (40 each), and white and non-whites (40 each)
- #and we end up with unequal numbers of the interacted groups such that we have:
- #30 white republicans, 10 non-white republicans,
- #10 white democrats, 30 nonwhite democrats
- #given that only white republicans support the policy, we will end up with
- #sample average support of 30/80 or 37.5\%
- 
- #fill sample values:
- samp <- matrix(NA, nrow = 80, ncol = 3)
- colnames(samp) <- c("Party", "Race", "Support_for_A")
- #fill Republican or Democrat: (40 of each) (1=Rep)
- samp[,1] <- c(rep(1, 40), rep(0,40))
- #fill White or Non-white: 40 of each, 30 wR, 10 nwR, 10 wD, 30 nwR
- samp[,2] <- c(rep(1,30), rep(0,10), rep(1,10), rep(0,30))
- #fill policy support: only white republicans support, the first 30 rows
- samp[,3] <- c(rep(1,30), rep(0,50))
- #see directly that sample average support is 37.5\%
- mean(samp[,3])
- 
- ###### Mean Balancing
- #normally, to reweight our sample to the population we would use mean balancing
- #since we don't know the interaction between party and race is the relevant covariate
- #to balance on, we would simply reweigth our sample based on race, and party separately
- #given that we have equal n in each of these two covariates, there's nothing to readjust
- #mean balancing cannot get us any closer to the correct population estimate 
- #since we already have mean balance party and race and
- #we just end up just where we started
- 
- #to see this explicitly, we can run ebalance to get essentially perfect mean balance
- #first combine the data for ebal()
- dat <- rbind(pop,samp)
- #build a vector indicating which units are sampled(1) and which are population units(0)
- sampled <- c(rep(0,800), rep(1,80))
- 
- #run ebal (treatment = population units = 1-sampled)
- ebal_out <- ebal::ebalance(Treatment = 1-sampled, 
+# Run ebal (treatment = population units = 1-sampled)
+ebal_out <- ebal::ebalance(Treatment = 1-sampled, 
                             X=dat[,1:2],
                             constraint.tolerance=1e-6, 
                             print.level=-1)
  
- #we can see that they are all weighted evenly to scale the sample by ten from 80 to 800
- unique(ebal_out$w)
- #and we end up with the same estimate we started with
- weighted.mean(samp[,3], w = ebal_out$w)
+# We can see everything gets even weights, since already mean balanced.
+length(unique(ebal_out$w))
+
+# And we end up with the same estimate we started with
+weighted.mean(samp[,3], w = ebal_out$w)
  
- ####### Kernel Balancing
- #now we can see how kernel balancing can find these higher order combinations 
- #of covariates for us to get excellent balance and sample estimates 
- #even if we don't know to seek balance on these combinations ourselves
- kbalout = kbal(allx=dat[,1:2],
+### Kernel balancing for weighting to a population (i.e. kpop)
+# Use kernel bases as a means to align joint distribution of sample to population.
+kbalout = kbal(allx=dat[,1:2],
                 useasbases=rep(1,nrow(dat)), 
                 sampled = sampled, 
                 b = 1,
                 sampledinpop = FALSE)
                 
- #we no longer get even weights for the sampled units
- kbalout$w[sampled ==1]
- #and we end up with the correct estimate
- weighted.mean(samp[,3], w = kbalout$w[sampled==1])    
+# The weights now vary:
+plot(kbalout$w[sampled ==1])
+
+# And give us the correct estimate:
+weighted.mean(samp$support, w = kbalout$w[sampled==1])    
+ 
+}
+\references{
+Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinice. https://doi.org/10.5705/ss.202017.0555
 }
