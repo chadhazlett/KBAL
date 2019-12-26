@@ -21,6 +21,7 @@
 #' useasbases = 1-lalonde$nsw,
 #' b = 2*ncol(lalonde[,xvars]))
 #' @useDynLib KBAL
+#' @importFrom stats sd 
 #' @importFrom Rcpp sourceCpp
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL){
@@ -39,9 +40,8 @@ makeK = function(allx, useasbases=NULL, b=NULL){
   bases <- scale(bases, center = Xmeans.bases, scale = Xsds.bases)
   allx <- scale(allx, center = Xmeans.bases, scale = Xsds.bases)
 
-  K = KRLS2:::new_gauss_kern(newx = allx, oldx = bases, b = b)
+  K = new_gauss_kern(newx = allx, oldx = bases, b = b)
   return(K)
-  #K=KRLS2::newKernel(X = bases , newData = allx , b = b) #if use this then do not rescale above
 }
 
 ### Get bias bound, which will be the distance
@@ -99,10 +99,6 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' @param X matrix of data where rows are observations and columns are covariates.
 #' @param w numeric vector of weights for each observation.
 #' @param target numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
-#'
-#' @param X a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
-#' @param w numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
-#' @param target vector taking values of 0 or 1's indicating which observations (which rows  of X and w) are in the control or sample population and which are in the treated or target population.
 #' @return \item{dim}{the simple, unweighted difference in means.}
 #' \item{dimw}{the weighted difference in means.}
 #' @examples
@@ -115,13 +111,8 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #'
 #' #get the kbal weights
 #' kbalout= kbal(allx=lalonde[,xvars],
-#'                useasbases=NULL, b=NULL,
-#'                sampled=NULL, sampledinpop=FALSE,
-#'                treatment=lalonde$nsw,
-#'                ebal.tol=1e-6, numdims=NULL,
-#'                minnumdims=NULL, maxnumdims=NULL,
-#'                incrementby=1,
-#'                printprogress =TRUE)
+#'                sampledinpop=FALSE,
+#'                treatment=lalonde$nsw)
 #'  #now use dimw to get the DIMs
 #'  dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)
 #' @export
@@ -142,14 +133,13 @@ dimw = function(X,w,target){
 # we have setup.
 # Currently just uses ebal, but we could to others
 # or give options.
-# Will need some work to better carry error messages from ebal.
 
 #' Find Weights using Entropy Balancing.
 #' @description Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
 #'
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
-#' @param svd.U Matrix whose columns contain the left singular vectors of the kernel matrix.
+#' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
@@ -210,11 +200,12 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 
 #' L1 Distance
 #' @description Calculates the L1 distance between the treated or population units and the kernel balanced control or sampled units.
-#' @param target a numeric vector of length equal to the total number of units where population or treated units take a value of 1 and sample or control units take a value of 0.
+#' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
+#' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param K the kernel matrix
-#' @param linkernel a logical which ?????
+#' @param linkernel a logical that when true calculates the L1 distances using a linear kernel. Default is false.
 #' @param X a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
-#' #' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
+#' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
 #' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
 #' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
 #' @param ebal.tol an optional numeric input speccifying the tolerance level used by \code{ebal::ebalance} in the case that \code{w} is not specified. When not specified, the default is 1e-6/
@@ -238,7 +229,6 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' l1_lalonde <- getdist(target = lalonde$nsw,
 #'                       observed = 1-lalonde$nsw,
 #'                       K = K_pass,
-#'                       linkernel = FALSE,
 #'                       X = lalonde[,xvars],
 #'                       svd.out = svd.U_pass,
 #'                       numdims = 33)
@@ -251,12 +241,11 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'  l1_lalonde2 <- getdist(target = lalonde$nsw,
 #'                   observed = 1-lalonde$nsw,
 #'                   K = K_pass,
-#'                   linkernel = FALSE,
 #'                   X = lalonde[,xvars],
 #'                   svd.out = svd.U_pass,
-#'                   w = w_now)
+#'                   w = w_opt)
 #' @export
-getdist <- function(target, observed, K, linkernel, X, svd.out,
+getdist <- function(target, observed, K, linkernel = FALSE, X, svd.out,
                     w=NULL, numdims = NULL, ebal.tol=NULL) {
 
         R=list()
@@ -294,7 +283,7 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
         }
 
         if (linkernel==TRUE){
-            pX_D1=colMeans(X[treated==1, , drop=FALSE])
+            pX_D1=colMeans(X[target==1, , drop=FALSE])
             pX_D0=colMeans(X[observed==1, , drop=FALSE])
             pX_D0w=w[observed==1]%*%as.matrix(X[observed==1,])/sum(observed==1)
             L1=sum(abs(pX_D1-pX_D0w))
@@ -335,25 +324,118 @@ getdist <- function(target, observed, K, linkernel, X, svd.out,
 #'  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
 #' \item{K}{the kernel matrix.}
 #' @examples
+#' #Example 1:
 #' #Run Lalonde example at (new) defaults:
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
-#' #kbal at defaults:
-#' kbalout= kbal(allx=lalonde[,xvars], treatment=lalonde$nsw,
-#'                ebal.tol=1e-6, printprogress =TRUE)
-#'  summary(lm(re78~nsw,w=kbalout$w, data = lalonde))
 #'  
 #' #Rerun Lalonde example with settings as in the KBAL paper:
 #' kbalout.full= kbal(allx=lalonde[,xvars],
-#'                useasbases=rep(1,nrow(lalonde)), b=NULL,
-#'                sampled=NULL, sampledinpop=FALSE,
-#'                treatment=lalonde$nsw,
-#'                ebal.tol=1e-6, numdims=NULL,
-#'                minnumdims=NULL, maxnumdims=NULL,
-#'                incrementby=1,
-#'                printprogress =TRUE)
+#'                useasbases=rep(1,nrow(lalonde)),
+#'                treatment=lalonde$nsw)
 #'  summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
+#'  
+#'  ############################################################
+#'  ############################################################
+#'  
+#'  #Example 2:
+#'  #Example of Population Weighting using Kpop as Opposed to Mean Balancing
+#'  ######## Data Generation
+#'  
+#'  #Objective:
+#'  #Suppose that we have a sample of 80 respondents giving their support for policy 
+#'  #Our goal is to reweight this sample based on known covariates such that it is 
+#'  #representative of the true population of 800 individuals
+#'  #we want to get a good estimate of the average population support for policy A
+#'  
+#'  #Population values: 
+#'  #suppose that there is unequal support for policy A among 4 groups:
+#'  #white republicans, white democrats, non-white republicans, non-white democrats
+#'  #for simplicity, suppose that white republicans support the policy 100% 
+#'  #and everyone else has support of 0%
+#'  #further assume the number of people in each of these groups in the population is even
+#'  #since only a quarter of individuals in the population support A(200 white republicans),
+#'  #our target estimate of the average population support for policy A is 25%
+#'  
+#'  #fill population values 
+#'  pop <- matrix(NA, nrow =800, ncol = 3)
+#'  colnames(pop) <- c("Party", "Race", "Support_for_A")
+#'  #fill Republican or Democrat: (400 of each) (1=Rep)
+#'  pop[,1] <- c(rep(0,400), rep(1,400))
+#'  #fill white or nonwhite: (400 of each, and 200 of each interaction with party) (white=1)
+#'  pop[,2] <- c(rep(1,200), rep(0,200), rep(1,200), rep(0,200))
+#'  #now fill the policy support: only 1 for white republicans, the first 200 rows
+#'  pop[,3] <- c(rep(1,200), rep(0,600))
+#'  #we can quickly confirm the target population estimate is 25%
+#'  mean(pop[,3])
+#'  
+#'  #Sample values:
+#'  #now suppose that we have a sample of support for A among from 80 respondents
+#'  #for the sake of simplicity, again assume that only white republicans support A w/100%
+#'  #and that all other groups have 0% support
+#'  #we know that party and race are probably important, but we do not know that the
+#'  #their interaction is what really matters
+#'  #so we stratify on race and party separately, ensuring equal repsonses from 
+#'  #republicans and democrats (40 each), and white and non-whites (40 each)
+#'  #and we end up with unequal numbers of the interacted groups such that we have:
+#'  #30 white republicans, 10 non-white republicans,
+#'  #10 white democrats, 30 nonwhite democrats
+#'  #given that only white republicans support the policy, we will end up with
+#'  #sample average support of 30/80 or 37.5%
+#'  
+#'  #fill sample values:
+#'  samp <- matrix(NA, nrow = 80, ncol = 3)
+#'  colnames(samp) <- c("Party", "Race", "Support_for_A")
+#'  #fill Republican or Democrat: (40 of each) (1=Rep)
+#'  samp[,1] <- c(rep(1, 40), rep(0,40))
+#'  #fill White or Non-white: 40 of each, 30 wR, 10 nwR, 10 wD, 30 nwR
+#'  samp[,2] <- c(rep(1,30), rep(0,10), rep(1,10), rep(0,30))
+#'  #fill policy support: only white republicans support, the first 30 rows
+#'  samp[,3] <- c(rep(1,30), rep(0,50))
+#'  #see directly that sample average support is 37.5%
+#'  mean(samp[,3])
+#'  
+#'  ###### Mean Balancing
+#'  #normally, to reweight our sample to the population we would use mean balancing
+#'  #since we don't know the interaction between party and race is the relevant covariate
+#'  #to balance on, we would simply reweigth our sample based on race, and party separately
+#'  #given that we have equal n in each of these two covariates, there's nothing to readjust
+#'  #mean balancing cannot get us any closer to the correct population estimate 
+#'  #since we already have mean balance party and race and
+#'  #we just end up just where we started
+#'  
+#'  #to see this explicitly, we can run ebalance to get essentially perfect mean balance
+#'  #first combine the data for ebal()
+#'  dat <- rbind(pop,samp)
+#'  #build a vector indicating which units are sampled(1) and which are population units(0)
+#'  sampled <- c(rep(0,800), rep(1,80))
+#'  
+#'  #run ebal (treatment = population units = 1-sampled)
+#'  ebal_out <- ebal::ebalance(Treatment = 1-sampled, 
+#'                             X=dat[,1:2],
+#'                             constraint.tolerance=1e-6, 
+#'                             print.level=-1)
+#'  
+#'  #we can see that they are all weighted evenly to scale the sample by ten from 80 to 800
+#'  unique(ebal_out$w)
+#'  #and we end up with the same estimate we started with
+#'  weighted.mean(samp[,3], w = ebal_out$w)
+#'  
+#'  ####### Kernel Balancing
+#'  #now we can see how kernel balancing can find these higher order combinations 
+#'  #of covariates for us to get excellent balance and sample estimates 
+#'  #even if we don't know to seek balance on these combinations ourselves
+#'  kbalout = kbal(allx=dat[,1:2],
+#'                 useasbases=rep(1,nrow(dat)), 
+#'                 sampled = sampled, 
+#'                 b = 1,
+#'                 sampledinpop = FALSE)
+#'                 
+#'  #we no longer get even weights for the sampled units
+#'  kbalout$w[sampled ==1]
+#'  #and we end up with the correct estimate
+#'  weighted.mean(samp[,3], w = kbalout$w[sampled==1])    
 #' @export
 kbal = function(allx, useasbases=NULL, b=NULL,
                 sampled=NULL, sampledinpop=NULL,
@@ -406,7 +488,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
     }
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
-    if(!is.null(treatment)) {
+    if(!is.null(treatment) & (is.null(sampledinpop) || sampledinpop == TRUE)) {
         sampledinpop=FALSE
         warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)
     }
@@ -496,7 +578,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                             svd.out = svd.out, hilbertnorm = 1)
 
   getdist.orig = getdist(target=target, observed = observed, linkernel = FALSE,
-                         w = rep(1,N), svd.out = svd.out, X = allW, K=K)
+                         w = rep(1,N), svd.out = svd.out, X = allx, K=K)
   L1_orig = getdist.orig$L1
 
   paste0("Without balancing, biasbound (norm=1) is ", round(biasbound_orig,3), " and the L1 discrepancy is ", round(L1_orig,3))
@@ -510,10 +592,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                             svd.out = svd.out, hilbertnorm = 1)
     print(paste0("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3)))
+    
     #stuff to set so we can skip the entire if statement below and just printout
     dimseq = 1
     dist.record = biasboundnow
     biasbound_opt = biasboundnow
+    L1_optim = getdist(target=target, observed = observed, linkernel = FALSE,
+                       w = w, svd.out = svd.out, X = allx, K=K)$L1
+    
     }
 
   # If numdims not given, we search to minimize biasbound:
@@ -577,6 +663,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     biasbound_opt= biasbound(w = w, observed=observed, target = target, 
                              svd.out = svd.out, hilbertnorm = 1)
     
+    L1_optim = getdist(target=target, observed = observed, linkernel = FALSE,
+                       w = w, svd.out = svd.out, X = allx, K=K)$L1
   }
   dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   rownames(dist_pass) <- c("Dims", "BiasBound")
@@ -584,6 +672,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R=list()
   R$dist.record= dist_pass
   R$biasbound.orig=dist.orig
+  R$L1_orig = L1_orig
+  R$L1_opt = L1_optim
   R$w=w
   R$numdims=numdims
   R$biasbound.opt=biasbound_opt
