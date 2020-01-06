@@ -74,7 +74,7 @@ summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))
 # support in the population should be 25\%. 
 #
 # Further, the sample is surveyed in such a way that was careful 
-# to stratify on party and race, obtaining 50\\\% republican and 50\\\% white.
+# to quota on party and race, obtaining 50\% republican and 50\% white.
 # However, among republicans three-quarters are white and among non-republicans,
 # three quarters are non-white. This biases the average level of support
 # despite having a sample that matches the population on its marginal distributions. #'
@@ -115,6 +115,9 @@ length(unique(ebal_out$w))
 # And we end up with the same estimate we started with
 weighted.mean(samp[,3], w = ebal_out$w)
  
+We see that, because the margins are correct, all weights are equal
+unique(cbind(samp, e_bal_weight = ebal_out$w))
+
 # Kernel balancing for weighting to a population (i.e. kpop) -------
 kbalout = kbal(allx=dat[,1:2],
                 useasbases=rep(1,nrow(dat)), 
@@ -128,6 +131,9 @@ plot(kbalout$w[sampled ==1], pch=16)
 # And produce correct estimate:
 weighted.mean(samp$support, w = kbalout$w[sampled==1])    
  
+KBAL correctly downweights white republicans and non-white non-republicans
+and upweights the non-white republicans and white non-republicans
+unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 }
 \references{
 Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinice. https://doi.org/10.5705/ss.202017.0555
