@@ -43,13 +43,17 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{K}{the kernel matrix.}
 }
 \description{
-Kernel balancing (KBAL) is non-parametric reweighting tool for making control and treated groups look alike not only on the means of their covariates, but on general smooth functions and indeed on the estimated distribution of covariates (Hazlett, 2017). It can equally be used to make a sampled group have a similar distributino of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings with simple motivating cases. 
+Kernel balancing (KBAL) is non-parametric weighting tool to make two groups have a similar distribution of covariates, not just in terms of means or marginal distributions but (i) on general smooth functions of the covariates, including (ii) on a smoothing estimator of the joint distribution of the covariates. It was originally designed (Hazlett, 2017) to make control and treated groups look alike, as desired when estimating causal effects under conditional ignorabiity. This package also facilitates use of this approach for more general distribution-alignment tasks, such as making a sampled group have a similar distribution of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings.
 
-In the causal effect setting, KBAL assumes that the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. This function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
+To proceed in the causal effect setting, KBAL assumes that the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. The approximation is one that minimizes the worst-case bias that could persist due to remaining imbalances. 
+
+The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then results these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison.
 }
 \examples{
+#----------------------------------------------------------------
 # Example 1: Reweight a control group to a treated to esimate ATT. 
 # Benchmark using Lalonde et al.
+#----------------------------------------------------------------
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
@@ -60,23 +64,22 @@ kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
                treatment=lalonde$nsw)
 summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
  
-############################################################
- 
+#----------------------------------------------------------------
 # Example 2: Reweight a sample to a target population.
+#----------------------------------------------------------------
 # Suppose a population consists of four groups in equal shares: 
 # white republican, non-white republican, white non-republicans, 
 # and non-white non-republicans. A given policy happens to be supported 
 # by all white republicans, and nobody else. Thus the mean level of 
 # support in the population should be 25\%. 
 #
-# However,  suppose the sample is surveyed in such a way that was careful 
-# to startify on party and race, obtaining 50\\\% republican and 50\\\% white,
-# but among republicans three-quarters are white and among non-republicans,
+# Further, the sample is surveyed in such a way that was careful 
+# to quota on party and race, obtaining 50\% republican and 50\% white.
+# However, among republicans three-quarters are white and among non-republicans,
 # three quarters are non-white. This biases the average level of support
-# despite having a sample that matches the population on its marginal distributions. 
-# We'd like to reweight the sample so it resembles the population not just on the margins, 
-# but in the joint distribution of 
-# characteristics. 
+# despite having a sample that matches the population on its marginal distributions. #'
+# We'd like to reweight the sample so it resembles the population not 
+# just on the margins, but in the joint distribution of characteristics. 
 
 pop <- data.frame(
 republican =  c(rep(0,400), rep(1,400)),
@@ -85,16 +88,16 @@ support = c(rep(1,200), rep(0,600)))
   
 mean(pop$support)  # Target value
  
-#Sample: right margins, but imbalances within party
+# Survey sample: correct margins/means, but wrong joint distribution
 samp <- data.frame( republican = c(rep(1, 40), rep(0,40)),
    white = c(rep(1,30), rep(0,10), rep(1,10), rep(0,30)),
    support = c(rep(1,30), rep(0,50)))
   
 mean(samp$support)  # Appears that support is 37.5\% instead of 25\%.
  
-### Mean Balancing
-# Sample is already mean-balanced to the population on each characteristic. 
-# However for illustrative purposes, use ebal() 
+# Mean Balancing -----------------------------------------
+# Sample is already mean-balanced to the population on each 
+# characteristic. However for illustrative purposes, use ebal() 
 dat <- rbind(pop,samp)
 
 # Indicate which units are sampled (1) and which are population units(0)
@@ -112,8 +115,10 @@ length(unique(ebal_out$w))
 # And we end up with the same estimate we started with
 weighted.mean(samp[,3], w = ebal_out$w)
  
-### Kernel balancing for weighting to a population (i.e. kpop)
-# Use kernel bases as a means to align joint distribution of sample to population.
+# We see that, because the margins are correct, all weights are equal
+unique(cbind(samp, e_bal_weight = ebal_out$w))
+
+# Kernel balancing for weighting to a population (i.e. kpop) -------
 kbalout = kbal(allx=dat[,1:2],
                 useasbases=rep(1,nrow(dat)), 
                 sampled = sampled, 
@@ -121,11 +126,14 @@ kbalout = kbal(allx=dat[,1:2],
                 sampledinpop = FALSE)
                 
 # The weights now vary:
-plot(kbalout$w[sampled ==1])
+plot(kbalout$w[sampled ==1], pch=16)
 
-# And give us the correct estimate:
+# And produce correct estimate:
 weighted.mean(samp$support, w = kbalout$w[sampled==1])    
  
+# KBAL correctly downweights white republicans and non-white non-republicans
+# and upweights the non-white republicans and white non-republicans
+unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 }
 \references{
 Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinice. https://doi.org/10.5705/ss.202017.0555
