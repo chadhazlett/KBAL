@@ -24,23 +24,26 @@
 #' @importFrom stats sd 
 #' @importFrom Rcpp sourceCpp
 #' @export
-makeK = function(allx, useasbases=NULL, b=NULL){
+makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   N=nrow(allx)
-
   # If no "useasbasis" given, assume all observations are to be used.
+  if(is.null(useasbases)) {useasbases = rep(1, N)}
+  
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
-
-  if(is.null(useasbases)) {useasbases = rep(1, N)}
-
+  
   bases = allx[useasbases==1, ]
-
+  
   Xmeans.bases <- colMeans(bases)
   Xsds.bases <- apply(bases,2,sd)
   bases <- scale(bases, center = Xmeans.bases, scale = Xsds.bases)
   allx <- scale(allx, center = Xmeans.bases, scale = Xsds.bases)
-
-  K = new_gauss_kern(newx = allx, oldx = bases, b = b)
+  
+  if(linkernel == TRUE) {
+      K = allx
+  } else {
+      K = new_gauss_kern(newx = allx, oldx = bases, b = b)
+  }
   return(K)
 }
 
@@ -204,7 +207,6 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param K the kernel matrix
 #' @param linkernel a logical that when true calculates the L1 distances using a linear kernel. Default is false.
-#' @param X a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
 #' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
 #' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
 #' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
@@ -229,7 +231,6 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' l1_lalonde <- getdist(target = lalonde$nsw,
 #'                       observed = 1-lalonde$nsw,
 #'                       K = K_pass,
-#'                       X = lalonde[,xvars],
 #'                       svd.out = svd.U_pass,
 #'                       numdims = 33)
 #'
@@ -241,11 +242,10 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'  l1_lalonde2 <- getdist(target = lalonde$nsw,
 #'                   observed = 1-lalonde$nsw,
 #'                   K = K_pass,
-#'                   X = lalonde[,xvars],
 #'                   svd.out = svd.U_pass,
 #'                   w = w_opt)
 #' @export
-getdist <- function(target, observed, K, linkernel = FALSE, X, svd.out,
+getdist <- function(target, observed, K, svd.out,
                     w=NULL, numdims = NULL, ebal.tol=NULL) {
 
         R=list()
@@ -268,26 +268,16 @@ getdist <- function(target, observed, K, linkernel = FALSE, X, svd.out,
             }
         }
 
-        if (linkernel==FALSE){
-            pX_D1=(matrix(1,1, sum(target==1))/sum(target==1))%*% K_t
-
-            pX_D0=(matrix(1,1,sum(observed==1))/sum(observed==1))%*% K_c
-
-            pX_D0w=(w[observed==1]/sum(w[observed==1])) %*% K_c
+        pX_D1=(matrix(1,1, sum(target==1))/sum(target==1))%*% K_t
+        pX_D0=(matrix(1,1,sum(observed==1))/sum(observed==1))%*% K_c
+        pX_D0w=(w[observed==1]/sum(w[observed==1])) %*% K_c
 
             # A rescaling to ensure sum is 1 as would be an integral.
-            pX_D1=pX_D1/sum(pX_D1)
-            pX_D0=pX_D0/sum(pX_D0)
-            pX_D0w=pX_D0w/sum(pX_D0w)
-            L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
-        }
+        pX_D1=pX_D1/sum(pX_D1)
+        pX_D0=pX_D0/sum(pX_D0)
+        pX_D0w=pX_D0w/sum(pX_D0w)
+        L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
 
-        if (linkernel==TRUE){
-            pX_D1=colMeans(X[target==1, , drop=FALSE])
-            pX_D0=colMeans(X[observed==1, , drop=FALSE])
-            pX_D0w=w[observed==1]%*%as.matrix(X[observed==1,])/sum(observed==1)
-            L1=sum(abs(pX_D1-pX_D0w))
-        }
 
         R$L1=L1
         R$w=w
@@ -418,6 +408,7 @@ getdist <- function(target, observed, K, linkernel = FALSE, X, svd.out,
 kbal = function(allx, useasbases=NULL, b=NULL,
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
+                linkernel = FALSE,
                 ebal.tol=1e-6, numdims=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
                 incrementby=1,
@@ -523,7 +514,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     #Setting defaults: minnumdims, maxnumdims
     if (is.null(minnumdims)){minnumdims=1}
-    if (is.null(maxnumdims)){maxnumdims=sum(useasbases)}
+    if (is.null(maxnumdims)){
+        if(linkernel == FALSE) {
+            maxnumdims=sum(useasbases) 
+        } else { maxnumdims = ncol(allx)}
+    }
     #setting defaults - b: dding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
     if (is.null(b)){ b = 2*ncol(allx) }
@@ -546,7 +541,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 
 
   if(printprogress == TRUE) {print(paste0("Building kernel matrix"))}
-  K = makeK(allx = allx, useasbases = useasbases, b=b)
+  if(linkernel == FALSE) {
+      K = makeK(allx = allx, useasbases = useasbases, b=b)
+  } else {
+      K = makeK(allx = allx,
+                useasbases = useasbases, 
+                linkernel = TRUE)
+  }
+    
   if(printprogress == TRUE) {print(paste0("Running SVD on kernel matrix"))}
   svd.out=svd(K)
   U=svd.out$u
@@ -555,8 +557,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   biasbound_orig=biasbound(w = rep(1,N), observed=observed, target = target,
                             svd.out = svd.out, hilbertnorm = 1)
 
-  getdist.orig = getdist(target=target, observed = observed, linkernel = FALSE,
-                         w = rep(1,N), svd.out = svd.out, X = allx, K=K)
+  getdist.orig = getdist(target=target, observed = observed,
+                         w = rep(1,N), svd.out = svd.out, K=K)
   L1_orig = getdist.orig$L1
 
   paste0("Without balancing, biasbound (norm=1) is ", round(biasbound_orig,3), " and the L1 discrepancy is ", round(L1_orig,3))
@@ -575,8 +577,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     dimseq = 1
     dist.record = biasboundnow
     biasbound_opt = biasboundnow
-    L1_optim = getdist(target=target, observed = observed, linkernel = FALSE,
-                       w = w, svd.out = svd.out, X = allx, K=K)$L1
+    L1_optim = getdist(target=target, observed = observed,
+                       w = w, svd.out = svd.out, K=K)$L1
     
     }
 
@@ -641,8 +643,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     biasbound_opt= biasbound(w = w, observed=observed, target = target, 
                              svd.out = svd.out, hilbertnorm = 1)
     
-    L1_optim = getdist(target=target, observed = observed, linkernel = FALSE,
-                       w = w, svd.out = svd.out, X = allx, K=K)$L1
+    L1_optim = getdist(target=target, observed = observed,
+                       w = w, svd.out = svd.out, K=K)$L1
   }
   dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   rownames(dist_pass) <- c("Dims", "BiasBound")
@@ -656,6 +658,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$numdims=numdims
   R$biasbound.opt=biasbound_opt
   R$K = K
+  R$linkernel = linkernel
 
   return(R)
 } # end kbal main function
