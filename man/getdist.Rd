@@ -4,8 +4,8 @@
 \alias{getdist}
 \title{L1 Distance}
 \usage{
-getdist(target, observed, K, linkernel = FALSE, X, svd.out, w = NULL,
-  numdims = NULL, ebal.tol = NULL)
+getdist(target, observed, K, svd.out, w = NULL, numdims = NULL,
+  ebal.tol = NULL)
 }
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
@@ -13,10 +13,6 @@ getdist(target, observed, K, linkernel = FALSE, X, svd.out, w = NULL,
 \item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 
 \item{K}{the kernel matrix}
-
-\item{linkernel}{a logical that when true calculates the L1 distances using a linear kernel. Default is false.}
-
-\item{X}{a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.}
 
 \item{svd.out}{the list object output from performing \code{svd()} on the kernel matrix.}
 
@@ -37,6 +33,7 @@ getdist(target, observed, K, linkernel = FALSE, X, svd.out, w = NULL,
 Calculates the L1 distance between the treated or population units and the kernel balanced control or sampled units.
 }
 \examples{
+\donttest{
 #loading and cleaning lalonde data
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -51,7 +48,6 @@ svd.U_pass <- svd(K_pass)
 l1_lalonde <- getdist(target = lalonde$nsw,
                       observed = 1-lalonde$nsw,
                       K = K_pass,
-                      X = lalonde[,xvars],
                       svd.out = svd.U_pass,
                       numdims = 33)
 
@@ -63,7 +59,6 @@ l1_lalonde <- getdist(target = lalonde$nsw,
  l1_lalonde2 <- getdist(target = lalonde$nsw,
                   observed = 1-lalonde$nsw,
                   K = K_pass,
-                  X = lalonde[,xvars],
                   svd.out = svd.U_pass,
-                  w = w_opt)
+                  w = w_opt)}
 }

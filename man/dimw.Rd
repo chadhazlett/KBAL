@@ -21,6 +21,7 @@ dimw(X, w, target)
 Calcuates the simple difference in means or weighted difference in means between the control or sample population and the treated or target popultion.
 }
 \examples{
+\donttest{
 #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kbal
 #function with the lalonde data:
 #load and clean data a bit
@@ -33,5 +34,5 @@ kbalout= kbal(allx=lalonde[,xvars],
                sampledinpop=FALSE,
                treatment=lalonde$nsw)
  #now use dimw to get the DIMs
- dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)
+ dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)}
 }

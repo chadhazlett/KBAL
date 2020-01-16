@@ -5,9 +5,9 @@
 \title{Kernel Balancing}
 \usage{
 kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
-  sampledinpop = NULL, treatment = NULL, ebal.tol = 1e-06,
-  numdims = NULL, minnumdims = NULL, maxnumdims = NULL,
-  incrementby = 1, printprogress = TRUE)
+  sampledinpop = NULL, treatment = NULL, linkernel = FALSE,
+  ebal.tol = 1e-06, numdims = NULL, minnumdims = NULL,
+  maxnumdims = NULL, incrementby = 1, printprogress = TRUE)
 }
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
@@ -21,6 +21,8 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{sampledinpop}{a logical to be used in combination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.}
 
 \item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.}
+
+\item{linkernel}{if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.}
 
 \item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
 
@@ -57,12 +59,30 @@ The \code{kbal} function implements kernel balancing using a gaussian kernel to 
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
- 
+ \donttest{
 # Rerun Lalonde example with settings as in the KBAL paper:
 kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
                useasbases=rep(1,nrow(lalonde)),
                treatment=lalonde$nsw)
 summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
+ }
+#----------------------------------------------------------------
+# Example 1B: Reweight a control group to a treated to esimate ATT. 
+# Benchmark using Lalonde et al. -- but just mean balancing now 
+# via "linkernel".
+#----------------------------------------------------------------
+ 
+# Rerun Lalonde example with settings as in the KBAL paper:
+kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
+               useasbases=rep(1,nrow(lalonde)),
+               treatment=lalonde$nsw, linkernel=TRUE)
+
+# Check balance with and without these weights:
+dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
+
+summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))  
+ 
+ 
  
 #----------------------------------------------------------------
 # Example 2: Reweight a sample to a target population.

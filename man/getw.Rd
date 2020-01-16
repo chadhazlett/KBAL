@@ -22,6 +22,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06)
 Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
 }
 \examples{
+\donttest{
 #load and clean data a bit
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -38,5 +39,5 @@ U = svd(K)$u
 #usually we are getting weights using different number of columns of this matrix, the finding
 # the bias and looking for the minimum. For now let's just use the first 10
 U2=U[,1:10, drop=FALSE]
-getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)
+getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 }

@@ -7,9 +7,11 @@
 #' @param allx A data matrix containing all observations where rows are units and columns are covariates.
 #' @param useasbases Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
+#' @param linkernel Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X} and achieves (approximate) mean balance on \eqn{X}.  
 #' @return \item{K}{The kernel matrix}
 #' @examples
 #' #load and clean data a bit
+#' \donttest{
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
@@ -19,7 +21,7 @@
 #' #and with b as twice the number of covariates
 #' K = makeK(allx = lalonde[,xvars],
 #' useasbases = 1-lalonde$nsw,
-#' b = 2*ncol(lalonde[,xvars]))
+#' b = 2*ncol(lalonde[,xvars]))}
 #' @useDynLib KBAL
 #' @importFrom stats sd 
 #' @importFrom Rcpp sourceCpp
@@ -58,6 +60,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param hilbertnorm numeric value of the hilbertnorm. Default value is 1.
 #' @examples
+#' \donttest{
 #' #load and clean data a bit
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -76,7 +79,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #' biasbound(observed=(1-lalonde$nsw),
 #'  target=lalonde$nsw,
 #'  svd.out = svd_pass,
-#'  w = rep(1,nrow(lalonde)), hilbertnorm=1)
+#'  w = rep(1,nrow(lalonde)), hilbertnorm=1)}
 #' @export
 biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
   wtarget=w[target==1]/sum(target==1)
@@ -105,6 +108,7 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #' @return \item{dim}{the simple, unweighted difference in means.}
 #' \item{dimw}{the weighted difference in means.}
 #' @examples
+#' \donttest{
 #' #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kbal
 #' #function with the lalonde data:
 #' #load and clean data a bit
@@ -117,7 +121,7 @@ biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
 #'                sampledinpop=FALSE,
 #'                treatment=lalonde$nsw)
 #'  #now use dimw to get the DIMs
-#'  dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)
+#'  dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)}
 #' @export
 dimw = function(X,w,target){
   w1=w[target==1]/sum(w[target==1])
@@ -146,6 +150,7 @@ dimw = function(X,w,target){
 #' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
+#' \donttest{
 #' #load and clean data a bit
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -162,7 +167,7 @@ dimw = function(X,w,target){
 #' #usually we are getting weights using different number of columns of this matrix, the finding
 #' # the bias and looking for the minimum. For now let's just use the first 10
 #' U2=U[,1:10, drop=FALSE]
-#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)
+#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
 getw = function(target, observed, svd.U, ebal.tol=1e-6){
 
@@ -206,7 +211,6 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param K the kernel matrix
-#' @param linkernel a logical that when true calculates the L1 distances using a linear kernel. Default is false.
 #' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
 #' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
 #' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
@@ -217,6 +221,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' \item{pX_D0}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every control or sampled unit.}
 #' \item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expaned features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
 #' @examples
+#' \donttest{
 #' #loading and cleaning lalonde data
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -243,7 +248,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'                   observed = 1-lalonde$nsw,
 #'                   K = K_pass,
 #'                   svd.out = svd.U_pass,
-#'                   w = w_opt)
+#'                   w = w_opt)}
 #' @export
 getdist <- function(target, observed, K, svd.out,
                     w=NULL, numdims = NULL, ebal.tol=NULL) {
@@ -306,6 +311,7 @@ getdist <- function(target, observed, K, svd.out,
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.
+#' @param linkernel if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
 #' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
 #' @param minnumdims optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
@@ -327,12 +333,30 @@ getdist <- function(target, observed, K, svd.out,
 #' data(lalonde)
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
-#'  
+#'  \donttest{
 #' # Rerun Lalonde example with settings as in the KBAL paper:
 #' kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
 #'                useasbases=rep(1,nrow(lalonde)),
 #'                treatment=lalonde$nsw)
 #' summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
+#'  }
+#' #----------------------------------------------------------------
+#' # Example 1B: Reweight a control group to a treated to esimate ATT. 
+#' # Benchmark using Lalonde et al. -- but just mean balancing now 
+#' # via "linkernel".
+#' #----------------------------------------------------------------
+#'  
+#' # Rerun Lalonde example with settings as in the KBAL paper:
+#' kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
+#'                useasbases=rep(1,nrow(lalonde)),
+#'                treatment=lalonde$nsw, linkernel=TRUE)
+#' 
+#' # Check balance with and without these weights:
+#' dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
+#' 
+#' summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))  
+#'  
+#'  
 #'  
 #' #----------------------------------------------------------------
 #' # Example 2: Reweight a sample to a target population.

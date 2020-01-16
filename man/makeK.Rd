@@ -4,7 +4,7 @@
 \alias{makeK}
 \title{Build the Gaussian Kernel Matrix}
 \usage{
-makeK(allx, useasbases = NULL, b = NULL)
+makeK(allx, useasbases = NULL, b = NULL, linkernel = FALSE)
 }
 \arguments{
 \item{allx}{A data matrix containing all observations where rows are units and columns are covariates.}
@@ -12,6 +12,8 @@ makeK(allx, useasbases = NULL, b = NULL)
 \item{useasbases}{Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.}
 
 \item{b}{Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.}
+
+\item{linkernel}{Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X} and achieves (approximate) mean balance on \eqn{X}.}
 }
 \value{
 \item{K}{The kernel matrix}
@@ -21,6 +23,7 @@ Builds the Gaussian kernel matrix using Rcpp.
 }
 \examples{
 #load and clean data a bit
+\donttest{
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
@@ -30,5 +33,5 @@ xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75"
 #and with b as twice the number of covariates
 K = makeK(allx = lalonde[,xvars],
 useasbases = 1-lalonde$nsw,
-b = 2*ncol(lalonde[,xvars]))
+b = 2*ncol(lalonde[,xvars]))}
 }

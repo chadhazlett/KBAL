@@ -21,6 +21,7 @@ biasbound(observed, target, svd.out, w, hilbertnorm = 1)
 Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
 }
 \examples{
+\donttest{
 #load and clean data a bit
 data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
@@ -39,5 +40,5 @@ svd_pass = svd(K)
 biasbound(observed=(1-lalonde$nsw),
  target=lalonde$nsw,
  svd.out = svd_pass,
- w = rep(1,nrow(lalonde)), hilbertnorm=1)
+ w = rep(1,nrow(lalonde)), hilbertnorm=1)}
 }
