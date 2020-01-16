@@ -534,7 +534,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         stop("\"maxnumdims\" must be greater than zero")
     } #when linkernel ==TRUE ensure maxnumdims not greater than cols of X
     if(linkernel == TRUE && !is.null(maxnumdims) && maxnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing to the number of coumns in \"allx\"." )
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing to the number of coumns in \"allx\".", 
+                immediate. = TRUE )
         maxnumdims = ncol(allx)
     }
     
