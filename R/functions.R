@@ -356,8 +356,6 @@ getdist <- function(target, observed, K, svd.out,
 #' 
 #' summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))  
 #'  
-#'  
-#'  
 #' #----------------------------------------------------------------
 #' # Example 2: Reweight a sample to a target population.
 #' #----------------------------------------------------------------
@@ -373,7 +371,7 @@ getdist <- function(target, observed, K, svd.out,
 #' # three quarters are non-white. This biases the average level of support
 #' # despite having a sample that matches the population on its marginal distributions. #'
 #' # We'd like to reweight the sample so it resembles the population not 
-#' # just on the margins, but in the joint distribution of characteristics. 
+#' # just on the margins, but in the joint distribution of characteristics.
 #' 
 #' pop <- data.frame(
 #' republican =  c(rep(0,400), rep(1,400)),
