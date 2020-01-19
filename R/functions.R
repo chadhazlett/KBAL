@@ -575,7 +575,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 #####end of big error catch series and data setup
 
 
-  if(printprogress == TRUE) {print(paste0("Building kernel matrix"))}
+  if(printprogress == TRUE) {cat("Building kernel matrix \n")}
   if(linkernel == FALSE) {
       K = makeK(allx = allx, useasbases = useasbases, b=b)
   } else {
@@ -584,7 +584,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 linkernel = TRUE)
   }
     
-  if(printprogress == TRUE) {print(paste0("Running SVD on kernel matrix"))}
+  if(printprogress == TRUE) {cat("Running SVD on kernel matrix \n")}
   svd.out=svd(K)
   U=svd.out$u
 
@@ -605,8 +605,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     w=getw.out
     biasboundnow=biasbound( w = w, observed=observed,  target = target,
                             svd.out = svd.out, hilbertnorm = 1)
-    print(paste0("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
-                 round(biasboundnow,3)))
+    cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
+                 round(biasboundnow,3), " \n")
     
     #stuff to set so we can skip the entire if statement below and just printout
     dimseq = 1
@@ -636,8 +636,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                               target = target, svd.out = svd.out,
                               hilbertnorm = 1)
       if(printprogress == TRUE) {
-          print(paste0("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
-                       round(biasboundnow,3)))
+          cat("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
+                       round(biasboundnow,3), " \n")
       }
 
       dist.record=c(dist.record,biasboundnow)

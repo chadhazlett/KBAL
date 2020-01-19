@@ -2,13 +2,14 @@
 #' @description  Chooses weights on controls to make
 #' covariate means equal to those of treated
 #' @param Treatment a numeric vector of length equal to the total number of units where treated (population) units take a value of 1 and control (sampled) units take a value of 0.
-#' @param X matrix of data where rows are observations and columns are covariates
+#' @param X matrix of data where rows are observations and columns are covariates.
 #' @param base.weight an optional numeric vector argument of length equal to the total number of control units to specify the base weight of each control unit within entropy balancing. Default is even weights (1) for all controls.
 #' @param norm.constant an optional numeric argument to XXXXX. Default is the number of treated units.
 #' @param coefs an optional vector argument of length equal to one more than the number of covariates in \code{X} to specify XXX. 
 #' @param max.iterations numeric maximum number of iterations to use when searching for weights
-#' @param contraint.tolerance numeric tolerance level 
-#' @param print.level
+#' @param constraint.tolerance numeric tolerance level.
+#' @param print.level a numeric argument to specify the amount of information printed out. 0 is silent, 1 prints convergence status, 2 prints maximum deviance per iteration, 3 prints loss and step length.
+#' @importFrom stats var optimize
 #' @export
 
 ebalance_custom <-
@@ -101,9 +102,10 @@ ebalance_custom <-
                      print.level=print.level
         )
         
-        if(eb.out$converged == TRUE & print.level>=0) {
-            cat("Converged within tolerance \n")
-        }
+        #redundant because eb() run above will print this out if print.level >=1
+        # if(eb.out$converged == TRUE & print.level>=1) {
+        #     cat("Converged within tolerance \n")
+        # }
         
         z <- list(
             target.margins = tr.total,

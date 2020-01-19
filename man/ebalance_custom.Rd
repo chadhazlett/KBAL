@@ -11,7 +11,7 @@ ebalance_custom(Treatment, X, base.weight = NULL, norm.constant = NULL,
 \arguments{
 \item{Treatment}{a numeric vector of length equal to the total number of units where treated (population) units take a value of 1 and control (sampled) units take a value of 0.}
 
-\item{X}{matrix of data where rows are observations and columns are covariates}
+\item{X}{matrix of data where rows are observations and columns are covariates.}
 
 \item{base.weight}{an optional numeric vector argument of length equal to the total number of control units to specify the base weight of each control unit within entropy balancing. Default is even weights (1) for all controls.}
 
@@ -21,7 +21,9 @@ ebalance_custom(Treatment, X, base.weight = NULL, norm.constant = NULL,
 
 \item{max.iterations}{numeric maximum number of iterations to use when searching for weights}
 
-\item{contraint.tolerance}{numeric tolerance level}
+\item{constraint.tolerance}{numeric tolerance level.}
+
+\item{print.level}{a numeric argument to specify the amount of information printed out. 0 is silent, 1 prints convergence status, 2 prints maximum deviance per iteration, 3 prints loss and step length.}
 }
 \description{
 Chooses weights on controls to make
