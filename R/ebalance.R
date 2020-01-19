@@ -1,11 +1,12 @@
 #' Modified version of ebalance (originally from Jens Hainmueller)
-#' @description  Chooses weights on controls to make
-#' covariate means equal to those of treated
+#' @description  This is a custom version of the \code{ebal} (entropy balancing) pacakge by Jens Hainmueller.  Chooses weights on controls to make
+#' covariate means equal to those of treated. This version differs from \code{ebal} only in that it handles
+#' cases where there is only a single unit, which otherwise causes a problem in the original code.
 #' @param Treatment a numeric vector of length equal to the total number of units where treated (population) units take a value of 1 and control (sampled) units take a value of 0.
 #' @param X matrix of data where rows are observations and columns are covariates.
 #' @param base.weight an optional numeric vector argument of length equal to the total number of control units to specify the base weight of each control unit within entropy balancing. Default is even weights (1) for all controls.
-#' @param norm.constant an optional numeric argument to XXXXX. Default is the number of treated units.
-#' @param coefs an optional vector argument of length equal to one more than the number of covariates in \code{X} to specify XXX. 
+#' @param norm.constant an optional numeric argument; users should leave unspecified in most cases.
+#' @param coefs an optional vector argument of length equal to one more than the number of covariates in \code{X}; users should leave unspecified in most cases. 
 #' @param max.iterations numeric maximum number of iterations to use when searching for weights
 #' @param constraint.tolerance numeric tolerance level.
 #' @param print.level a numeric argument to specify the amount of information printed out. 0 is silent, 1 prints convergence status, 2 prints maximum deviance per iteration, 3 prints loss and step length.

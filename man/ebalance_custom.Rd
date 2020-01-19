@@ -15,9 +15,9 @@ ebalance_custom(Treatment, X, base.weight = NULL, norm.constant = NULL,
 
 \item{base.weight}{an optional numeric vector argument of length equal to the total number of control units to specify the base weight of each control unit within entropy balancing. Default is even weights (1) for all controls.}
 
-\item{norm.constant}{an optional numeric argument to XXXXX. Default is the number of treated units.}
+\item{norm.constant}{an optional numeric argument; users should leave unspecified in most cases.}
 
-\item{coefs}{an optional vector argument of length equal to one more than the number of covariates in \code{X} to specify XXX.}
+\item{coefs}{an optional vector argument of length equal to one more than the number of covariates in \code{X}; users should leave unspecified in most cases.}
 
 \item{max.iterations}{numeric maximum number of iterations to use when searching for weights}
 
@@ -26,6 +26,7 @@ ebalance_custom(Treatment, X, base.weight = NULL, norm.constant = NULL,
 \item{print.level}{a numeric argument to specify the amount of information printed out. 0 is silent, 1 prints convergence status, 2 prints maximum deviance per iteration, 3 prints loss and step length.}
 }
 \description{
-Chooses weights on controls to make
-covariate means equal to those of treated
+This is a custom version of the \code{ebal} (entropy balancing) pacakge by Jens Hainmueller.  Chooses weights on controls to make
+covariate means equal to those of treated. This version differs from \code{ebal} only in that it handles
+cases where there is only a single unit, which otherwise causes a problem in the original code.
 }

@@ -654,15 +654,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       keepgoing= (thisnumdims<=maxnumdims) & (wayover==FALSE) #& (dist.now<dist.orig)
       #& dist.now!="error"
       # (dist.now>mindistsofar)  # XXX this was in there, but needed?
-      # XXX In above, need to work on "keepgoing" for case where ebal
-      # is failing.
+      # Need to work on "keepgoing" for case where ebal fails.
     } # End of while loop for "keepgoing"
 
     dimseq=seq(minnumdims,maxnumdims,incrementby)
     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
 
-    #if nothing improved balance, there will be "many" minima.
-    # throw warning, and choose the fewest numdims.
+    # If nothing improved balance, there will be multiple minima.
+    # Throw warning, and choose the fewest numdims.
     if (length(numdims)>1){
       warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
               immediate. = TRUE)
