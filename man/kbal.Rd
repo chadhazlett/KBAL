@@ -4,7 +4,7 @@
 \alias{kbal}
 \title{Kernel Balancing}
 \usage{
-kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
+kbal(allx, useasbases = NULL, b = NULL, K = NULL, sampled = NULL,
   sampledinpop = NULL, treatment = NULL, linkernel = FALSE,
   ebal.tol = 1e-06, numdims = NULL, minnumdims = NULL,
   maxnumdims = NULL, incrementby = 1, printprogress = TRUE)
@@ -15,6 +15,8 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{useasbases}{optional vector of 0/1 or FALSE/TRUE to specify what observations are to be used in forming bases (columns of the kernel matrix) balanced upon.  If the number of observations is under 2000, the default is to use all observations. When the number of observations is over 2000, the default is to use the sampled (control) units only.}
 
 \item{b}{scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.}
+
+\item{K}{optional user-supplied kernel matrix. If given, this kernel matrix is used rather than computing one.}
 
 \item{sampled}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
 

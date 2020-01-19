@@ -314,6 +314,7 @@ getdist <- function(target, observed, K, svd.out,
 #' @param allx a data matrix containing all observations where rows are units and columns are covariates.
 #' @param useasbases optional vector of 0/1 or FALSE/TRUE to specify what observations are to be used in forming bases (columns of the kernel matrix) balanced upon.  If the number of observations is under 2000, the default is to use all observations. When the number of observations is over 2000, the default is to use the sampled (control) units only.
 #' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.
+#' @param K optional user-supplied kernel matrix. If given, this kernel matrix is used rather than computing one.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.
@@ -435,7 +436,7 @@ getdist <- function(target, observed, K, svd.out,
 #' # and upweights the non-white republicans and white non-republicans
 #' unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 #' @export
-kbal = function(allx, useasbases=NULL, b=NULL,
+kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
                 linkernel = FALSE,
@@ -575,14 +576,21 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 #####end of big error catch series and data setup
 
 
-  if(printprogress == TRUE) {cat("Building kernel matrix \n")}
-  if(linkernel == FALSE) {
-      K = makeK(allx = allx, useasbases = useasbases, b=b)
-  } else {
-      K = makeK(allx = allx,
+    # Make the kernel (or don't, if already there)
+  if(!is.null(K)){
+    cat("Using user-supplied K \n")
+  }
+    
+  if(is.null(K)){
+    if(printprogress == TRUE) {cat("Building kernel matrix \n")}
+    if(linkernel == FALSE) {
+        K = makeK(allx = allx, useasbases = useasbases, b=b)
+        } else {
+          K = makeK(allx = allx,
                 useasbases = useasbases, 
                 linkernel = TRUE)
-  }
+        }
+  } # end of if(is.null(K))
     
   if(printprogress == TRUE) {cat("Running SVD on kernel matrix \n")}
   svd.out=svd(K)
