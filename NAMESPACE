@@ -2,6 +2,7 @@
 
 export(biasbound)
 export(dimw)
+export(ebalance_custom)
 export(getdist)
 export(getw)
 export(kbal)

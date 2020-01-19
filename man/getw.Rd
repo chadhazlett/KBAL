@@ -13,7 +13,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06)
 
 \item{svd.U}{matrix whose columns contain the left singular vectors of the kernel matrix.}
 
-\item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
+\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}.}
 }
 \value{
 \item{w}{numeric vector of weights.}

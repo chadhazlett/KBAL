@@ -16,11 +16,11 @@ getdist(target, observed, K, svd.out, w = NULL, numdims = NULL,
 
 \item{svd.out}{the list object output from performing \code{svd()} on the kernel matrix.}
 
-\item{w}{a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.}
+\item{w}{a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with custom entropy balancing function \code{ebalance_custom()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.}
 
 \item{numdims}{a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.}
 
-\item{ebal.tol}{an optional numeric input speccifying the tolerance level used by \code{ebal::ebalance} in the case that \code{w} is not specified. When not specified, the default is 1e-6/}
+\item{ebal.tol}{an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e-6/}
 }
 \value{
 \item{w}{numeric vector of weights used}

@@ -24,7 +24,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 
 \item{linkernel}{if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.}
 
-\item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
+\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom()}.}
 
 \item{numdims}{optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.}
 
@@ -82,8 +82,6 @@ dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
 
 summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))  
  
- 
- 
 #----------------------------------------------------------------
 # Example 2: Reweight a sample to a target population.
 #----------------------------------------------------------------
@@ -99,7 +97,7 @@ summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))
 # three quarters are non-white. This biases the average level of support
 # despite having a sample that matches the population on its marginal distributions. #'
 # We'd like to reweight the sample so it resembles the population not 
-# just on the margins, but in the joint distribution of characteristics. 
+# just on the margins, but in the joint distribution of characteristics.
 
 pop <- data.frame(
 republican =  c(rep(0,400), rep(1,400)),
@@ -124,10 +122,12 @@ dat <- rbind(pop,samp)
 sampled <- c(rep(0,800), rep(1,80))
  
 # Run ebal (treatment = population units = 1-sampled)
-ebal_out <- ebal::ebalance(Treatment = 1-sampled, 
+ebal_out <- ebalance_custom(Treatment = 1-sampled, 
                             X=dat[,1:2],
                             constraint.tolerance=1e-6, 
                             print.level=-1)
+                            
+                            
  
 # We can see everything gets even weights, since already mean balanced.
 length(unique(ebal_out$w))

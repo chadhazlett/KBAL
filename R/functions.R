@@ -147,7 +147,7 @@ dimw = function(X,w,target){
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
-#' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
+#' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
 #' \donttest{
@@ -181,9 +181,15 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
   Xappended = rbind(svd.U,  svd.U[observed==1 & target==1, , drop=FALSE] )
   target_ebal = c(target, rep(0, sum(observed==1 & target==1)))
 
-    bal.out.pc=try(ebal::ebalance(Treatment=target_ebal,X=Xappended,
-        constraint.tolerance=ebal.tol, print.level=-1),
-        silent=TRUE)
+    bal.out.pc=try(ebalance_custom(Treatment = target_ebal,
+                                   X = Xappended,
+                                   base.weight = NULL,
+                                   norm.constant  = NULL,
+                                   coefs = NULL ,
+                                   max.iterations = 200,
+                                   constraint.tolerance = ebal.tol,
+                                   print.level=0),
+                   silent=TRUE)
   N=nrow(svd.U)
 
   if ("try-error"%in%class(bal.out.pc)){
@@ -212,9 +218,9 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param K the kernel matrix
 #' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
-#' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
+#' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with custom entropy balancing function \code{ebalance_custom()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
 #' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
-#' @param ebal.tol an optional numeric input speccifying the tolerance level used by \code{ebal::ebalance} in the case that \code{w} is not specified. When not specified, the default is 1e-6/
+#' @param ebal.tol an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e-6/
 #' @return \item{w}{numeric vector of weights used}
 #' \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
 #' \item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit.}
@@ -312,7 +318,7 @@ getdist <- function(target, observed, K, svd.out,
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.
 #' @param linkernel if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
-#' @param ebal.tol tolerance level used by \code{ebal::ebalance}.
+#' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}.
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
 #' @param minnumdims optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
 #' @param maxnumdims optional numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. While the number of observations is under 2000, the default maximum is the total number of observations. Due to the computation burden, when the number of observations is over 2000, the default is the number of sampled units.
@@ -396,10 +402,12 @@ getdist <- function(target, observed, K, svd.out,
 #' sampled <- c(rep(0,800), rep(1,80))
 #'  
 #' # Run ebal (treatment = population units = 1-sampled)
-#' ebal_out <- ebal::ebalance(Treatment = 1-sampled, 
+#' ebal_out <- ebalance_custom(Treatment = 1-sampled, 
 #'                             X=dat[,1:2],
 #'                             constraint.tolerance=1e-6, 
 #'                             print.level=-1)
+#'                             
+#'                             
 #'  
 #' # We can see everything gets even weights, since already mean balanced.
 #' length(unique(ebal_out$w))
