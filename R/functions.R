@@ -149,7 +149,7 @@ dimw = function(X,w,target){
 #' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
 #' @return \item{w}{numeric vector of weights.}
-#' @return \item{fail}{boolean indicating whether ebalance failed to converge within the first two dimensions of \code{svd.U}.}
+#' \item{fail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -211,8 +211,9 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
     #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     #R$biasbound = biasbound.out
   }
-    out <- list(w = w, fail = earlyfail)
-  return(w)
+    out <- list(w = w, 
+                fail = earlyfail)
+  return(out)
 } # end of getw.
 
 #' L1 Distance
