@@ -678,6 +678,7 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
 
     dimseq=seq(minnumdims,maxnumdims,incrementby)
     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+    
 
     # If nothing improved balance, there will be multiple minima.
     # Throw warning, and choose the fewest numdims.
