@@ -275,7 +275,7 @@ getdist <- function(target, observed, K, svd.out,
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
             w = getw(target = target, observed=observed,
                      svd.U = U[,1:numdims, drop=FALSE],
-                     ebal.tol=ebal.tol)
+                     ebal.tol=ebal.tol)$w
 
             #if ebal fails we get weights of 1 for everyone
             if (sum(w ==1) == length(w)){
@@ -615,8 +615,8 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
   # If numdims given, just get the weights in one shot:
   if (!is.null(numdims)){
     U2=U[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, observed=observed, svd.U=U2)$w
-    w=getw.out
+    getw.out=getw(target=target, observed=observed, svd.U=U2)
+    w=getw.out$w
     biasboundnow=biasbound( w = w, observed=observed,  target = target,
                             svd.out = svd.out, hilbertnorm = 1)
     if(printprogress == TRUE) {
