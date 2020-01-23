@@ -195,7 +195,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
     earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
       if(ncol(svd.U) <= 2) {
-          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights (1/N).")
+          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
           earlyfail = TRUE
       }
     w=rep(1,N)
