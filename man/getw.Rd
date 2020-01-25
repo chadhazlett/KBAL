@@ -17,6 +17,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06)
 }
 \value{
 \item{w}{numeric vector of weights.}
+\item{fail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 }
 \description{
 Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.

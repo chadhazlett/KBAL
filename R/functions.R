@@ -149,6 +149,7 @@ dimw = function(X,w,target){
 #' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
 #' @return \item{w}{numeric vector of weights.}
+#' \item{fail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -191,13 +192,14 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                                    print.level=0),
                    silent=TRUE)
   N=nrow(svd.U)
-
+    earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
       if(ncol(svd.U) <= 2) {
-          stop("ebalance convergence failed within first two dimensions")
+          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
+          earlyfail = TRUE
       }
     w=rep(1,N)
-    #R$dist="ebalerror"
+    
   }
 
   if (class(bal.out.pc)[1]!="try-error"){
@@ -209,7 +211,9 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
     #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     #R$biasbound = biasbound.out
   }
-  return(w)
+    out <- list(w = w, 
+                fail = earlyfail)
+  return(out)
 } # end of getw.
 
 #' L1 Distance
@@ -249,7 +253,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'  w_opt <- getw(target= lalonde$nsw,
 #'                observed = 1-lalonde$nsw,
 #'                svd.U = svd.U_pass$u[,1:33, drop=FALSE],
-#'                ebal.tol=1e-6)
+#'                ebal.tol=1e-6)$w
 #'  l1_lalonde2 <- getdist(target = lalonde$nsw,
 #'                   observed = 1-lalonde$nsw,
 #'                   K = K_pass,
@@ -271,7 +275,7 @@ getdist <- function(target, observed, K, svd.out,
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
             w = getw(target = target, observed=observed,
                      svd.U = U[,1:numdims, drop=FALSE],
-                     ebal.tol=ebal.tol)
+                     ebal.tol=ebal.tol)$w
 
             #if ebal fails we get weights of 1 for everyone
             if (sum(w ==1) == length(w)){
@@ -604,17 +608,21 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
                          w = rep(1,N), svd.out = svd.out, K=K)
   L1_orig = getdist.orig$L1
 
-  paste0("Without balancing, biasbound (norm=1) is ", round(biasbound_orig,3), " and the L1 discrepancy is ", round(L1_orig,3))
+  if(printprogress==TRUE) {
+      cat("Without balancing, biasbound (norm=1) is ", round(biasbound_orig,3), " and the L1 discrepancy is ", round(L1_orig,3), " \n")
+  }
 
   # If numdims given, just get the weights in one shot:
   if (!is.null(numdims)){
     U2=U[,1:numdims, drop=FALSE]
     getw.out=getw(target=target, observed=observed, svd.U=U2)
-    w=getw.out
+    w=getw.out$w
     biasboundnow=biasbound( w = w, observed=observed,  target = target,
                             svd.out = svd.out, hilbertnorm = 1)
-    cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
+    if(printprogress == TRUE) {
+        cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
+    }
     
     #stuff to set so we can skip the entire if statement below and just printout
     dimseq = 1
@@ -639,8 +647,8 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
       w=getw(target = target, observed=observed, svd.U = U_try)
       # Need to work on case where ebal fails and flagging this in result.
       # For now just returns all even weights.
-
-      biasboundnow=biasbound(w = w, observed=observed,
+      
+      biasboundnow=biasbound(w = w$w, observed=observed,
                               target = target, svd.out = svd.out,
                               hilbertnorm = 1)
       if(printprogress == TRUE) {
@@ -663,10 +671,14 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
       #& dist.now!="error"
       # (dist.now>mindistsofar)  # XXX this was in there, but needed?
       # Need to work on "keepgoing" for case where ebal fails.
+      
+      #if ebal fails to converge within first 2 dims we stop searching (1/22/19)
+      if(w$fail == TRUE) { keepgoing = FALSE}
     } # End of while loop for "keepgoing"
 
     dimseq=seq(minnumdims,maxnumdims,incrementby)
     numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+    
 
     # If nothing improved balance, there will be multiple minima.
     # Throw warning, and choose the fewest numdims.
@@ -679,14 +691,16 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
     # Finally, we didn't save weights each time, so go back and re-run
     # at optimal  number of dimensions
     
-    paste0("Re-running at optimal choice of numdims, ", numdims)
+    if(printprogress == TRUE) {
+        cat("Re-running at optimal choice of numdims, ", numdims, "\n")
+    }
     U2=U[,1:numdims, drop=FALSE]
     w=getw(target= target, observed=observed, svd.U=U2)
-    biasbound_opt= biasbound(w = w, observed=observed, target = target, 
+    biasbound_opt= biasbound(w = w$w, observed=observed, target = target, 
                              svd.out = svd.out, hilbertnorm = 1)
     
     L1_optim = getdist(target=target, observed = observed,
-                       w = w, svd.out = svd.out, K=K)$L1
+                       w = w$w, svd.out = svd.out, K=K)$L1
   }
   dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   rownames(dist_pass) <- c("Dims", "BiasBound")

@@ -160,9 +160,10 @@ eb <- function(
         
         if (is.na(loss.new)== FALSE && is.na(loss.old)==FALSE) {
             if(loss.old <= loss.new){
-                ss.out <- optimize(line.searcher,
+                ss.out <- suppressWarnings(optimize(line.searcher,
                                    lower=.00001,upper=1,maximum=FALSE,
-                                   Base.weight=base.weight,Co.x=co.x,Tr.total=tr.total,coefs=Coefs,Newton=newton)
+                                   Base.weight=base.weight,Co.x=co.x,
+                                   Tr.total=tr.total,coefs=Coefs,Newton=newton))
                 
                 if(print.level>=3){cat("LS Step Length is ",ss.out$minimum,"\n")}
                 if(print.level>=3){cat("Loss is",ss.out$objective,"\n")}

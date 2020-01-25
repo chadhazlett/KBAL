@@ -55,7 +55,7 @@ l1_lalonde <- getdist(target = lalonde$nsw,
  w_opt <- getw(target= lalonde$nsw,
                observed = 1-lalonde$nsw,
                svd.U = svd.U_pass$u[,1:33, drop=FALSE],
-               ebal.tol=1e-6)
+               ebal.tol=1e-6)$w
  l1_lalonde2 <- getdist(target = lalonde$nsw,
                   observed = 1-lalonde$nsw,
                   K = K_pass,
