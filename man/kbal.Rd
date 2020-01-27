@@ -43,6 +43,7 @@ kbal(allx, useasbases = NULL, b = NULL, K = NULL, sampled = NULL,
  \item{biasbound.orig}{the bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.}
  \item{numdims}{the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
  \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
+ \item{earlyfail}{boolean to indicate whether ebalance failed to converge within the first two dimesions of the SVD of K} 
  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
 \item{K}{the kernel matrix.}
 }
