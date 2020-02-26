@@ -624,11 +624,11 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
         w.pop = rep(1,N)
     } else {
         #check do not have any negative weights
-        if(sum(sign(population.w)) != sum(target)) {
-            stop("\"population.w\" must be non-negative")
-        }
         if(length(population.w) != sum(target)) {
             stop("\"population.w\" must have the same length as the number of population/treated units")
+        }
+        if(sum(sign(population.w)) != sum(target)) {
+            stop("\"population.w\" must be non-negative")
         }
         #check population weights sum to num of treated/population units
         if(sum(population.w) != sum(target)) {
