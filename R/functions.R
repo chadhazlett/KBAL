@@ -87,7 +87,8 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FA
         w.pop = rep(1,N)
     }
     if(!sampledinpop) {
-        wtarget=w.pop[target==1]/sum(target==1)
+        #weights sum to N_0, N_1 so normalizing so sum to 1
+        wtarget=w.pop[target==1]/sum(target==1) 
         wobserved=w[observed==1]/sum(observed==1)
     } else { #when sampledinpop true
         if(is.null(w.pop)) {error("\"w.pop\" required when \"sampledinpop\"= TRUE. ")}
@@ -703,6 +704,9 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
                     useasbases = useasbases, 
                     linkernel = TRUE)
       }
+      if(printprogress == TRUE) {cat("Running SVD on kernel matrix \n")}
+      svd.out = svd(K)
+      U = svd.out$u
   }
 
   # BASELINE
