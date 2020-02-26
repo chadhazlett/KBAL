@@ -93,7 +93,8 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FA
         if(length(w.pop) != length(observed)) {
             stop("\"w.pop\" must have the same length as the total number of units")
         }
-        if(!(sum(w.pop[observed]) == sum(observed) & sd(w.pop[observed]) == 0)) {
+        if(sum(target) == length(target) && !(sum(w.pop[observed]) == sum(observed)
+                                             & sd(w.pop[observed]) == 0)) {
             stop("\"w.pop\" must the value 1 for all sampled/treated units")
         }
         #check population weights sum to num of treated/population units
@@ -105,23 +106,23 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FA
                 stop("\"population.w\" must sum to either 1 or the number of treated/population units")
             }
         }
-        
     }
+        
     if(!sampledinpop) {
         #weights sum to N_0, N_1 so normalizing so sum to 1
         wtarget=w.pop[target==1]/sum(target==1) 
         wobserved=w[observed==1]/sum(observed==1)
     } else { #when sampledinpop true
         if(is.null(w.pop)) {error("\"w.pop\" required when \"sampledinpop\"= TRUE. ")}
-        N = nrow(svd.out)
-        wtarget= w.pop/N #over N right?
+        N = length(observed)
+        wtarget= w.pop/N #over N right because w.pop and length N
         #drop the first N entries of w because all 1's, only last N_observed are meaningful
-        wobserved=w[-(1:N)]/sum(observed==1)
-  }
+        wobserved=w[observed ==1]/sum(observed==1)
+   }
    
     U=svd.out$u
-    #ISSUE XXXX
-    eigenvals=svd.out$d
+    #ISSUE for frankenstein
+    eigenvals=svd.out$d #singular values (A)
     
     U1=U[target==1, , drop=FALSE]
     U0=U[observed==1, , drop=FALSE]
@@ -227,7 +228,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                                    print.level=0),
                    silent=TRUE)
   N=nrow(svd.U)
-    earlyfail = FALSE
+  earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
       if(ncol(svd.U) <= 2) {
           warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
@@ -756,8 +757,10 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
   # BASELINE
   # Get biasbound with no improvement in balance:
   #recall: w.pop is flat weights for sampled, user specified weights for population
-  biasbound_orig=biasbound(w = rep(1,N), w.pop = w.pop,  observed=observed, target = target,
-                            svd.out = svd.out, hilbertnorm = 1)
+  biasbound_orig=biasbound(w = rep(1,N),
+                           w.pop = w.pop, 
+                           observed=observed, target = target,
+                           svd.out = svd.out, hilbertnorm = 1)
 #XXXXX ISSUE not well defined when pass in K.svd not K
   getdist.orig = getdist(target=target, observed = observed,
                          w = rep(1,N), w.pop = w.pop, K=K)
@@ -872,7 +875,11 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
   }
   dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   rownames(dist_pass) <- c("Dims", "BiasBound")
-
+  
+  #for now a crude warning if pass K.svd in for L1 distance
+  if(!is.null(K.svd)) {
+      warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
+  }
   R=list()
   R$w= getw.out$w
   R$biasbound.opt=biasbound_opt
