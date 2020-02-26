@@ -1,12 +1,12 @@
-Package: KBAL
+Package: kbal
 Type: Package
 Title: Kernel Balancing
 Version: 0.1
-Date: 2015-09-10
+Date: 2020-02-14
 Authors@R: c(person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre")),
             person("Ciara", "Sterbenz", email = "cster@g.ucla.edu", role = "aut"),
             person("Erin", "Hartman", email = "ekhartman@ucla.edu", role = "ctb"))
-Description: A weighting approach to make one group have similar distribution as another,  with application to ATT estimation (making control group look like treated), survey reweighting(making a sampled group look like a population), etc.
+Description: A weighting approach to make one group have similar distribution as another,  with application to treatment effect estimation or to survey reweighting.
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes

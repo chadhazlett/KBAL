@@ -7,10 +7,6 @@
 
 [![CRAN
 status](https://www.r-pkg.org/badges/version/KBAL)](https://CRAN.R-project.org/package=KBAL)
-[![AppVeyor build
-status](https://ci.appveyor.com/api/projects/status/github/chadhazlett/KBAL?branch=master&svg=true)](https://ci.appveyor.com/project/chadhazlett/KBAL)
-[![Travis build
-status](https://travis-ci.org/chadhazlett/KBAL.svg?branch=master)](https://travis-ci.org/chadhazlett/KBAL)
 <!-- badges: end -->
 
 Kernel Balancing project
