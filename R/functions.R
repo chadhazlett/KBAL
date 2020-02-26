@@ -83,8 +83,29 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #' @export
 biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FALSE,
                    hilbertnorm=1){
+    #error check for pop weights
     if(is.null(w.pop)) {
         w.pop = rep(1,N)
+    } else {
+        if(sum(sign(w.pop)) != length(observed)) {
+            stop("\"w.pop\" must be non-negative")
+        }
+        if(length(w.pop) != length(observed)) {
+            stop("\"w.pop\" must have the same length as the total number of units")
+        }
+        if(!(sum(w.pop[observed]) == sum(observed) & sd(w.pop[observed]) == 0)) {
+            stop("\"w.pop\" must the value 1 for all sampled/treated units")
+        }
+        #check population weights sum to num of treated/population units
+        if(sum(w.pop[target ==1 ]) != sum(target)) {
+            #allow user to pass in weights that sum to one and transform them here
+            if(sum(w.pop[target ==1]) == 1) {
+                w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
+            } else { #in this case they don't sum to N_t or 1 so ng
+                stop("\"population.w\" must sum to either 1 or the number of treated/population units")
+            }
+        }
+        
     }
     if(!sampledinpop) {
         #weights sum to N_0, N_1 so normalizing so sum to 1
@@ -283,6 +304,29 @@ getdist <- function(target, observed, K,
         K_t=K[target==1, ,drop=FALSE]
         if(is.null(w.pop)) {
             w.pop = rep(1,N)
+        }
+        if(is.null(w.pop)) {
+            w.pop = rep(1,N)
+        } else {
+            if(sum(sign(w.pop)) != length(observed)) {
+                stop("\"w.pop\" must be non-negative")
+            }
+            if(length(w.pop) != length(observed)) {
+                stop("\"w.pop\" must have the same length as the total number of units")
+            }
+            if(!(sum(w.pop[observed]) == sum(observed) & sd(w.pop[observed]) == 0)) {
+                stop("\"w.pop\" must the value 1 for all sampled/treated units")
+            }
+            #check population weights sum to num of treated/population units
+            if(sum(w.pop[target ==1 ]) != sum(target)) {
+                #allow user to pass in weights that sum to one and transform them here
+                if(sum(w.pop[target ==1]) == 1) {
+                    w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
+                } else { #in this case they don't sum to N_t or 1 so ng
+                    stop("\"population.w\" must sum to either 1 or the number of treated/population units")
+                }
+            }
+            
         }
         #if user does not provide weights, go get them
         # XXXX INCORPERATE w.pop XXX
