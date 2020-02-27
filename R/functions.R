@@ -718,15 +718,15 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
       svd.out=svd(K)
       U=svd.out$u 
   } else if(!is.null(K.svd)) { #if user pases in K.svd never conduct SVD  
-      #NB: we require K.svd to have $u and $v just as a real svd woulda
+      #NB: we require K.svd to have $u and $d just as a real svd woulda
       #error catches
       #check maxnumdims
-      if(maxnumdims > ncol(K.svd) ) {
+      if(maxnumdims > ncol(K.svd$u) ) {
           warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
           maxnumdims = ncol(K)
       }
       #check numdims
-      if(!is.null(numdims) && numdims > ncol(K.svd) ) {
+      if(!is.null(numdims) && numdims > ncol(K.svd$u) ) {
           warning("\"numdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
           numdims = ncol(K)
       }
@@ -738,7 +738,8 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
       if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
           warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
-      U = K.svd
+      svd.out = K.svd
+      U = K.svd$u
       K = U
   } else {  #if user does not specify either K or K.svd, build K and get svd(K)    
       if(printprogress == TRUE) {cat("Building kernel matrix \n")}
