@@ -305,9 +305,6 @@ getdist <- function(target, observed, K,
         K_t=K[target==1, ,drop=FALSE]
         if(is.null(w.pop)) {
             w.pop = rep(1,N)
-        }
-        if(is.null(w.pop)) {
-            w.pop = rep(1,N)
         } else {
             if(sum(sign(w.pop)) != length(observed)) {
                 stop("\"w.pop\" must be non-negative")
@@ -315,7 +312,7 @@ getdist <- function(target, observed, K,
             if(length(w.pop) != length(observed)) {
                 stop("\"w.pop\" must have the same length as the total number of units")
             }
-            if(!(sum(w.pop[observed]) == sum(observed) & sd(w.pop[observed]) == 0)) {
+            if(!(sum(w.pop[observed==1]) == sum(observed) & sd(w.pop[observed==1]) == 0)) {
                 stop("\"w.pop\" must the value 1 for all sampled/treated units")
             }
             #check population weights sum to num of treated/population units
@@ -891,6 +888,7 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
   R$K = K
   R$earlyfail = getw.out$earlyfail
   R$linkernel = linkernel
+  R$svdK = svd.out
 
   return(R)
 } # end kbal main function
