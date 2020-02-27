@@ -620,6 +620,9 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
     if(is.null(population.w)) {
         w.pop = rep(1,N)
     } else {
+        if(sum(target) != 1 && length(population.w) ==1) {
+            stop("\"population.w\" has length one. Please ensure it is a vector.")
+        }
         #check do not have any negative weights
         if(length(population.w) != sum(target)) {
             stop("\"population.w\" must have the same length as the number of population/treated units")
