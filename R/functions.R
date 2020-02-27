@@ -507,8 +507,8 @@ getdist <- function(target, observed, K,
 #' # and upweights the non-white republicans and white non-republicans
 #' unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 #' @export
-kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
-                K.svd = NULL,
+kbal = function(allx, useasbases=NULL, b=NULL, 
+                K=NULL, K.svd = NULL,
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
                 population.w = NULL,
@@ -516,6 +516,7 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
                 ebal.tol=1e-6, numdims=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
                 incrementby=1,
+                constraint = NULL,
                 printprogress = TRUE) {
 
     N=nrow(allx)
@@ -754,6 +755,21 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
       svd.out = svd(K)
       U = svd.out$u
   }
+    
+####### Adding Constraint to minimization: paste constraint vector to front of U
+    if(!is.null(constraint)) {
+        #check dims of constraint
+        #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
+        if(nrow(constraint) != N) { 
+            error("\"constraint\" must have the same number of rows as \"allx\"")
+        } 
+        minnumdims <- ncol(constraint) + 1
+        U = cbind(constraint, U) 
+        #if numdims given move it up to accomodate the constraint
+        if(!is.null(numdims)) {
+            numdims = numdims + ncol(constraint)
+        }
+    }
 
   # BASELINE
   # Get biasbound with no improvement in balance:
@@ -820,9 +836,12 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
                              w.pop = w.pop,
                              sampledinpop = sampledinpop, 
                              hilbertnorm = 1)
-      if(printprogress == TRUE) {
+      if(printprogress == TRUE & is.null(constraint)) {
           cat("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
                        round(biasboundnow,3), " \n")
+      } else if(printprogress == TRUE) {
+          cat("With ",thisnumdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+               round(biasboundnow,3), " \n")
       }
 
       dist.record=c(dist.record,biasboundnow)
