@@ -710,7 +710,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
       #warning that linkernel meaningless
       if(!is.null(linkernel) && linkernel) {
-          warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+          warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+      }
+      if(!is.null(b)) {
+          warning("\"b\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
       
       #provided we pass all that get svd
@@ -737,7 +740,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
           minnumdims = 1
       }
       if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
-          warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+          warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+      }
+      if(!is.null(b)) {
+          warning("\"b\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
       svd.out = K.svd
       U = K.svd$u
@@ -844,7 +850,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                round(biasboundnow,3), " \n")
       }
 
-      dist.record=c(dist.record,biasboundnow)
 
       dist.now=biasboundnow # To make more generic, distance could be any measure.
       dist.orig=biasbound_orig
