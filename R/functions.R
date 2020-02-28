@@ -712,7 +712,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(!is.null(linkernel) && linkernel) {
           warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
-      if(!is.null(b)) {
+      if(b != 2*ncol(allx)) {
           warning("\"b\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
       
@@ -742,7 +742,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
           warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
-      if(!is.null(b)) {
+      if(b != 2*ncol(allx)) {
           warning("\"b\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
       svd.out = K.svd
@@ -805,16 +805,24 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                             w.pop = w.pop,
                             sampledinpop = sampledinpop, 
                             hilbertnorm = 1)
-    if(printprogress == TRUE) {
+    if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
+    } else if(printprogress) {
+        cat("With user-specified",numdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+            round(biasboundnow,3), " \n")
     }
     
     #stuff to set so we can skip the entire if statement below and just printout
-    dimseq = 1
+    
     dist.record = biasboundnow
+    if(is.null(constraint)) {
+        dist_pass = rbind(numdims, dist.record)
+    } else {
+        dist_pass = rbind(numdims - ncol(constraint), dist.record)
+    }
     biasbound_opt = biasboundnow
-    ## XXX ISSUE IF K.svd passed in 
+    dist.orig= biasbound_orig
     L1_optim = getdist(target=target, observed = observed,
                        w = getw.out$w, w.pop = w.pop, K=K)$L1
     
@@ -849,8 +857,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
           cat("With ",thisnumdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
                round(biasboundnow,3), " \n")
       }
-
-
+      
+      dist.record=c(dist.record,biasboundnow)
+      
       dist.now=biasboundnow # To make more generic, distance could be any measure.
       dist.orig=biasbound_orig
 
@@ -897,8 +906,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #ISSUE IF K.svd passed in XXX
     L1_optim = getdist(target=target, observed = observed,
                        w = getw.out$w, w.pop = w.pop, K=K)$L1
+    dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   }
-  dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
+  
   rownames(dist_pass) <- c("Dims", "BiasBound")
   
   #for now a crude warning if pass K.svd in for L1 distance
@@ -911,8 +921,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$biasbound.orig=dist.orig
   R$dist.record= dist_pass
   R$numdims=numdims
-  R$L1_orig = L1_orig
-  R$L1_opt = L1_optim
+  R$L1.orig = L1_orig
+  R$L1.opt = L1_optim
   R$K = K
   R$earlyfail = getw.out$earlyfail
   R$linkernel = linkernel
