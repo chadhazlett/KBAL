@@ -81,7 +81,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #'  svd.out = svd_pass,
 #'  w = rep(1,nrow(lalonde)), hilbertnorm=1)}
 #' @export
-biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FALSE,
+biasbound=function(observed, target, svd.out, w, w.pop = NULL,
                    hilbertnorm=1){
     N = nrow(svd.out$u)
     #error check for pop weights
@@ -94,6 +94,7 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FA
         if(length(w.pop) != length(observed)) {
             stop("\"w.pop\" must have the same length as the total number of units")
         }
+        #sampledinpop == TRUE, check that w.pop = 1 for all sampled/treated units
         if(sum(target) == length(target) && !(sum(w.pop[observed]) == sum(observed)
                                              & sd(w.pop[observed]) == 0)) {
             stop("\"w.pop\" must the value 1 for all sampled/treated units")
@@ -104,26 +105,21 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FA
             if(sum(w.pop[target ==1]) == 1) {
                 w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
             } else { #in this case they don't sum to N_t or 1 so ng
-                stop("\"population.w\" must sum to either 1 or the number of treated/population units")
+                stop("\"w.pop\" must sum to either 1 or the number of treated/population units")
             }
         }
     }
-        
-    if(!sampledinpop) {
+    #sampledinpop = FALSE   
+    if(sum(target) != length(target)) {
         #weights sum to N_0, N_1 so normalizing so sum to 1
         wtarget=w.pop[target==1]/sum(target==1) 
         wobserved=w[observed==1]/sum(observed==1)
     } else { #when sampledinpop true
-        #3.2.20: idk why I had this here, seems unnecessary and also never used bc we set to be 1 if null above??
-        if(is.null(w.pop)) {error("\"w.pop\" required when \"sampledinpop\"= TRUE. ")}
-        N = length(observed)
-        wtarget= w.pop/N #over N right because w.pop and length N
-        #drop the first N entries of w because all 1's, only last N_observed are meaningful
+        wtarget= w.pop/N #over N because sum(target ==1) = 1
         wobserved=w[observed ==1]/sum(observed==1)
    }
    
     U=svd.out$u
-    #ISSUE for frankenstein
     eigenvals=svd.out$d #singular values (A)
     
     U1=U[target==1, , drop=FALSE]
@@ -847,7 +843,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            w.pop = w.pop, 
                            observed=observed, target = target,
                            svd.out = svd.out, hilbertnorm = 1)
-#XXXXX ISSUE not well defined when pass in K.svd not K
+#NB: not well defined when pass in K.svd not K
   getdist.orig = getdist(target=target, observed = observed,
                          w = rep(1,N), w.pop = w.pop, K=K)
   L1_orig = getdist.orig$L1
@@ -865,8 +861,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
                             svd.out = svd.out, 
-                            w.pop = w.pop,
-                            sampledinpop = sampledinpop, 
+                            w.pop = w.pop, 
                             hilbertnorm = 1)
     if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
@@ -910,8 +905,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       biasboundnow=biasbound(w = getw.out$w,
                              observed=observed,  target = target,
                              svd.out = svd.out, 
-                             w.pop = w.pop,
-                             sampledinpop = sampledinpop, 
+                             w.pop = w.pop, 
                              hilbertnorm = 1)
       if(printprogress == TRUE & is.null(constraint)) {
           cat("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
@@ -964,9 +958,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                              svd.out = svd.out, 
                              w.pop = w.pop,
-                             sampledinpop = sampledinpop,
                              hilbertnorm = 1)
-    #ISSUE IF K.svd passed in XXX
+    #NB: not well defined iF K.svd passed in
     L1_optim = getdist(target=target, observed = observed,
                        w = getw.out$w, w.pop = w.pop, K=K)$L1
     dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
