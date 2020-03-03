@@ -83,6 +83,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #' @export
 biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FALSE,
                    hilbertnorm=1){
+    N = nrow(svd.out$u)
     #error check for pop weights
     if(is.null(w.pop)) {
         w.pop = rep(1,N)
@@ -113,6 +114,7 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL, sampledinpop = FA
         wtarget=w.pop[target==1]/sum(target==1) 
         wobserved=w[observed==1]/sum(observed==1)
     } else { #when sampledinpop true
+        #3.2.20: idk why I had this here, seems unnecessary and also never used bc we set to be 1 if null above??
         if(is.null(w.pop)) {error("\"w.pop\" required when \"sampledinpop\"= TRUE. ")}
         N = length(observed)
         wtarget= w.pop/N #over N right because w.pop and length N
@@ -508,15 +510,16 @@ getdist <- function(target, observed, K,
 #' unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 #' @export
 kbal = function(allx, useasbases=NULL, b=NULL, 
-                K=NULL, K.svd = NULL,
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
                 population.w = NULL,
-                linkernel = FALSE,
-                ebal.tol=1e-6, numdims=NULL,
+                K=NULL, K.svd = NULL,
+                linkernel = FALSE, constraint = NULL,
+                numdims=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
+                fullSVD = FALSE,
                 incrementby=1,
-                constraint = NULL,
+                ebal.tol=1e-6,
                 printprogress = TRUE) {
 
     N=nrow(allx)
@@ -598,7 +601,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         }
         #check do not pass in K
         if(!is.null(K) | !is.null(K.svd)) {
-            warning("\"useasbases\" argment only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+            warning("\"useasbases\" argument only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
         }
     }
     
@@ -664,8 +667,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if (is.null(minnumdims)){minnumdims=1}
     if (is.null(maxnumdims)){
         if(linkernel == FALSE) {
-            maxnumdims=sum(useasbases) 
-        } else { maxnumdims = ncol(allx)}
+            maxnumdims= min(200, sum(useasbases)) #reducing to use RSpectra to max 200
+        } else { maxnumdims = min(ncol(allx), 200) } 
     }
     #setting defaults - b: dding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
@@ -687,11 +690,13 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
 #####end of big error catch series and data setup
 
+########### BUILDING K ################
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
   if(!is.null(K) & !is.null(K.svd)){
       stop("\"K\" and \"K.svd\" can not be specified simultaneously")
-  } else if(!is.null(K)) { # if user pases K, always conduct SVD
+#CASE 1: if user pases K, always conduct SVD upto maxnumdims or numdims
+  } else if(!is.null(K)) { 
       #error checks:
       #check maxnumdims
       if(maxnumdims > ncol(K) ) {
@@ -710,18 +715,46 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
       #warning that linkernel meaningless
       if(!is.null(linkernel) && linkernel) {
-          warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
-      
-      #provided we pass all that get svd
+      #provided we pass all those checks get svd with RSpectra
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}
-      if(printprogress == TRUE) {cat("Running SVD on kernel matrix \n")}
-      svd.out=svd(K)
-      U=svd.out$u 
-  } else if(!is.null(K.svd)) { #if user pases in K.svd never conduct SVD  
+      #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
+      if(!fullSVD & is.null(numdims)) { 
+          if(printprogress) {cat("Running SVD on kernel matrix upto maxnumdims", maxnumdims, "dimensions \n")}
+          #for a symmetric K just do eigs_sym as is:
+          if(nrow(K) == ncol(K)) {
+              rspec.out= RSpectra::eigs_sym(K, maxnumdims)
+              #this is really SAS' but since we use svd throughout pass out in svd lang
+              svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+                             v= rspec.out$vectors)
+          } else { #use svds
+              svd.out= RSpectra::svds(K, maxnumdims)
+          }
+          U=svd.out$u
+      #if user does not want full svd but did pass numdims, get svd upto numdims
+      } else if(!fullSVD) { 
+          if(printprogress) {cat("Running SVD on kernel matrix upto numdims", numdims, "dimensions \n")}
+          if(nrow(K) == ncol(K)) {
+              rspec.out= RSpectra::eigs_sym(K, numdims)
+              #this is really SAS' but since we use svd throughout pass out in svd lang
+              svd.out = list(u = rspec.out$vectors, d = rspec.out$values, 
+                             v= rspec.out$vectors)
+          } else { #use svds
+              svd.out = RSpectra::svds(K, numdims)
+          }
+          U=svd.out$u
+    #if user asked for full SVD, get it
+      } else { 
+          if(printprogress) {cat("Running full SVD on kernel matrix \n")}
+          svd.out = svd(K)
+          U = svd.out$u
+      }
+#CASE 2: if user pases in K.svd never conduct SVD   
+  } else if(!is.null(K.svd)) {
       #NB: we require K.svd to have $u and $d just as a real svd woulda
       #error catches
       #check maxnumdims
@@ -740,15 +773,16 @@ kbal = function(allx, useasbases=NULL, b=NULL,
           minnumdims = 1
       }
       if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
-          warning("\"linkernel\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argment only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
       svd.out = K.svd
       U = K.svd$u
       K = U
-  } else {  #if user does not specify either K or K.svd, build K and get svd(K)    
+#CASE 3: if user does not specify either K or K.svd, build K and get svd of K
+  } else { 
       if(printprogress == TRUE) {cat("Building kernel matrix \n")}
       if(linkernel == FALSE) {
           K = makeK(allx = allx, useasbases = useasbases, b=b)
@@ -757,9 +791,38 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                     useasbases = useasbases, 
                     linkernel = TRUE)
       }
-      if(printprogress == TRUE) {cat("Running SVD on kernel matrix \n")}
-      svd.out = svd(K)
-      U = svd.out$u
+     #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
+      if(!fullSVD & is.null(numdims)) {
+          if(printprogress) {cat("Running SVD on kernel matrix upto maxnumdims", maxnumdims, "dimensions \n")}
+          #for a symmetric K just do eigs_sym as is:
+          if(nrow(K) == ncol(K)) {
+              rspec.out= RSpectra::eigs_sym(K, maxnumdims)
+              #this is really SAS' but since we use svd throughout pass out in svd lang
+              svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+                             v= rspec.out$vectors)
+          } else { #use trucated svd
+              svd.out= RSpectra::svds(K, maxnumdims)
+          }
+          U=svd.out$u
+      #if user does not ask for full svd, but does pass in numdims, get svd upto numdims  
+      } else if(!fullSVD) {
+          if(printprogress) {cat("Running SVD on kernel matrix upto numdims", numdims, "dimensions \n")}
+          if(nrow(K) == ncol(K)) {
+              rspec.out= RSpectra::eigs_sym(K, numdims)
+              #this is really SAS' but since we use svd throughout pass out in svd lang
+              svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+                             v= rspec.out$vectors)
+          } else { 
+              svd.out= RSpectra::svds(K, numdims)
+          }
+          U=svd.out$u
+      }
+      #if user askes for full svd, go get it
+      else {
+          if(printprogress) {cat("Running full SVD on kernel matrix \n")}
+          svd.out = svd(K)
+          U = svd.out$u
+      }
   }
     
 ####### Adding Constraint to minimization: paste constraint vector to front of U
