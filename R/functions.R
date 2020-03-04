@@ -693,6 +693,13 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
 #####end of big error catch series and data setup
 
+#if pass maxnumdims = N then they want the full svd, so change this for them to avoid all those if statement checks below just to do the same thing
+    if(!linkernel && maxnumdims == nrow(allx)) {
+        fullSVD = TRUE
+    } else if(maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
+        fullSVD = TRUE
+    }
+
 ########### BUILDING K ################
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
@@ -747,8 +754,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                           " first singular values only accounts for ", var_explained,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".", immediate. = TRUE)
               }
-          } else { #use svds
-              svd.out= RSpectra::svds(K, maxnumdims)
+          } else { #use svds, suppressing warnings that it prints if uses full size svd
+              svd.out= Spectra::svds(K, maxnumdims)
               warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
                       maxnumdims," first singular values is unknown.", immediate. = TRUE)
               var_explained = NULL
@@ -845,7 +852,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(!is.null(constraint)) {
         #check dims of constraint
         #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
-        if(class(constraint) != "matrix") {
+        if(!class(constraint) %in% c("matrix", "data.frame")) {
             stop("\"constraint\" must be a matrix")
         }
         if(nrow(constraint) != N) { 
