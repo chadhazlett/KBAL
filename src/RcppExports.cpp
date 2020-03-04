@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // new_gauss_kern
 NumericMatrix new_gauss_kern(const NumericMatrix newx, const NumericMatrix oldx, const double b);
-RcppExport SEXP _KBAL_new_gauss_kern(SEXP newxSEXP, SEXP oldxSEXP, SEXP bSEXP) {
+RcppExport SEXP _kbal_new_gauss_kern(SEXP newxSEXP, SEXP oldxSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -20,11 +20,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_KBAL_new_gauss_kern", (DL_FUNC) &_KBAL_new_gauss_kern, 3},
+    {"_kbal_new_gauss_kern", (DL_FUNC) &_kbal_new_gauss_kern, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_KBAL(DllInfo *dll) {
+RcppExport void R_init_kbal(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
