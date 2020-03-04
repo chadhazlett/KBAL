@@ -4,8 +4,8 @@
 \alias{getdist}
 \title{L1 Distance}
 \usage{
-getdist(target, observed, K, svd.out, w = NULL, numdims = NULL,
-  ebal.tol = NULL)
+getdist(target, observed, K, svd.U, w = NULL, numdims = NULL,
+  w.pop = NULL, ebal.tol = NULL)
 }
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
@@ -14,11 +14,13 @@ getdist(target, observed, K, svd.out, w = NULL, numdims = NULL,
 
 \item{K}{the kernel matrix}
 
-\item{svd.out}{the list object output from performing \code{svd()} on the kernel matrix.}
+\item{svd.U}{a matrix of left singular vectors from from performing \code{svd()} on the kernel matrix.}
 
 \item{w}{a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with custom entropy balancing function \code{ebalance_custom()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.}
 
 \item{numdims}{a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.}
+
+\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units/rows in \code{allx} with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
 \item{ebal.tol}{an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e-6/}
 }
@@ -54,11 +56,9 @@ l1_lalonde <- getdist(target = lalonde$nsw,
  #alternatively, we can get the weights ourselves and pass them in directly
  w_opt <- getw(target= lalonde$nsw,
                observed = 1-lalonde$nsw,
-               svd.U = svd.U_pass$u[,1:33, drop=FALSE],
                ebal.tol=1e-6)$w
  l1_lalonde2 <- getdist(target = lalonde$nsw,
                   observed = 1-lalonde$nsw,
                   K = K_pass,
-                  svd.out = svd.U_pass,
                   w = w_opt)}
 }

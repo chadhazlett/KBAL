@@ -13,7 +13,9 @@ LazyLoad: yes
 Depends:
     R (>= 2.14)
 Imports:
-    Rcpp (>= 0.11.0)
+    Rcpp (>= 0.11.0),
+    RSpectra
 LinkingTo: Rcpp
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
 RoxygenNote: 6.1.1
+
