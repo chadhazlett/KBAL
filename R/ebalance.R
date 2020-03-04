@@ -11,6 +11,16 @@
 #' @param constraint.tolerance numeric tolerance level.
 #' @param print.level a numeric argument to specify the amount of information printed out. 0 is silent, 1 prints convergence status, 2 prints maximum deviance per iteration, 3 prints loss and step length.
 #' @importFrom stats var optimize
+#' @return \item{target.margins}{}
+#' \item{co.xdata}{}
+#' \item{w}{}
+#' \item{maxdiff}{}
+#' \item{norm.constant}{}
+#' \item{constraint.tolerance}{}
+#' \item{max.iterations}{}
+#' \item{base.weight}{}
+#' \item{print.level}{}
+#' \item{converged}{}
 #' @export
 
 ebalance_custom <-

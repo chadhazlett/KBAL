@@ -24,7 +24,6 @@
 #' b = 2*ncol(lalonde[,xvars]))}
 #' @useDynLib kbal
 #' @importFrom stats sd 
-#' @importFrom Rcpp sourceCpp
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   N=nrow(allx)
@@ -58,6 +57,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param svd.out the list object output from \code{svd()} performed on the kernel matrix.
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
+#' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units/rows in \code{allx} with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
 #' @param hilbertnorm numeric value of the hilbertnorm. Default value is 1.
 #' @examples
 #' \donttest{
@@ -81,19 +81,53 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #'  svd.out = svd_pass,
 #'  w = rep(1,nrow(lalonde)), hilbertnorm=1)}
 #' @export
-biasbound=function(observed, target, svd.out, w, hilbertnorm=1){
-  wtarget=w[target==1]/sum(target==1)
-  wobserved=w[observed==1]/sum(observed==1)
-
-  U=svd.out$u
-  eigenvals=svd.out$d
-
-  U1=U[target==1, , drop=FALSE]
-  U0=U[observed==1, , drop=FALSE]
-  eigenimbal=as.vector(t(wtarget)%*%U1 - t(wobserved)%*%U0)
-  effectiveimbal=(eigenimbal*(eigenvals^.5))
-  biasbound=sqrt(hilbertnorm)*sqrt(t(effectiveimbal)%*%(effectiveimbal))
-  return(biasbound)
+biasbound=function(observed, target, svd.out, w, w.pop = NULL,
+                   hilbertnorm=1){
+    N = nrow(svd.out$u)
+    #error check for pop weights
+    if(is.null(w.pop)) {
+        w.pop = rep(1,N)
+    } else {
+        if(sum(sign(w.pop)) != length(observed)) {
+            stop("\"w.pop\" must be non-negative")
+        }
+        if(length(w.pop) != length(observed)) {
+            stop("\"w.pop\" must have the same length as the total number of units")
+        }
+        #sampledinpop == TRUE, check that w.pop = 1 for all sampled/treated units
+        if(sum(target) == length(target) && !(sum(w.pop[observed]) == sum(observed)
+                                             & sd(w.pop[observed]) == 0)) {
+            stop("\"w.pop\" must the value 1 for all sampled/treated units")
+        }
+        #check population weights sum to num of treated/population units
+        if(sum(w.pop[target ==1 ]) != sum(target)) {
+            #allow user to pass in weights that sum to one and transform them here
+            if(sum(w.pop[target ==1]) == 1) {
+                w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
+            } else { #in this case they don't sum to N_t or 1 so ng
+                stop("\"w.pop\" must sum to either 1 or the number of treated/population units")
+            }
+        }
+    }
+    #sampledinpop = FALSE   
+    if(sum(target) != length(target)) {
+        #weights sum to N_0, N_1 so normalizing so sum to 1
+        wtarget=w.pop[target==1]/sum(target==1) 
+        wobserved=w[observed==1]/sum(observed==1)
+    } else { #when sampledinpop true
+        wtarget= w.pop/N #over N because sum(target ==1) = 1
+        wobserved=w[observed ==1]/sum(observed==1)
+   }
+   
+    U=svd.out$u
+    eigenvals=svd.out$d #singular values (A)
+    
+    U1=U[target==1, , drop=FALSE]
+    U0=U[observed==1, , drop=FALSE]
+    eigenimbal=as.vector(t(wtarget)%*%U1 - t(wobserved)%*%U0)
+    effectiveimbal=(eigenimbal*(eigenvals^.5))
+    biasbound=sqrt(hilbertnorm)*sqrt(t(effectiveimbal)%*%(effectiveimbal))
+    return(biasbound)
 }
 
 # Simple diffference in mean and in weighted means
@@ -192,7 +226,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                                    print.level=0),
                    silent=TRUE)
   N=nrow(svd.U)
-    earlyfail = FALSE
+  earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
       if(ncol(svd.U) <= 2) {
           warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
@@ -221,9 +255,10 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #' @param target a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param K the kernel matrix
-#' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.
+#' @param svd.U a matrix of left singular vectors from from performing \code{svd()} on the kernel matrix.
 #' @param w a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with custom entropy balancing function \code{ebalance_custom()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.
 #' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
+#' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units/rows in \code{allx} with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
 #' @param ebal.tol an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e-6/
 #' @return \item{w}{numeric vector of weights used}
 #' \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
@@ -252,29 +287,50 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'  #alternatively, we can get the weights ourselves and pass them in directly
 #'  w_opt <- getw(target= lalonde$nsw,
 #'                observed = 1-lalonde$nsw,
-#'                svd.U = svd.U_pass$u[,1:33, drop=FALSE],
 #'                ebal.tol=1e-6)$w
 #'  l1_lalonde2 <- getdist(target = lalonde$nsw,
 #'                   observed = 1-lalonde$nsw,
 #'                   K = K_pass,
-#'                   svd.out = svd.U_pass,
 #'                   w = w_opt)}
 #' @export
-getdist <- function(target, observed, K, svd.out,
-                    w=NULL, numdims = NULL, ebal.tol=NULL) {
+getdist <- function(target, observed, K, svd.U,
+                    w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL) {
 
         R=list()
-        U = svd.out$u
-        N=nrow(U)
+        N=nrow(K)
         K_c=K[observed==1, ,drop = FALSE]
         K_t=K[target==1, ,drop=FALSE]
-
+        if(is.null(w.pop)) {
+            w.pop = rep(1,N)
+        } else {
+            if(sum(sign(w.pop)) != length(observed)) {
+                stop("\"w.pop\" must be non-negative")
+            }
+            if(length(w.pop) != length(observed)) {
+                stop("\"w.pop\" must have the same length as the total number of units")
+            }
+            if(!(sum(w.pop[observed==1]) == sum(observed) & sd(w.pop[observed==1]) == 0)) {
+                stop("\"w.pop\" must the value 1 for all sampled/treated units")
+            }
+            #check population weights sum to num of treated/population units
+            if(sum(w.pop[target ==1 ]) != sum(target)) {
+                #allow user to pass in weights that sum to one and transform them here
+                if(sum(w.pop[target ==1]) == 1) {
+                    w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
+                } else { #in this case they don't sum to N_t or 1 so ng
+                    stop("\"population.w\" must sum to either 1 or the number of treated/population units")
+                }
+            }
+            
+        }
         #if user does not provide weights, go get them
+        # XXXX INCORPERATE w.pop XXX
         if(is.null(w)) {
             if(is.null(ebal.tol)) {ebal.tol = 1e-6}
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
+            U_w.pop <- w.pop*svd.U
             w = getw(target = target, observed=observed,
-                     svd.U = U[,1:numdims, drop=FALSE],
+                     svd.U = U_w.pop[,1:numdims, drop=FALSE],
                      ebal.tol=ebal.tol)$w
 
             #if ebal fails we get weights of 1 for everyone
@@ -282,20 +338,27 @@ getdist <- function(target, observed, K, svd.out,
                 stop("ebalance failed to converge for this choice of numdims dimensions of the SVD of the kernel matrix")
             }
         }
-
-        pX_D1=(matrix(1,1, sum(target==1))/sum(target==1))%*% K_t
-        pX_D0=(matrix(1,1,sum(observed==1))/sum(observed==1))%*% K_c
+        #just "average row Kt"
+        pX_D1=(matrix(1,1, sum(target==1))/sum(target==1))%*% K_t 
+        #average row Kc
+        pX_D0=(matrix(1,1,sum(observed==1))/sum(observed==1))%*% K_c 
+        #weighted average Kc with ebal weights
         pX_D0w=(w[observed==1]/sum(w[observed==1])) %*% K_c
+        #weighted average Kt ONLT DIFF from pX_D1 if have pop weights not all equal to 1
+        pX_D1wpop = (w.pop[target==1]/sum(w.pop[target==1])) %*% K_t 
 
             # A rescaling to ensure sum is 1 as would be an integral.
         pX_D1=pX_D1/sum(pX_D1)
         pX_D0=pX_D0/sum(pX_D0)
         pX_D0w=pX_D0w/sum(pX_D0w)
-        L1 = sum(abs(pX_D1-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
+        pX_D1wpop =pX_D1wpop/sum(pX_D1wpop)
+        L1 = sum(abs(pX_D1wpop-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
 
 
         R$L1=L1
         R$w=w
+        R$pX_D1wpop=pX_D1wpop
+        R$pX_D0w=pX_D0w
         R$pX_D1=pX_D1
         R$pX_D0=pX_D0
         R$pX_D0w=pX_D0w
@@ -316,27 +379,35 @@ getdist <- function(target, observed, K, svd.out,
 #' @references Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinica. https://doi.org/10.5705/ss.202017.0555
 #' 
 #' @param allx a data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases optional vector of 0/1 or FALSE/TRUE to specify what observations are to be used in forming bases (columns of the kernel matrix) balanced upon.  If the number of observations is under 2000, the default is to use all observations. When the number of observations is over 2000, the default is to use the sampled (control) units only.
+#' @param useasbases optional vector of 0/1 or FALSE/TRUE to specify what observations are to be used in forming bases (columns of the kernel matrix) balanced upon.  If the number of observations is under 4000, the default is to use all observations. When the number of observations is over 4000, the default is to use the sampled (control) units only.
 #' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.
-#' @param K optional user-supplied kernel matrix. If given, this kernel matrix is used rather than computing one.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that when \code{TRUE} indicates that sampled units should also be included in the target population.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.
+#' @param population.w optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.
+#' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it in the search for weights which minimize the bias bound. When \code{K} is specified, the code does not build the kernel matrix internally.
+#' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.
 #' @param linkernel if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
-#' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}.
+#' @param constraint optional matrix argument which requires returned weights \code{w} to achieve mean balance on the columns of \code{constraint}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of \code{K}. 
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
-#' @param minnumdims optional numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
-#' @param maxnumdims optional numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. While the number of observations is under 2000, the default maximum is the total number of observations. Due to the computation burden, when the number of observations is over 2000, the default is the number of sampled units.
-#' @param incrementby optional argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
-#' @param printprogress optional logical argument to print current number of dimensions and bias.
+#' @param minnumdims numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
+#' @param maxnumdims numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. For a guassian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is minimum between 500 and the number of columns in \code{allx}. Due to computational burden, when \code{fullSVD} is \code{FALSE}, the truncated SVD is only computed upto \code{maxnumdims}.
+#' @param fullSVD logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time.
+#' @param incrementby numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
+#' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}.
+#' @param printprogress optional logical argument to print updates throughout.
 #'
-#' @return \item{dist.record}{a numeric matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
-#'  \item{biasbound.orig}{the bias bound found when all sampled units have a weight of one over the number of sampled units and all target units have a weight of one over the number of target units.}
-#'  \item{numdims}{the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
-#'  \item{w}{the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
+#' @return \item{w}{vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
+#' \item{biasbound.opt}{numeric giving the minimal bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
+#'  \item{biasbound.orig}{numeric givingthe bias bound found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
+#'  \item{dist.record}{matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
+#'  \item{numdims}{numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
+#'  \item{L1.orig}{numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
+#'  \item{L1.opt}{numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
+#'  \item{K}{the kernel matrix}
 #'  \item{earlyfail}{boolean to indicate whether ebalance failed to converge within the first two dimesions of the SVD of K} 
-#'  \item{biasbound.opt}{the minimal bias bound found using \code{numdims} as the number of dimestions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
-#' \item{K}{the kernel matrix.}
+#'  \item{svdK}{list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
+#'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
 #' @examples
 #' #----------------------------------------------------------------
 #' # Example 1: Reweight a control group to a treated to esimate ATT. 
@@ -346,7 +417,7 @@ getdist <- function(target, observed, K, svd.out,
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'  \donttest{
-#' # Rerun Lalonde example with settings as in the kbal paper:
+#' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
 #' kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
 #'                useasbases=rep(1,nrow(lalonde)),
 #'                treatment=lalonde$nsw)
@@ -357,8 +428,8 @@ getdist <- function(target, observed, K, svd.out,
 #' # Benchmark using Lalonde et al. -- but just mean balancing now 
 #' # via "linkernel".
 #' #----------------------------------------------------------------
-#'  
-#' # Rerun Lalonde example with settings as in the kbal paper:
+#'
+#' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
 #' kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
 #'                useasbases=rep(1,nrow(lalonde)),
 #'                treatment=lalonde$nsw, linkernel=TRUE)
@@ -441,14 +512,18 @@ getdist <- function(target, observed, K, svd.out,
 #' # and upweights the non-white republicans and white non-republicans
 #' unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 #' @export
-kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
+kbal = function(allx, useasbases=NULL, b=NULL, 
                 sampled=NULL, sampledinpop=NULL,
                 treatment=NULL,
-                linkernel = FALSE,
-                ebal.tol=1e-6, numdims=NULL,
+                population.w = NULL,
+                K=NULL, K.svd = NULL,
+                linkernel = FALSE, constraint = NULL,
+                numdims=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
+                fullSVD = FALSE,
                 incrementby=1,
-                printprogress = TRUE){
+                ebal.tol=1e-6,
+                printprogress = TRUE) {
 
     N=nrow(allx)
     
@@ -527,16 +602,54 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
         if(!(all(useasbases %in% c(0,1)))) {
             stop("\"useasbases\" contains non-binary elements")
         }
+        #check do not pass in K
+        if(!is.null(K) | !is.null(K.svd)) {
+            warning("\"useasbases\" argument only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+        }
     }
     
     #Setting defaults - useasbases: If we don't specify which observations to use as bases,
     # use all as default unless K is very large, then use sample set.
-    if (is.null(useasbases) & N <= 2000) {
-        useasbases = rep(1,N)
+    if (is.null(useasbases) & N <= 4000) {
+            useasbases = rep(1,N)
     } else if(is.null(useasbases)) {
-        warning("Dimensions of K greater than 2000, using sampled as default bases",
-                immediate. = TRUE)
-        useasbases = as.numeric(observed==1)
+        if(is.null(K) & is.null(K.svd) ) {
+            warning("Dimensions of K greater than 4000, using sampled as default bases",
+                    immediate. = TRUE)
+        }
+          useasbases = as.numeric(observed==1)
+    }
+ 
+    #Population  weights
+    #default for population weights is to have them all equal
+    #population weights need to sum to N because the averaging among the treated occurs
+    #within ebal (so we don't want to double average)
+    if(is.null(population.w)) {
+        w.pop = rep(1,N)
+    } else {
+        if(sum(target) != 1 && length(population.w) ==1) {
+            stop("\"population.w\" has length one. Please ensure it is a vector.")
+        }
+        #check do not have any negative weights
+        if(length(population.w) != sum(target)) {
+            stop("\"population.w\" must have the same length as the number of population/treated units")
+        }
+        if(sum(sign(population.w)) != sum(target)) {
+            stop("\"population.w\" must be non-negative")
+        }
+        #check population weights sum to num of treated/population units
+        if(sum(population.w) != sum(target)) {
+            #allow user to pass in weights that sum to one and transform them here
+            if(sum(population.w) == 1) {
+                population.w = population.w/mean(population.w)
+            } else { #in this case they don't sum to N_t or 1 so ng
+                stop("\"population.w\" must sum to either 1 or the number of treated/population units")
+            }
+        }
+        #adding uniform weights for control/sampled units
+        w.pop <- rep(1, N)
+        w.pop[target==1] = population.w
+        
     }
     
     #8. now checking maxnumdims: the most dims you can use is the number of bases
@@ -557,8 +670,8 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
     if (is.null(minnumdims)){minnumdims=1}
     if (is.null(maxnumdims)){
         if(linkernel == FALSE) {
-            maxnumdims=sum(useasbases) 
-        } else { maxnumdims = ncol(allx)}
+            maxnumdims= min(500, sum(useasbases)) #reducing to use RSpectra to max 500
+        } else { maxnumdims = min(ncol(allx), 500) } 
     }
     #setting defaults - b: dding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
@@ -580,33 +693,189 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
     }
 #####end of big error catch series and data setup
 
+#if pass maxnumdims = N then they want the full svd, so change this for them to avoid all those if statement checks below just to do the same thing
+    if(!linkernel && maxnumdims == nrow(allx)) {
+        fullSVD = TRUE
+    } else if(maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
+        fullSVD = TRUE
+    }
 
-    # Make the kernel (or don't, if already there)
-  if(!is.null(K)){
-    cat("Using user-supplied K \n")
-  }
-    
-  if(is.null(K)){
-    if(printprogress == TRUE) {cat("Building kernel matrix \n")}
-    if(linkernel == FALSE) {
-        K = makeK(allx = allx, useasbases = useasbases, b=b)
-        } else {
+########### BUILDING K ################
+#Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
+   #first check didn't pass both
+  if(!is.null(K) & !is.null(K.svd)){
+      stop("\"K\" and \"K.svd\" can not be specified simultaneously")
+#CASE 1: if user pases K, always conduct SVD upto maxnumdims or numdims
+  } else if(!is.null(K)) { 
+      #error checks:
+      #check maxnumdims
+      if(maxnumdims > ncol(K) ) {
+          warning("\"maxnumdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.", immediate. = TRUE)
+          maxnumdims = ncol(K)
+      }
+      #check numdims
+      if(!is.null(numdims) && numdims > ncol(K) ) {
+          warning("\"numdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.", immediate. = TRUE)
+          numdims = ncol(K)
+      }
+      #check minnumdims 
+      if(minnumdims > maxnumdims) {
+          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.", immediate. = TRUE)
+          minnumdims = 1
+      }
+      #warning that linkernel meaningless
+      if(!is.null(linkernel) && linkernel) {
+          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+      }
+      if(b != 2*ncol(allx)) {
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+      }
+      #provided we pass all those checks get svd with RSpectra
+      if(printprogress == TRUE) {cat("Using user-supplied K \n")}
+      #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
+      if(!fullSVD) { 
+          if(printprogress) {cat("Running SVD on kernel matrix up to \"maxnumdims\" =",
+                                 maxnumdims, "dimensions \n")}
+          #for a symmetric K just do eigs_sym as is:
+          if(nrow(K) == ncol(K)) {
+              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, maxnumdims))
+              #add negative evals catch via bound at e-13 = 0
+              #for now just set values to be zero. can also decrease the size of U, for zero
+              #eigenvectors, but 
+              rspec.out$values[abs(rspec.out$values) <= 1e-13 ] = 0
+              svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+                             v= rspec.out$vectors)
+              var_explained <- round(sum(svd.out$d)/nrow(K),6)
+              if(printprogress) {cat("Truncated SVD with \"maxnumdims\" =", maxnumdims,
+                                     "first singular values accounts for", var_explained,
+                                     "of the variance of \"K\" \n")}
+              if(var_explained < .999) {
+                  warning("Truncated SVD with \"maxnumdims\" = ", maxnumdims,
+                          " first singular values only accounts for ", var_explained,
+                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".", immediate. = TRUE)
+              }
+          } else { #use svds, suppressing warnings that it prints if uses full size svd
+              svd.out= Spectra::svds(K, maxnumdims)
+              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
+                      maxnumdims," first singular values is unknown.", immediate. = TRUE)
+              var_explained = NULL
+          }
+          U=svd.out$u
+     #if user asked for full SVD, get it
+      } else { 
+          if(printprogress) {cat("Running full SVD on kernel matrix \n")}
+          svd.out = svd(K)
+          U = svd.out$u
+          var_explained = NULL
+      }
+#CASE 2: if user pases in K.svd never conduct SVD   
+  } else if(!is.null(K.svd)) {
+      #NB: we require K.svd to have $u and $d just as a real svd woulda
+      #error catches
+      #check maxnumdims
+      if(maxnumdims > ncol(K.svd$u) ) {
+          warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
+          maxnumdims = ncol(K)
+      }
+      #check numdims
+      if(!is.null(numdims) && numdims > ncol(K.svd$u) ) {
+          warning("\"numdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
+          numdims = ncol(K)
+      }
+      #check minnumdims 
+      if(minnumdims > maxnumdims) {
+          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.", immediate. = TRUE)
+          minnumdims = 1
+      }
+      if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
+          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+      }
+      if(b != 2*ncol(allx)) {
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+      }
+      svd.out = K.svd
+      U = K.svd$u
+      K = U
+      var_explained = NULL
+#CASE 3: if user does not specify either K or K.svd, build K and get svd of K
+  } else { 
+      if(printprogress == TRUE) {cat("Building kernel matrix \n")}
+      if(linkernel == FALSE) {
+          K = makeK(allx = allx, useasbases = useasbases, b=b)
+      } else {
           K = makeK(allx = allx,
-                useasbases = useasbases, 
-                linkernel = TRUE)
-        }
-  } # end of if(is.null(K))
+                    useasbases = useasbases, 
+                    linkernel = TRUE)
+      }
+     #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
+      if(!fullSVD) {
+          if(printprogress) {cat("Running SVD on kernel matrix up to \"maxnumdims\" =",
+                                 maxnumdims, "dimensions \n")}
+          #for a symmetric K just do eigs_sym as is:
+          if(nrow(K) == ncol(K)) {
+              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, maxnumdims))
+              rspec.out$values[ abs(rspec.out$values) <= 1e-13 ] = 0
+              svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+                             v= rspec.out$vectors)
+              var_explained = round(sum(svd.out$d)/nrow(K),6)
+              if(printprogress) {cat("Truncated SVD with \"maxnumdims\" =", maxnumdims,
+                                     "first singular values accounts for", var_explained,
+                                     "of the variance of \"K\" \n")}
+              
+              if(var_explained < .999) {
+                  warning("Truncated SVD with \"maxnumdims\" = ", maxnumdims,
+                          " first singular values only accounts for ", var_explained,
+                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
+                  }
+          } else { #use trucated svd
+              svd.out= RSpectra::svds(K, maxnumdims)
+              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
+                      maxnumdims," is unknown", immediate. = TRUE)
+              var_explained = NULL
+          }
+          U=svd.out$u
+          
+    #if user askes for full svd, go get it
+      } else {
+          if(printprogress) {cat("Running full SVD on kernel matrix \n")}
+          svd.out = svd(K)
+          U = svd.out$u
+          var_explained = NULL
+      }
+  }
+    #adjust singular values for linear kernel since we just do svd(X) instead of svd(XX')
+    if(linkernel == TRUE) {
+        svd.out$d = svd.out$d^2
+    }
     
-  if(printprogress == TRUE) {cat("Running SVD on kernel matrix \n")}
-  svd.out=svd(K)
-  U=svd.out$u
+####### Adding Constraint to minimization: paste constraint vector to front of U
+    if(!is.null(constraint)) {
+        #check dims of constraint
+        #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
+        if(!class(constraint) %in% c("matrix", "data.frame")) {
+            stop("\"constraint\" must be a matrix")
+        }
+        if(nrow(constraint) != N) { 
+            stop("\"constraint\" must have the same number of rows as \"allx\"")
+        } 
+        minnumdims <- ncol(constraint) + 1
+        U = cbind(constraint, U) 
+        #if numdims given move it up to accomodate the constraint
+        if(!is.null(numdims)) {
+            numdims = numdims + ncol(constraint)
+        }
+    }
 
+  # BASELINE
   # Get biasbound with no improvement in balance:
-  biasbound_orig=biasbound(w = rep(1,N), observed=observed, target = target,
-                            svd.out = svd.out, hilbertnorm = 1)
-
+  #recall: w.pop is flat weights for sampled, user specified weights for population
+  biasbound_orig=biasbound(w = rep(1,N),
+                           w.pop = w.pop, 
+                           observed=observed, target = target,
+                           svd.out = svd.out, hilbertnorm = 1)
+#NB: not well defined when pass in K.svd not K
   getdist.orig = getdist(target=target, observed = observed,
-                         w = rep(1,N), svd.out = svd.out, K=K)
+                         w = rep(1,N), w.pop = w.pop, K=K)
   L1_orig = getdist.orig$L1
 
   if(printprogress==TRUE) {
@@ -616,21 +885,34 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
   # If numdims given, just get the weights in one shot:
   if (!is.null(numdims)){
     U2=U[,1:numdims, drop=FALSE]
-    getw.out=getw(target=target, observed=observed, svd.U=U2)
     
-    biasboundnow=biasbound( w = getw.out$w, observed=observed,  target = target,
-                            svd.out = svd.out, hilbertnorm = 1)
-    if(printprogress == TRUE) {
+    U2.w.pop <- w.pop*U2
+    getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop)
+    biasboundnow=biasbound( w = getw.out$w,
+                            observed=observed,  target = target,
+                            svd.out = svd.out, 
+                            w.pop = w.pop, 
+                            hilbertnorm = 1)
+    if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
+    } else if(printprogress) {
+        cat("With user-specified ",numdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+            round(biasboundnow,3), " \n")
     }
     
     #stuff to set so we can skip the entire if statement below and just printout
-    dimseq = 1
+    
     dist.record = biasboundnow
+    if(is.null(constraint)) {
+        dist_pass = rbind(numdims, dist.record)
+    } else {
+        dist_pass = rbind(numdims - ncol(constraint), dist.record)
+    }
     biasbound_opt = biasboundnow
+    dist.orig= biasbound_orig
     L1_optim = getdist(target=target, observed = observed,
-                       w = getw.out$w, svd.out = svd.out, K=K)$L1
+                       w = getw.out$w, w.pop = w.pop, K=K)$L1
     
     }
 
@@ -645,20 +927,26 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
 
     while (keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
-      getw.out=getw(target = target, observed=observed, svd.U = U_try)
+      U_try.w.pop <- w.pop*U_try
+      getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop)
       # Need to work on case where ebal fails and flagging this in result.
       # For now just returns all even weights.
       
-      biasboundnow=biasbound(w = getw.out$w, observed=observed,
-                              target = target, svd.out = svd.out,
-                              hilbertnorm = 1)
-      if(printprogress == TRUE) {
+      biasboundnow=biasbound(w = getw.out$w,
+                             observed=observed,  target = target,
+                             svd.out = svd.out, 
+                             w.pop = w.pop, 
+                             hilbertnorm = 1)
+      if(printprogress == TRUE & is.null(constraint)) {
           cat("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
                        round(biasboundnow,3), " \n")
+      } else if(printprogress == TRUE) {
+          cat("With ",thisnumdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+               round(biasboundnow,3), " \n")
       }
-
+      
       dist.record=c(dist.record,biasboundnow)
-
+      
       dist.now=biasboundnow # To make more generic, distance could be any measure.
       dist.orig=biasbound_orig
 
@@ -695,29 +983,37 @@ kbal = function(allx, useasbases=NULL, b=NULL, K=NULL,
     if(printprogress == TRUE) {
         cat("Re-running at optimal choice of numdims, ", numdims, "\n")
     }
-    U2=U[,1:numdims, drop=FALSE]
-    getw.out = getw(target= target, observed=observed, svd.U=U2)
+    U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+    getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
     biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
-                             svd.out = svd.out, hilbertnorm = 1)
-    
+                             svd.out = svd.out, 
+                             w.pop = w.pop,
+                             hilbertnorm = 1)
+    #NB: not well defined iF K.svd passed in
     L1_optim = getdist(target=target, observed = observed,
-                       w = getw.out$w, svd.out = svd.out, K=K)$L1
+                       w = getw.out$w, w.pop = w.pop, K=K)$L1
+    dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
   }
-  dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
+  
   rownames(dist_pass) <- c("Dims", "BiasBound")
-
+  
+  #for now a crude warning if pass K.svd in for L1 distance
+  if(!is.null(K.svd)) {
+      warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
+  }
   R=list()
-  R$dist.record= dist_pass
-  R$biasbound.orig=dist.orig
-  R$L1_orig = L1_orig
-  R$L1_opt = L1_optim
   R$w= getw.out$w
-  R$earlyfail = getw.out$earlyfail
-  R$numdims=numdims
   R$biasbound.opt=biasbound_opt
+  R$biasbound.orig=dist.orig
+  R$dist.record= dist_pass
+  R$numdims=numdims
+  R$L1.orig = L1_orig
+  R$L1.opt = L1_optim
   R$K = K
+  R$earlyfail = getw.out$earlyfail
   R$linkernel = linkernel
-
+  R$svdK = svd.out
+  R$truncatedSVD.var = var_explained
   return(R)
 } # end kbal main function
 

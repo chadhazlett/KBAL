@@ -4,7 +4,7 @@
 \alias{biasbound}
 \title{Worst-Case Bias Bound due to Incomplete Balance}
 \usage{
-biasbound(observed, target, svd.out, w, hilbertnorm = 1)
+biasbound(observed, target, svd.out, w, w.pop = NULL, hilbertnorm = 1)
 }
 \arguments{
 \item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
@@ -14,6 +14,8 @@ biasbound(observed, target, svd.out, w, hilbertnorm = 1)
 \item{svd.out}{the list object output from \code{svd()} performed on the kernel matrix.}
 
 \item{w}{numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.}
+
+\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units/rows in \code{allx} with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
 \item{hilbertnorm}{numeric value of the hilbertnorm. Default value is 1.}
 }
