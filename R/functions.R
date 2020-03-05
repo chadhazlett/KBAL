@@ -898,7 +898,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
     } else if(printprogress) {
-         printout
         cat("With user-specified ",numdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
             round(biasboundnow,3), " \n")
         
@@ -993,7 +992,12 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(printprogress == TRUE) {
         cat("Re-running at optimal choice of numdims, ", numdims, "\n")
     }
-    U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+    if(is.null(constraint)) {
+        U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+    } else {
+        U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
+    }
+   
     getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
     biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                              svd.out = svd.out, 
