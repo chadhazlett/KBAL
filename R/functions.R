@@ -24,6 +24,7 @@
 #' b = 2*ncol(lalonde[,xvars]))}
 #' @useDynLib kbal
 #' @importFrom stats sd 
+#' @importFrom Rcpp sourceCpp
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   N=nrow(allx)
@@ -755,7 +756,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".", immediate. = TRUE)
               }
           } else { #use svds, suppressing warnings that it prints if uses full size svd
-              svd.out= Spectra::svds(K, maxnumdims)
+              svd.out= RSpectra::svds(K, maxnumdims)
               warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
                       maxnumdims," first singular values is unknown.", immediate. = TRUE)
               var_explained = NULL

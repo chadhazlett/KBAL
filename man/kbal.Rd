@@ -77,7 +77,7 @@ data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
  \donttest{
-# Rerun Lalonde example with settings as in Hazlett, C (2018). Statistica paper:
+# Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
 kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
                useasbases=rep(1,nrow(lalonde)),
                treatment=lalonde$nsw)
@@ -88,8 +88,8 @@ summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))
 # Benchmark using Lalonde et al. -- but just mean balancing now 
 # via "linkernel".
 #----------------------------------------------------------------
- 
-# Rerun Lalonde example with settings as in Hazlett, C (2018). Statistica paper:
+
+# Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
 kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
                useasbases=rep(1,nrow(lalonde)),
                treatment=lalonde$nsw, linkernel=TRUE)
