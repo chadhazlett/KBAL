@@ -227,6 +227,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                                    print.level=0),
                    silent=TRUE)
   N=nrow(svd.U)
+  converged = FALSE
   earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
       if(ncol(svd.U) <= 2) {
@@ -245,9 +246,11 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
     #biasbound.out = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
     #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     #R$biasbound = biasbound.out
+    converged = bal.out.pc$converged
   }
-    out <- list(w = w, 
-                earlyfail = earlyfail)
+  
+        out <- list(w = w, 
+                earlyfail = earlyfail, converged=converged)
   return(out)
 } # end of getw.
 
@@ -889,11 +892,15 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     U2.w.pop <- w.pop*U2
     getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop)
+    converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
                             svd.out = svd.out, 
                             w.pop = w.pop, 
                             hilbertnorm = 1)
+    if(!converged) {
+        warning("With user-specified ", numdims," dimension(s) ebalance did not converge within tolerance.")
+    }
     if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
@@ -923,7 +930,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   if (is.null(numdims)){
     thisnumdims=minnumdims
     dist.record=NULL
-    #rep(NA, N_c+1)
+    convergence.record = NULL
     keepgoing=TRUE
     wayover=FALSE
     mindistsofar=998
@@ -932,8 +939,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
       getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop)
-      # Need to work on case where ebal fails and flagging this in result.
-      # For now just returns all even weights.
+      convergence.record = c(convergence.record, getw.out$converged)
       
       biasboundnow=biasbound(w = getw.out$w,
                              observed=observed,  target = target,
@@ -972,8 +978,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         dimseq=seq(minnumdims,maxnumdims,incrementby)
         numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
     } else {
+        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
         dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
-        numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+        numdims=dimseq[which(dist.record== min_converged)]
     }
     
     
