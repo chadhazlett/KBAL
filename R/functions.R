@@ -227,6 +227,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                                    print.level=0),
                    silent=TRUE)
   N=nrow(svd.U)
+  converged = FALSE
   earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
       if(ncol(svd.U) <= 2) {
@@ -245,9 +246,11 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
     #biasbound.out = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
     #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
     #R$biasbound = biasbound.out
+    converged = bal.out.pc$converged
   }
-    out <- list(w = w, 
-                earlyfail = earlyfail)
+  
+        out <- list(w = w, 
+                earlyfail = earlyfail, converged=converged)
   return(out)
 } # end of getw.
 
@@ -294,7 +297,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'                   K = K_pass,
 #'                   w = w_opt)}
 #' @export
-getdist <- function(target, observed, K, svd.U,
+getdist <- function(target, observed, K, svd.U = NULL,
                     w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL) {
 
         R=list()
@@ -889,17 +892,22 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     U2.w.pop <- w.pop*U2
     getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop)
+    converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
                             svd.out = svd.out, 
                             w.pop = w.pop, 
                             hilbertnorm = 1)
+    if(!converged) {
+        warning("With user-specified ", numdims," dimension(s) ebalance did not converge within tolerance.")
+    }
     if(printprogress == TRUE & is.null(constraint)) {
-        cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
+        cat("With user-specified", numdims,"dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
     } else if(printprogress) {
-        cat("With user-specified ",numdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+        cat("With user-specified",numdims - ncol(constraint),"dimensions of K, biasbound (norm=1) of ",
             round(biasboundnow,3), " \n")
+        
     }
     
     #stuff to set so we can skip the entire if statement below and just printout
@@ -908,7 +916,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(is.null(constraint)) {
         dist_pass = rbind(numdims, dist.record)
     } else {
-        dist_pass = rbind(numdims - ncol(constraint), dist.record)
+        numdims = numdims - ncol(constraint)
+        dist_pass = rbind(numdims, dist.record)
     }
     biasbound_opt = biasboundnow
     dist.orig= biasbound_orig
@@ -921,7 +930,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   if (is.null(numdims)){
     thisnumdims=minnumdims
     dist.record=NULL
-    #rep(NA, N_c+1)
+    convergence.record = NULL
     keepgoing=TRUE
     wayover=FALSE
     mindistsofar=998
@@ -930,8 +939,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
       getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop)
-      # Need to work on case where ebal fails and flagging this in result.
-      # For now just returns all even weights.
+      convergence.record = c(convergence.record, getw.out$converged)
       
       biasboundnow=biasbound(w = getw.out$w,
                              observed=observed,  target = target,
@@ -939,10 +947,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                              w.pop = w.pop, 
                              hilbertnorm = 1)
       if(printprogress == TRUE & is.null(constraint)) {
-          cat("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
+          cat("With",thisnumdims,"dimensions, biasbound (norm=1) of ",
                        round(biasboundnow,3), " \n")
       } else if(printprogress == TRUE) {
-          cat("With ",thisnumdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+          cat("With",thisnumdims - ncol(constraint),"dimensions of K, biasbound (norm=1) of ",
                round(biasboundnow,3), " \n")
       }
       
@@ -966,8 +974,16 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(getw.out$earlyfail == TRUE) { keepgoing = FALSE}
     } # End of while loop for "keepgoing"
 
-    dimseq=seq(minnumdims,maxnumdims,incrementby)
-    numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+    if(is.null(constraint)) {
+        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
+        dimseq=seq(minnumdims,maxnumdims,incrementby)
+        numdims=dimseq[which(dist.record==min_converged)]
+    } else {
+        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
+        dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
+        numdims=dimseq[which(dist.record== min_converged)]
+    }
+    
     
 
     # If nothing improved balance, there will be multiple minima.
@@ -984,7 +1000,12 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(printprogress == TRUE) {
         cat("Re-running at optimal choice of numdims, ", numdims, "\n")
     }
-    U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+    if(is.null(constraint)) {
+        U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+    } else {
+        U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
+    }
+   
     getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
     biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                              svd.out = svd.out, 
