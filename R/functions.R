@@ -902,10 +902,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         warning("With user-specified ", numdims," dimension(s) ebalance did not converge within tolerance.")
     }
     if(printprogress == TRUE & is.null(constraint)) {
-        cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
+        cat("With user-specified", numdims,"dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
     } else if(printprogress) {
-        cat("With user-specified ",numdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+        cat("With user-specified",numdims - ncol(constraint),"dimensions of K, biasbound (norm=1) of ",
             round(biasboundnow,3), " \n")
         
     }
@@ -947,10 +947,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                              w.pop = w.pop, 
                              hilbertnorm = 1)
       if(printprogress == TRUE & is.null(constraint)) {
-          cat("With ",thisnumdims," dimensions, biasbound (norm=1) of ",
+          cat("With",thisnumdims,"dimensions, biasbound (norm=1) of ",
                        round(biasboundnow,3), " \n")
       } else if(printprogress == TRUE) {
-          cat("With ",thisnumdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
+          cat("With",thisnumdims - ncol(constraint),"dimensions of K, biasbound (norm=1) of ",
                round(biasboundnow,3), " \n")
       }
       
@@ -975,8 +975,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     } # End of while loop for "keepgoing"
 
     if(is.null(constraint)) {
+        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
         dimseq=seq(minnumdims,maxnumdims,incrementby)
-        numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+        numdims=dimseq[which(dist.record==min_converged)]
     } else {
         min_converged = min(dist.record[convergence.record], na.rm=TRUE)
         dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
