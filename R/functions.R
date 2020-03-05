@@ -294,7 +294,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
 #'                   K = K_pass,
 #'                   w = w_opt)}
 #' @export
-getdist <- function(target, observed, K, svd.U,
+getdist <- function(target, observed, K, svd.U = NULL,
                     w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL) {
 
         R=list()
@@ -898,8 +898,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         cat("With user-specified ", numdims," dimension(s), biasbound (norm=1) of ",
                  round(biasboundnow,3), " \n")
     } else if(printprogress) {
+         printout
         cat("With user-specified ",numdims - ncol(constraint)," dimensions of K, biasbound (norm=1) of ",
             round(biasboundnow,3), " \n")
+        
     }
     
     #stuff to set so we can skip the entire if statement below and just printout
@@ -908,7 +910,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(is.null(constraint)) {
         dist_pass = rbind(numdims, dist.record)
     } else {
-        dist_pass = rbind(numdims - ncol(constraint), dist.record)
+        numdims = numdims - ncol(constraint)
+        dist_pass = rbind(numdims, dist.record)
     }
     biasbound_opt = biasboundnow
     dist.orig= biasbound_orig
@@ -966,8 +969,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(getw.out$earlyfail == TRUE) { keepgoing = FALSE}
     } # End of while loop for "keepgoing"
 
-    dimseq=seq(minnumdims,maxnumdims,incrementby)
-    numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+    if(is.null(constraint)) {
+        dimseq=seq(minnumdims,maxnumdims,incrementby)
+        numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+    } else {
+        dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
+        numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+    }
+    
     
 
     # If nothing improved balance, there will be multiple minima.
