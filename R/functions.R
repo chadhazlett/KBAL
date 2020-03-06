@@ -869,8 +869,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             numdims = numdims + ncol(constraint)
         }
     }
-
-  # BASELINE
+    
+################### BASELINE ##############################
   # Get biasbound with no improvement in balance:
   #recall: w.pop is flat weights for sampled, user specified weights for population
   biasbound_orig=biasbound(w = rep(1,N),
@@ -883,11 +883,12 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   L1_orig = getdist.orig$L1
 
   if(printprogress==TRUE) {
-      cat("Without balancing, biasbound (norm=1) is ", round(biasbound_orig,3), " and the L1 discrepancy is ", round(L1_orig,3), " \n")
+      cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,3), "and the L1 discrepancy is", round(L1_orig,3), "\n")
   }
-
+  
+############# NUMDIMS GIVEN  ###################
   # If numdims given, just get the weights in one shot:
-  if (!is.null(numdims)){
+  if(!is.null(numdims)){
     U2=U[,1:numdims, drop=FALSE]
     
     U2.w.pop <- w.pop*U2
@@ -917,17 +918,19 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         dist_pass = rbind(numdims, dist.record)
     } else {
         numdims = numdims - ncol(constraint)
-        dist_pass = rbind(numdims, dist.record)
+        dist_pass = rbind(numdims, dist.record, convergence.record)
     }
     biasbound_opt = biasboundnow
     dist.orig= biasbound_orig
     L1_optim = getdist(target=target, observed = observed,
                        w = getw.out$w, w.pop = w.pop, K=K)$L1
     
-    }
-
+  }
+ 
+  
+############# BIASBOUND OPTIMIZATION ###################
   # If numdims not given, we search to minimize biasbound:
-  if (is.null(numdims)){
+  if(is.null(numdims)){
     thisnumdims=minnumdims
     dist.record=NULL
     convergence.record = NULL
@@ -947,10 +950,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                              w.pop = w.pop, 
                              hilbertnorm = 1)
       if(printprogress == TRUE & is.null(constraint)) {
-          cat("With",thisnumdims,"dimensions, biasbound (norm=1) of ",
+          cat("With",thisnumdims,"dimension(s) of K, ebalance convergence is", getw.out$converged ,"yielding biasbound (norm=1) of",
                        round(biasboundnow,3), " \n")
       } else if(printprogress == TRUE) {
-          cat("With",thisnumdims - ncol(constraint),"dimensions of K, biasbound (norm=1) of ",
+          cat("With",thisnumdims - ncol(constraint),"dimension(s) of K, ebalance convergence is",getw.out$converged, "yielding biasbound (norm=1) of",
                round(biasboundnow,3), " \n")
       }
       
@@ -975,54 +978,90 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     } # End of while loop for "keepgoing"
 
     if(is.null(constraint)) {
-        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
         dimseq=seq(minnumdims,maxnumdims,incrementby)
-        numdims=dimseq[which(dist.record==min_converged)]
     } else {
-        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
         dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
-        numdims=dimseq[which(dist.record== min_converged)]
     }
+    #building record of search
+    dist_pass = rbind(dimseq[1:length(dist.record)], dist.record, convergence.record)
+    rownames(dist_pass) <- c("Dims", "BiasBound", "Ebal Convergence")
     
-    
-
-    # If nothing improved balance, there will be multiple minima.
-    # Throw warning, and choose the fewest numdims.
-    if (length(numdims)>1){
-      warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
-              immediate. = TRUE)
-      numdims=min(numdims)
+    ########### CHECKING CONVERGENCE #############
+    #nothing converged 
+    IGNORE_convergence = FALSE
+    if(sum(convergence.record) == 0) { 
+        #if we sent in constraints let's return weights just on these 
+        if(!is.null(constraint)){
+            U_constraint=U[,1:(minnumdims-1), drop=FALSE]
+            U_c.w.pop <- w.pop*U_constraint
+            getw.out=getw(target = target, observed=observed, svd.U = U_c.w.pop)
+            convergence.record = getw.out$converged
+            warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
+                    dist_pass[1,ncol(dist_pass)]," searched dimensions of K.\nReturning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
+            
+            biasbound_opt=biasbound(w = getw.out$w,
+                                   observed=observed, 
+                                   target = target,
+                                   svd.out = svd.out, 
+                                   w.pop = w.pop, 
+                                   hilbertnorm = 1)
+            L1_optim = getdist(target=target, observed = observed,
+                               w = getw.out$w, w.pop = w.pop, K=K)$L1
+            numdims = NULL
+        } else { #no constraint and no convergence
+            warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
+                    dist_pass[1,ncol(dist_pass)]," searched dimensions of K.\nReturning biasbound, L1 distance, and weights that yeild the minimum biasbound regardless of ebalance convergence.")
+            #disregard convergence and pick minnumdims
+            numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+            U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+            biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
+                                     svd.out = svd.out, 
+                                     w.pop = w.pop,
+                                     hilbertnorm = 1)
+            #NB: not well defined iF K.svd passed in
+            L1_optim = getdist(target=target, observed = observed,
+                               w = getw.out$w, w.pop = w.pop, K=K)$L1
+            
+        }
+    } else { # we converged and find the smallest biasbound that converged
+        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
+        numdims=dimseq[which(dist.record==min_converged)]
+        
+        # If nothing improved balance, there will be multiple minima.
+        # Throw warning, and choose the fewest numdims.
+        if (length(numdims)>1){
+            warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                    immediate. = TRUE)
+            numdims=min(numdims)
+        }
+        
+        # Finally, we didn't save weights each time, so go back and re-run
+        # at optimal  number of dimensions
+        if(printprogress == TRUE) {
+            cat("Re-running at optimal choice of numdims,", numdims, "\n")
+        }
+        if(is.null(constraint)) {
+            U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+        } else {
+            U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
+        }
+        
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
+                                 svd.out = svd.out, 
+                                 w.pop = w.pop,
+                                 hilbertnorm = 1)
+        #NB: not well defined iF K.svd passed in
+        L1_optim = getdist(target=target, observed = observed,
+                           w = getw.out$w, w.pop = w.pop, K=K)$L1
     }
-
-    # Finally, we didn't save weights each time, so go back and re-run
-    # at optimal  number of dimensions
-    
-    if(printprogress == TRUE) {
-        cat("Re-running at optimal choice of numdims, ", numdims, "\n")
-    }
-    if(is.null(constraint)) {
-        U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-    } else {
-        U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
-    }
-   
-    getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
-    biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
-                             svd.out = svd.out, 
-                             w.pop = w.pop,
-                             hilbertnorm = 1)
-    #NB: not well defined iF K.svd passed in
-    L1_optim = getdist(target=target, observed = observed,
-                       w = getw.out$w, w.pop = w.pop, K=K)$L1
-    dist_pass = rbind(dimseq[1:length(dist.record)], dist.record)
-  }
-  
-  rownames(dist_pass) <- c("Dims", "BiasBound")
-  
+}
   #for now a crude warning if pass K.svd in for L1 distance
   if(!is.null(K.svd)) {
       warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
   }
+    
   R=list()
   R$w= getw.out$w
   R$biasbound.opt=biasbound_opt
