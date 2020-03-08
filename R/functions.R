@@ -183,6 +183,7 @@ dimw = function(X,w,target){
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
+#' @param nconstraint in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric to indicate the number of vector constraints
 #' @return \item{w}{numeric vector of weights.}
 #' \item{earlyfail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 #' @examples
@@ -205,7 +206,7 @@ dimw = function(X,w,target){
 #' U2=U[,1:10, drop=FALSE]
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
-getw = function(target, observed, svd.U, ebal.tol=1e-6){
+getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
 
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -230,7 +231,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
   converged = FALSE
   earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
-      if(ncol(svd.U) <= 2) {
+      if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) & ncol(svd.U) - nconstraint <= 2)) {
           warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
           earlyfail = TRUE
       }
@@ -855,6 +856,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
 ####### Adding Constraint to minimization: paste constraint vector to front of U
+    #default of nconstraint is NULL, unless we have a constraint and then its just the number of cols
+    nconstraint = NULL
     if(!is.null(constraint)) {
         #check dims of constraint
         #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
@@ -866,6 +869,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         } 
         minnumdims <- ncol(constraint) + 1
         U = cbind(constraint, U) 
+        nconstraint = ncol(constraint)
         #if numdims given move it up to accomodate the constraint
         if(!is.null(numdims)) {
             numdims = numdims + ncol(constraint)
@@ -894,7 +898,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     U2=U[,1:numdims, drop=FALSE]
     
     U2.w.pop <- w.pop*U2
-    getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop)
+    getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop,
+                  nconstraint = nconstraint)
     converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
@@ -940,7 +945,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
-      getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop)
+      getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop, 
+                    nconstraint = nconstraint)
       convergence.record = c(convergence.record, getw.out$converged)
       
       biasboundnow=biasbound(w = getw.out$w,
@@ -1030,7 +1036,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             convergence.record = getw.out$converged
             warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
                     dist_pass[1,ncol(dist_pass)],
-                    " searched dimensions of K.\nReturning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
+                    " searched dimensions of K.\nNo optimal numdims to return. Returning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
             
             biasbound_opt=biasbound(w = getw.out$w,
                                     observed=observed, 
