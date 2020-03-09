@@ -231,9 +231,10 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
   converged = FALSE
   earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
-      if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) & ncol(svd.U) - nconstraint <= 2)) {
-          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
+      if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) && ncol(svd.U) - nconstraint <= 2)) {
           earlyfail = TRUE
+          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
+          
       }
     w=rep(1,N)
     
@@ -249,8 +250,8 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
     #R$biasbound = biasbound.out
     converged = bal.out.pc$converged
   }
-  
-        out <- list(w = w, 
+ 
+    out <- list(w = w, 
                 earlyfail = earlyfail, converged=converged)
   return(out)
 } # end of getw.
@@ -400,7 +401,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' @param fullSVD logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time.
 #' @param incrementby numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}.
-#' @param ebal.covergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.
+#' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.
 #' @param printprogress optional logical argument to print updates throughout.
 #'
 #' @return \item{w}{vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
@@ -941,7 +942,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     keepgoing=TRUE
     wayover=FALSE
     mindistsofar=998
-
+    earlyfail = FALSE
+    
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
@@ -979,7 +981,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       # Need to work on "keepgoing" for case where ebal fails.
       
       #if ebal fails to converge within first 2 dims we stop searching (1/22/19)
-      if(getw.out$earlyfail == TRUE) { keepgoing = FALSE}
+      if(getw.out$earlyfail == TRUE) {
+          keepgoing = FALSE
+          earlyfail = TRUE}
     } # End of while loop for "keepgoing"
 
     if(is.null(constraint)) {
@@ -1016,7 +1020,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
         }
         
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                        nconstraint = nconstraint)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1032,7 +1037,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(!is.null(constraint)){
             U_constraint=U[,1:(minnumdims-1), drop=FALSE]
             U_c.w.pop <- w.pop*U_constraint
-            getw.out=getw(target = target, observed=observed, svd.U = U_c.w.pop)
+            getw.out=getw(target = target, observed=observed, svd.U = U_c.w.pop, 
+                          nconstraint = nconstraint)
             convergence.record = getw.out$converged
             warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
                     dist_pass[1,ncol(dist_pass)],
@@ -1054,7 +1060,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             #disregard convergence and pick minnumdims
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                            nconstraint = nconstraint)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
                                      w.pop = w.pop,
@@ -1080,7 +1087,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
         }
 
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop,
+                        nconstraint = nconstraint)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1104,7 +1112,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$L1.orig = L1_orig
   R$L1.opt = L1_optim
   R$K = K
-  R$earlyfail = getw.out$earlyfail
+  R$earlyfail = earlyfail
   R$linkernel = linkernel
   R$svdK = svd.out
   R$truncatedSVD.var = var_explained

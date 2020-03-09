@@ -9,7 +9,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
   K = NULL, K.svd = NULL, linkernel = FALSE, constraint = NULL,
   numdims = NULL, minnumdims = NULL, maxnumdims = NULL,
   fullSVD = FALSE, incrementby = 1, ebal.tol = 1e-06,
-  printprogress = TRUE)
+  ebal.convergence = TRUE, printprogress = TRUE)
 }
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
@@ -45,6 +45,8 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{incrementby}{numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.}
 
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom()}.}
+
+\item{ebal.convergence}{logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.}
 
 \item{printprogress}{optional logical argument to print updates throughout.}
 }

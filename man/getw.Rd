@@ -4,7 +4,7 @@
 \alias{getw}
 \title{Find Weights using Entropy Balancing.}
 \usage{
-getw(target, observed, svd.U, ebal.tol = 1e-06)
+getw(target, observed, svd.U, ebal.tol = 1e-06, nconstraint = NULL)
 }
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
@@ -14,6 +14,8 @@ getw(target, observed, svd.U, ebal.tol = 1e-06)
 \item{svd.U}{matrix whose columns contain the left singular vectors of the kernel matrix.}
 
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}.}
+
+\item{nconstraint}{in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric to indicate the number of vector constraints}
 }
 \value{
 \item{w}{numeric vector of weights.}
