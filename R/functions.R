@@ -185,7 +185,6 @@ dimw = function(X,w,target){
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
 #' @param nconstraint in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric to indicate the number of vector constraints
 #' @return \item{w}{numeric vector of weights.}
-#' \item{earlyfail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -229,13 +228,13 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
                    silent=TRUE)
   N=nrow(svd.U)
   converged = FALSE
-  earlyfail = FALSE
+  #earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
-      if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) && ncol(svd.U) - nconstraint <= 2)) {
-          earlyfail = TRUE
-          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
-          
-      }
+      # if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) && ncol(svd.U) - nconstraint <= 2)) {
+      #     earlyfail = TRUE
+      #     warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
+      #     
+      # }
     w=rep(1,N)
     
   }
@@ -252,7 +251,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
   }
  
     out <- list(w = w, 
-                earlyfail = earlyfail, converged=converged)
+                converged=converged)
   return(out)
 } # end of getw.
 
@@ -412,7 +411,6 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{L1.orig}{numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
 #'  \item{L1.opt}{numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
-#'  \item{earlyfail}{boolean to indicate whether ebalance failed to converge within the first two dimesions of the SVD of K} 
 #'  \item{svdK}{list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
 #'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
 #' @examples
@@ -684,6 +682,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #setting defaults - b: dding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
     if (is.null(b)){ b = 2*ncol(allx) }
+    if(!is.null(b) && length(b) != 1) {
+        stop("\"b \" must be a scalar.")
+    }
     
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
@@ -699,6 +700,13 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.", immediate. = TRUE)
         incrementby = 1
     }
+    
+    #11. multicolinearity check
+    qr_X = qr(allx)
+    if(qr_X$rank < ncol(allx)) {
+        stop("\"allx\" contains multiconlinear columns.")
+    }
+    
 #####end of big error catch series and data setup
 
 #if pass maxnumdims = N then they want the full svd, so change this for them to avoid all those if statement checks below just to do the same thing
@@ -929,7 +937,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     dist.orig= biasbound_orig
     L1_optim = getdist(target=target, observed = observed,
                        w = getw.out$w, w.pop = w.pop, K=K)$L1
-    
   }
  
   
@@ -942,7 +949,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     keepgoing=TRUE
     wayover=FALSE
     mindistsofar=998
-    earlyfail = FALSE
     
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
@@ -980,10 +986,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       # (dist.now>mindistsofar)  # XXX this was in there, but needed?
       # Need to work on "keepgoing" for case where ebal fails.
       
-      #if ebal fails to converge within first 2 dims we stop searching (1/22/19)
-      if(getw.out$earlyfail == TRUE) {
-          keepgoing = FALSE
-          earlyfail = TRUE}
     } # End of while loop for "keepgoing"
 
     if(is.null(constraint)) {
@@ -1112,7 +1114,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$L1.orig = L1_orig
   R$L1.opt = L1_optim
   R$K = K
-  R$earlyfail = earlyfail
   R$linkernel = linkernel
   R$svdK = svd.out
   R$truncatedSVD.var = var_explained
