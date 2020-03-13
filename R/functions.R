@@ -704,7 +704,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #11. multicolinearity check
     qr_X = qr(allx)
     if(qr_X$rank < ncol(allx)) {
-        stop("\"allx\" contains multiconlinear columns.")
+        stop("\"allx\" contains collinear columns.")
     }
     
 #####end of big error catch series and data setup
