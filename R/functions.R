@@ -413,7 +413,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{K}{the kernel matrix}
 #'  \item{svdK}{list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
 #'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
-#'  \item{dropped_covariates} provides a vector of character column names for covariates dropped due to multicollinearity.
+#'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #' @examples
 #' #----------------------------------------------------------------
 #' # Example 1: Reweight a control group to a treated to esimate ATT. 
