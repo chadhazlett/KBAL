@@ -9,7 +9,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
   K = NULL, K.svd = NULL, linkernel = FALSE, constraint = NULL,
   numdims = NULL, minnumdims = NULL, maxnumdims = NULL,
   fullSVD = FALSE, incrementby = 1, ebal.tol = 1e-06,
-  printprogress = TRUE)
+  ebal.convergence = TRUE, printprogress = TRUE)
 }
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
@@ -46,6 +46,8 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom()}.}
 
+\item{ebal.convergence}{logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.}
+
 \item{printprogress}{optional logical argument to print updates throughout.}
 }
 \value{
@@ -57,9 +59,9 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
  \item{L1.orig}{numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
  \item{L1.opt}{numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
  \item{K}{the kernel matrix}
- \item{earlyfail}{boolean to indicate whether ebalance failed to converge within the first two dimesions of the SVD of K} 
  \item{svdK}{list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
+ \item{dropped_covariates} provides a vector of character column names for covariates dropped due to multicollinearity.
 }
 \description{
 Kernel balancing (kbal) is non-parametric weighting tool to make two groups have a similar distribution of covariates, not just in terms of means or marginal distributions but (i) on general smooth functions of the covariates, including (ii) on a smoothing estimator of the joint distribution of the covariates. It was originally designed (Hazlett, 2017) to make control and treated groups look alike, as desired when estimating causal effects under conditional ignorabiity. This package also facilitates use of this approach for more general distribution-alignment tasks, such as making a sampled group have a similar distribution of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings.

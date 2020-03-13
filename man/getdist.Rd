@@ -4,7 +4,7 @@
 \alias{getdist}
 \title{L1 Distance}
 \usage{
-getdist(target, observed, K, svd.U, w = NULL, numdims = NULL,
+getdist(target, observed, K, svd.U = NULL, w = NULL, numdims = NULL,
   w.pop = NULL, ebal.tol = NULL)
 }
 \arguments{

@@ -183,8 +183,8 @@ dimw = function(X,w,target){
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
+#' @param nconstraint in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric to indicate the number of vector constraints
 #' @return \item{w}{numeric vector of weights.}
-#' \item{earlyfail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -205,7 +205,7 @@ dimw = function(X,w,target){
 #' U2=U[,1:10, drop=FALSE]
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
-getw = function(target, observed, svd.U, ebal.tol=1e-6){
+getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
 
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -228,12 +228,13 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                    silent=TRUE)
   N=nrow(svd.U)
   converged = FALSE
-  earlyfail = FALSE
+  #earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
-      if(ncol(svd.U) <= 2) {
-          warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
-          earlyfail = TRUE
-      }
+      # if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) && ncol(svd.U) - nconstraint <= 2)) {
+      #     earlyfail = TRUE
+      #     warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
+      #     
+      # }
     w=rep(1,N)
     
   }
@@ -248,9 +249,9 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
     #R$biasbound = biasbound.out
     converged = bal.out.pc$converged
   }
-  
-        out <- list(w = w, 
-                earlyfail = earlyfail, converged=converged)
+ 
+    out <- list(w = w, 
+                converged=converged)
   return(out)
 } # end of getw.
 
@@ -399,7 +400,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' @param fullSVD logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time.
 #' @param incrementby numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}.
-#' @param ebal.covergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.
+#' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.
 #' @param printprogress optional logical argument to print updates throughout.
 #'
 #' @return \item{w}{vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
@@ -410,9 +411,9 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{L1.orig}{numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
 #'  \item{L1.opt}{numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
-#'  \item{earlyfail}{boolean to indicate whether ebalance failed to converge within the first two dimesions of the SVD of K} 
 #'  \item{svdK}{list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
 #'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
+#'  \item{dropped_covariates} provides a vector of character column names for covariates dropped due to multicollinearity.
 #' @examples
 #' #----------------------------------------------------------------
 #' # Example 1: Reweight a control group to a treated to esimate ATT. 
@@ -682,6 +683,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #setting defaults - b: dding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
     if (is.null(b)){ b = 2*ncol(allx) }
+    if(!is.null(b) && length(b) != 1) {
+        stop("\"b \" must be a scalar.")
+    }
     
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
@@ -697,6 +701,30 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.", immediate. = TRUE)
         incrementby = 1
     }
+    
+    #11. multicolinearity check
+    qr_X = qr(allx)
+    multicollin = FALSE
+    if(qr_X$rank < ncol(allx)) {
+        warning("\"allx\" contains collinear columns. Dropping these columns", 
+                immediate. = TRUE)
+        multicollin = TRUE
+    }
+    
+    allx_update = allx
+    dropped_cols = NULL
+    while(multicollin == TRUE){
+        cor = cor(allx_update)
+        diag(cor) = 0
+        cor[lower.tri(cor)] = 0
+        drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
+        dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
+        allx_update = allx_update[,-drop]
+        if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
+        
+    }
+    allx = allx_update
+    
 #####end of big error catch series and data setup
 
 #if pass maxnumdims = N then they want the full svd, so change this for them to avoid all those if statement checks below just to do the same thing
@@ -855,6 +883,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
 ####### Adding Constraint to minimization: paste constraint vector to front of U
+    #default of nconstraint is NULL, unless we have a constraint and then its just the number of cols
+    nconstraint = NULL
     if(!is.null(constraint)) {
         #check dims of constraint
         #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
@@ -866,6 +896,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         } 
         minnumdims <- ncol(constraint) + 1
         U = cbind(constraint, U) 
+        nconstraint = ncol(constraint)
         #if numdims given move it up to accomodate the constraint
         if(!is.null(numdims)) {
             numdims = numdims + ncol(constraint)
@@ -894,7 +925,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     U2=U[,1:numdims, drop=FALSE]
     
     U2.w.pop <- w.pop*U2
-    getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop)
+    getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop,
+                  nconstraint = nconstraint)
     converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
@@ -923,7 +955,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     dist.orig= biasbound_orig
     L1_optim = getdist(target=target, observed = observed,
                        w = getw.out$w, w.pop = w.pop, K=K)$L1
-    
   }
  
   
@@ -936,11 +967,12 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     keepgoing=TRUE
     wayover=FALSE
     mindistsofar=998
-
+    
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
-      getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop)
+      getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop, 
+                    nconstraint = nconstraint)
       convergence.record = c(convergence.record, getw.out$converged)
       
       biasboundnow=biasbound(w = getw.out$w,
@@ -972,8 +1004,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       # (dist.now>mindistsofar)  # XXX this was in there, but needed?
       # Need to work on "keepgoing" for case where ebal fails.
       
-      #if ebal fails to converge within first 2 dims we stop searching (1/22/19)
-      if(getw.out$earlyfail == TRUE) { keepgoing = FALSE}
     } # End of while loop for "keepgoing"
 
     if(is.null(constraint)) {
@@ -1010,7 +1040,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
         }
         
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                        nconstraint = nconstraint)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1026,11 +1057,12 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(!is.null(constraint)){
             U_constraint=U[,1:(minnumdims-1), drop=FALSE]
             U_c.w.pop <- w.pop*U_constraint
-            getw.out=getw(target = target, observed=observed, svd.U = U_c.w.pop)
+            getw.out=getw(target = target, observed=observed, svd.U = U_c.w.pop, 
+                          nconstraint = nconstraint)
             convergence.record = getw.out$converged
             warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
                     dist_pass[1,ncol(dist_pass)],
-                    " searched dimensions of K.\nReturning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
+                    " searched dimensions of K.\nNo optimal numdims to return. Returning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
             
             biasbound_opt=biasbound(w = getw.out$w,
                                     observed=observed, 
@@ -1048,7 +1080,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             #disregard convergence and pick minnumdims
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                            nconstraint = nconstraint)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
                                      w.pop = w.pop,
@@ -1074,7 +1107,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
         }
 
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop,
+                        nconstraint = nconstraint)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1098,10 +1132,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$L1.orig = L1_orig
   R$L1.opt = L1_optim
   R$K = K
-  R$earlyfail = getw.out$earlyfail
   R$linkernel = linkernel
   R$svdK = svd.out
   R$truncatedSVD.var = var_explained
+  R$dropped_covariates = dropped_cols
   return(R)
 } # end kbal main function
 
