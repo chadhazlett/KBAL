@@ -9,7 +9,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
   K = NULL, K.svd = NULL, linkernel = FALSE, constraint = NULL,
   numdims = NULL, minnumdims = NULL, maxnumdims = NULL,
   fullSVD = FALSE, incrementby = 1, ebal.tol = 1e-06,
-  ebal.convergence = TRUE, printprogress = TRUE)
+  ebal.convergence = NULL, printprogress = TRUE)
 }
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
