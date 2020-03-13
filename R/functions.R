@@ -704,8 +704,24 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #11. multicolinearity check
     qr_X = qr(allx)
     if(qr_X$rank < ncol(allx)) {
-        stop("\"allx\" contains collinear columns.")
+        warning("\"allx\" contains collinear columns. Dropping these columns", 
+                immediate. = TRUE)
+        multicollin = TRUE
     }
+    
+    allx_update = allx
+    dropped_cols = NULL
+    while(multicollin == TRUE){
+        cor = cor(allx_update)
+        diag(cor) = 0
+        cor[lower.tri(cor)] = 0
+        drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
+        dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
+        allx_update = allx_update[,-drop]
+        if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
+        
+    }
+    allx = allx_update
     
 #####end of big error catch series and data setup
 
@@ -1117,6 +1133,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$linkernel = linkernel
   R$svdK = svd.out
   R$truncatedSVD.var = var_explained
+  R$dropped_covariates = dropped_cols
   return(R)
 } # end kbal main function
 
