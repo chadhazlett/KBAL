@@ -61,6 +61,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
  \item{K}{the kernel matrix}
  \item{svdK}{list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
+ \item{dropped_covariates} provides a vector of character column names for covariates dropped due to multicollinearity.
 }
 \description{
 Kernel balancing (kbal) is non-parametric weighting tool to make two groups have a similar distribution of covariates, not just in terms of means or marginal distributions but (i) on general smooth functions of the covariates, including (ii) on a smoothing estimator of the joint distribution of the covariates. It was originally designed (Hazlett, 2017) to make control and treated groups look alike, as desired when estimating causal effects under conditional ignorabiity. This package also facilitates use of this approach for more general distribution-alignment tasks, such as making a sampled group have a similar distribution of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings.
