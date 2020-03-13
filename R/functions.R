@@ -529,10 +529,15 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 fullSVD = FALSE,
                 incrementby=1,
                 ebal.tol=1e-6,
-                ebal.convergence = TRUE,
+                ebal.convergence = NULL,
                 printprogress = TRUE) {
 
     N=nrow(allx)
+    
+    # Set ebal.convergence default according to whether there are constraints or not:
+    if(is.null(ebal.convergence)){
+      if(is.null(constraint)){ ebal.convergence=FALSE} else (ebal.convergence=TRUE)
+    }
     
 #####start of big error catch series to check if data is passed in correctly and
     #default setting/data set up
@@ -587,6 +592,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(sum(is.na(allx) != 0)) {
         stop("\"allx\" contains missing values")
     }
+    
     
 #####Setting up data: build observed and target from inputs 
     if(!is.null(sampled) & sampledinpop==FALSE) {
@@ -936,7 +942,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(!converged) {
         numpass = numdims
         if(!is.null(constraint)) {numpass = numdims - ncol(constraint)}
-        warning("With user-specified ", numpass," dimensions ebalance did not converge within tolerance. Disrearding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.")
+        warning("With user-specified ", numpass," dimensions ebalance did not converge within tolerance. Disregarding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.")
     }
     if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified", numdims,"dimensions, biasbound (norm=1) of ",
