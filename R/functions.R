@@ -541,6 +541,30 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
 #####start of big error catch series to check if data is passed in correctly and
     #default setting/data set up
+  
+  #0. multicolinearity check
+    qr_X = qr(allx)
+    multicollin = FALSE
+    if(qr_X$rank < ncol(allx)) {
+      warning("\"allx\" contains collinear columns. Dropping these columns", 
+              immediate. = TRUE)
+      multicollin = TRUE
+    }
+    
+    allx_update = allx
+    dropped_cols = NULL
+    while(multicollin == TRUE){
+      cor = cor(allx_update)
+      diag(cor) = 0
+      cor[lower.tri(cor)] = 0
+      drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
+      dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
+      allx_update = allx_update[,-drop]
+      if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
+      
+    }
+    allx = allx_update
+    
   #1. checking sampled and sampledinpop
   if(!is.null(sampled)) { 
       if(!(all(sampled %in% c(0,1)))) { #note this is still ok for logicals
@@ -686,7 +710,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             maxnumdims= min(500, sum(useasbases)) #reducing to use RSpectra to max 500
         } else { maxnumdims = min(ncol(allx), 500) } 
     }
-    #setting defaults - b: dding default b within the kbal function rather than in makeK
+    #setting defaults - b: adding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
     if (is.null(b)){ b = 2*ncol(allx) }
     if(!is.null(b) && length(b) != 1) {
@@ -708,29 +732,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         incrementby = 1
     }
     
-    #11. multicolinearity check
-    qr_X = qr(allx)
-    multicollin = FALSE
-    if(qr_X$rank < ncol(allx)) {
-        warning("\"allx\" contains collinear columns. Dropping these columns", 
-                immediate. = TRUE)
-        multicollin = TRUE
-    }
-    
-    allx_update = allx
-    dropped_cols = NULL
-    while(multicollin == TRUE){
-        cor = cor(allx_update)
-        diag(cor) = 0
-        cor[lower.tri(cor)] = 0
-        drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
-        dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
-        allx_update = allx_update[,-drop]
-        if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
-        
-    }
-    allx = allx_update
-    
+   
 #####end of big error catch series and data setup
 
 #if pass maxnumdims = N then they want the full svd, so change this for them to avoid all those if statement checks below just to do the same thing
@@ -867,7 +869,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                           " first singular values only accounts for ", var_explained,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
                   }
-          } else { #use trucated svd
+          } else { #use truncated svd
               svd.out= RSpectra::svds(K, maxnumdims)
               warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
                       maxnumdims," is unknown", immediate. = TRUE)
