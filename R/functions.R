@@ -557,6 +557,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       cor = cor(allx_update)
       diag(cor) = 0
       cor[lower.tri(cor)] = 0
+      cor = abs(cor)
       drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
       dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
       allx_update = allx_update[,-drop]
