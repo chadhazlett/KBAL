@@ -393,6 +393,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it in the search for weights which minimize the bias bound. When \code{K} is specified, the code does not build the kernel matrix internally.
 #' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.
 #' @param linkernel if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
+#' @param meanfirst if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.
 #' @param constraint optional matrix argument which requires returned weights \code{w} to achieve mean balance on the columns of \code{constraint}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of \code{K}. 
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
 #' @param minnumdims numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
@@ -523,7 +524,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 treatment=NULL,
                 population.w = NULL,
                 K=NULL, K.svd = NULL,
-                linkernel = FALSE, constraint = NULL,
+                linkernel = FALSE,
+                meanfirst = NULL,
+                constraint = NULL,
                 numdims=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
                 fullSVD = FALSE,
@@ -536,7 +539,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
-      if(is.null(constraint)){ ebal.convergence=FALSE} else (ebal.convergence=TRUE)
+      if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){ ebal.convergence=FALSE} else (ebal.convergence=TRUE)
     }
     
 #####start of big error catch series to check if data is passed in correctly and
@@ -606,8 +609,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
     if(!is.null(treatment) & (is.null(sampledinpop) || sampledinpop == TRUE)) {
+        if(!is.null(sampledinpop) && sampledinpop == TRUE) {warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)}
         sampledinpop=FALSE
-        warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)
     }
     #5. checking for covariates with no variance:
     if(0 %in% apply(allx, 2, sd)) {
@@ -742,7 +745,31 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     } else if(maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
         fullSVD = TRUE
     }
-
+    
+################## MEAN FIRST #################
+    meanfirst_dims = NULL
+    if(!is.null(meanfirst) && meanfirst == TRUE) {
+        #note that b and useasbases are irrelevant here since we're using a linear kernel
+        kbalout.mean = suppressWarnings(kbal(allx=allx, 
+                           treatment=treatment,
+                           sampled = sampled,
+                           sampledinpop = sampledinpop,
+                           meanfirst = FALSE,
+                           ebal.convergence = TRUE, 
+                           linkernel = TRUE,
+                           printprogress = FALSE))
+        
+        constraint_svd_keep = kbalout.mean$svdK$u[, 1:kbalout.mean$numdims]
+        if(printprogress) {
+            cat("Selected", kbalout.mean$numdims,
+                "dimensions of \"constraint\" to use as mean balance constraints.")
+        }
+        meanfirst_dims = kbalout.mean$numdims
+        #for now this allows the manual constraint method and this svd way
+        constraint = constraint_svd_keep
+    }
+    
+    
 ########### BUILDING K ################
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
@@ -1145,6 +1172,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$svdK = svd.out
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
+  R$meanfirst.dims = meanfirst_dims
   return(R)
 } # end kbal main function
 

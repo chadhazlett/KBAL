@@ -6,10 +6,10 @@
 \usage{
 kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
   sampledinpop = NULL, treatment = NULL, population.w = NULL,
-  K = NULL, K.svd = NULL, linkernel = FALSE, constraint = NULL,
-  numdims = NULL, minnumdims = NULL, maxnumdims = NULL,
-  fullSVD = FALSE, incrementby = 1, ebal.tol = 1e-06,
-  ebal.convergence = NULL, printprogress = TRUE)
+  K = NULL, K.svd = NULL, linkernel = FALSE, meanfirst = NULL,
+  constraint = NULL, numdims = NULL, minnumdims = NULL,
+  maxnumdims = NULL, fullSVD = FALSE, incrementby = 1,
+  ebal.tol = 1e-06, ebal.convergence = NULL, printprogress = TRUE)
 }
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
@@ -31,6 +31,8 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{K.svd}{optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.}
 
 \item{linkernel}{if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead, but this is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancinng on means. The difference is that it employs SVD on X then seeks balanc on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.}
+
+\item{meanfirst}{if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.}
 
 \item{constraint}{optional matrix argument which requires returned weights \code{w} to achieve mean balance on the columns of \code{constraint}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of \code{K}.}
 
