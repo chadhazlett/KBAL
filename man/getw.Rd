@@ -15,7 +15,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06, nconstraint = NULL)
 
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}.}
 
-\item{nconstraint}{in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric to indicate the number of vector constraints}
+\item{nconstraint}{in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric input to indicate the number of vector constraints appended}
 }
 \value{
 \item{w}{numeric vector of weights.}

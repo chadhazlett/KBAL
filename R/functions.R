@@ -74,7 +74,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #' b = 2*ncol(lalonde[,xvars]))
 #'
 #' #svd on this kernel
-#' svd_pass = svd(K)
+#'   
 #' #let's use the original weights of 1/number of sampled units, and 1/numer of target units
 #' #this is the default if we pass in w as all 1's
 #' biasbound(observed=(1-lalonde$nsw),
@@ -183,7 +183,7 @@ dimw = function(X,w,target){
 #' @param observed a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param svd.U matrix whose columns contain the left singular vectors of the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}.
-#' @param nconstraint in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric to indicate the number of vector constraints
+#' @param nconstraint in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric input to indicate the number of vector constraints appended
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
 #' \donttest{
@@ -1175,6 +1175,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$meanfirst.dims = meanfirst_dims
   return(R)
 } # end kbal main function
+
+
 
 
 

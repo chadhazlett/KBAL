@@ -36,7 +36,7 @@ useasbases = as.numeric(1-lalonde$nsw),
 b = 2*ncol(lalonde[,xvars]))
 
 #svd on this kernel
-svd_pass = svd(K)
+  
 #let's use the original weights of 1/number of sampled units, and 1/numer of target units
 #this is the default if we pass in w as all 1's
 biasbound(observed=(1-lalonde$nsw),
