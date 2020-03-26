@@ -754,6 +754,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            treatment=treatment,
                            sampled = sampled,
                            sampledinpop = sampledinpop,
+                           useasbases = useasbases,
                            meanfirst = FALSE,
                            ebal.convergence = TRUE, 
                            linkernel = TRUE,
@@ -762,7 +763,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         constraint_svd_keep = kbalout.mean$svdK$u[, 1:kbalout.mean$numdims]
         if(printprogress) {
             cat("Selected", kbalout.mean$numdims,
-                "dimensions of \"constraint\" to use as mean balance constraints.")
+                "dimensions of \"allx\" to use as mean balance constraints. \n")
         }
         meanfirst_dims = kbalout.mean$numdims
         #for now this allows the manual constraint method and this svd way
@@ -930,7 +931,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(nrow(constraint) != N) { 
             stop("\"constraint\" must have the same number of rows as \"allx\"")
         } 
-        minnumdims <- ncol(constraint) + 1
+        minnumdims <- ncol(constraint) + minnumdims
+        maxnumdims <- ncol(constraint) + maxnumdims
         U = cbind(constraint, U) 
         nconstraint = ncol(constraint)
         #if numdims given move it up to accomodate the constraint
@@ -1157,6 +1159,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   #for now a crude warning if pass K.svd in for L1 distance
   if(!is.null(K.svd)) {
       warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
+  }
+  if(!is.null(meanfirst) && meanfirst) {
+      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K \"  from kernel balancing.\n")
   }
     
   R=list()
