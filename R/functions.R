@@ -1011,8 +1011,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       U_try.w.pop <- w.pop*U_try
       getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop, 
                     nconstraint = nconstraint)
-      convergence.record = c(convergence.record, getw.out$converged)
       
+      convergence.record = c(convergence.record, getw.out$converged)
+    
       biasboundnow=biasbound(w = getw.out$w,
                              observed=observed,  target = target,
                              svd.out = svd.out, 
@@ -1033,14 +1034,16 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 
       thisnumdims=thisnumdims+incrementby
 
-      if (dist.now<mindistsofar){mindistsofar=dist.now}
+      if(!is.na(dist.now)) {
+         if(dist.now<mindistsofar){mindistsofar=dist.now} 
+         wayover=(dist.now/mindistsofar)>1.25
+         keepgoing=(thisnumdims<=maxnumdims) & (wayover==FALSE) #& (dist.now<dist.orig)
+         #& dist.now!="error"
+         # (dist.now>mindistsofar)  # XXX this was in there, but needed?
+         # Need to work on "keepgoing" for case where ebal fails.
+      }
 
-      wayover=(dist.now/mindistsofar)>1.25
-
-      keepgoing= (thisnumdims<=maxnumdims) & (wayover==FALSE) #& (dist.now<dist.orig)
-      #& dist.now!="error"
-      # (dist.now>mindistsofar)  # XXX this was in there, but needed?
-      # Need to work on "keepgoing" for case where ebal fails.
+      
       
     } # End of while loop for "keepgoing"
 
