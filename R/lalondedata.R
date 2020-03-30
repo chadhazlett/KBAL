@@ -23,6 +23,7 @@
 #'   \item{re75}{real income in 1975}
 #'   \item{u74}{unemployment in 1974; actually an indicator for zero income in 1974}
 #'   \item{u75}{unemployment in 1975; actually an indicator for zero income in 1975}
+#'   \item{educ}{Years of education of the individual}
 #' }
 #' @references Dehejia, Rajeev H., and Sadek Wahba. "Causal effects in nonexperimental studies: Reevaluating the evaluation of training programs." Journal of the American statistical Association 94.448 (1999): 1053-1062.
 #' 
