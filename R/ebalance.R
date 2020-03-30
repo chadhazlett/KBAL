@@ -11,7 +11,7 @@
 #' @param constraint.tolerance numeric tolerance level.
 #' @param print.level a numeric argument to specify the amount of information printed out. 0 is silent, 1 prints convergence status, 2 prints maximum deviance per iteration, 3 prints loss and step length.
 #' @importFrom stats var optimize
-#' @return \item{target.margins}{}
+#' @return \item{target.margins}{Column sums of \code{X} among the treated units.}
 #' \item{co.xdata}{Covariance matrix for the controls only used to search for weights built from \code{X} with an additional appended column of ones.}
 #' \item{w}{weights found using ebalance. Note that treated units all recieve flat weights of 1}
 #' \item{maxdiff}{absolute value of the largest component of the gradient in the last iteration.}

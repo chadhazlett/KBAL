@@ -46,7 +46,7 @@ devtools::install_github("chadhazlett/KBAL")
 This is a basic example which shows you how to solve a common problem:
 
 ```{r example}
-library(KBAL)
+library(kbal)
 ## basic example code
 ```
 

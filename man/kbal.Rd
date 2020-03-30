@@ -42,7 +42,7 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 
 \item{maxnumdims}{numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. For a guassian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is minimum between 500 and the number of columns in \code{allx}. Due to computational burden, when \code{fullSVD} is \code{FALSE}, the truncated SVD is only computed upto \code{maxnumdims}.}
 
-\item{fullSVD}{logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time.}
+\item{fullSVD}{logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time. When \code{FALSE}, the code computers only the first 500 or \code{maxnumdims} singular vectors, whichever is larger.}
 
 \item{incrementby}{numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.}
 

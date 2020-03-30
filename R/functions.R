@@ -34,12 +34,16 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
   
+  allx = scale(allx)
   bases = allx[useasbases==1, ]
   
-  Xmeans.bases <- colMeans(bases)
-  Xsds.bases <- apply(bases,2,sd)
-  bases <- scale(bases, center = Xmeans.bases, scale = Xsds.bases)
-  allx <- scale(allx, center = Xmeans.bases, scale = Xsds.bases)
+  #removed scaling based on bases and just rescaled all of allx then subsetted
+  #Xmeans.bases <- colMeans(bases)
+  #Xsds.bases <- apply(bases,2,sd)
+  #bases <- scale(bases, center = Xmeans.bases, scale = Xsds.bases)
+  #allx <- scale(allx, center = Xmeans.bases, scale = Xsds.bases)
+  #bases <- scale(bases)
+  #allx <- scale(allx)
   
   if(linkernel == TRUE) {
       K = allx
@@ -398,7 +402,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
 #' @param minnumdims numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
 #' @param maxnumdims numeric argument to specify the maximum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. For a guassian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is minimum between 500 and the number of columns in \code{allx}. Due to computational burden, when \code{fullSVD} is \code{FALSE}, the truncated SVD is only computed upto \code{maxnumdims}.
-#' @param fullSVD logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time.
+#' @param fullSVD logical argument which determines whether the full SVD is conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of run time. When \code{FALSE}, the code computers only the first 500 or \code{maxnumdims} singular vectors, whichever is larger.
 #' @param incrementby numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}.
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.
@@ -711,8 +715,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if (is.null(minnumdims)){minnumdims=1}
     if (is.null(maxnumdims)){
         if(linkernel == FALSE) {
-            maxnumdims= min(500, sum(useasbases)) #reducing to use RSpectra to max 500
+            maxnumdims= min(500, sum(useasbases)) 
         } else { maxnumdims = min(ncol(allx), 500) } 
+        trunc_svd_dims = maxnumdims #reducing to use RSpectra to 500 unless K is smaller
+    } else{#pass in maxnumdims manually, then we still need to set Rspectra = min 500
+        trunc_svd_dims = max(500, maxnumdims)
     }
     #setting defaults - b: adding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
@@ -723,9 +730,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
-        warning("\"numdims\" cannot exceed number of bases. Reducing to maximum allowed.",
+        warning("\"numdims\" cannot exceed \"maxnumdims\". Reducing to maximum allowed.",
                 immediate. = TRUE)
-        numdims=sum(useasbases)
+        numdims= maxnumdims
     } else if(!is.null(numdims) && numdims <= 0) { #check not leq zero
         stop("Specified \"numdims\" must be greater than zero")
     }
@@ -775,7 +782,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
   if(!is.null(K) & !is.null(K.svd)){
-      stop("\"K\" and \"K.svd\" can not be specified simultaneously")
+      stop("\"K\" and \"K.svd\" should not be specified simultaneously")
 #CASE 1: if user pases K, always conduct SVD upto maxnumdims or numdims
   } else if(!is.null(K)) { 
       #error checks:
@@ -805,11 +812,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}
       #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
       if(!fullSVD) { 
-          if(printprogress) {cat("Running SVD on kernel matrix up to \"maxnumdims\" =",
-                                 maxnumdims, "dimensions \n")}
+          if(printprogress) {cat("Running SVD on kernel matrix up to",
+                                 trunc_svd_dims, "dimensions \n")}
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
-              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, maxnumdims))
+              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
               #add negative evals catch via bound at e-13 = 0
               #for now just set values to be zero. can also decrease the size of U, for zero
               #eigenvectors, but 
@@ -817,18 +824,20 @@ kbal = function(allx, useasbases=NULL, b=NULL,
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
               var_explained <- round(sum(svd.out$d)/nrow(K),6)
-              if(printprogress) {cat("Truncated SVD with \"maxnumdims\" =", maxnumdims,
-                                     "first singular values accounts for", var_explained,
+              if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
+                                     "first singular values accounts for", 
+                                     var_explained,
                                      "of the variance of \"K\" \n")}
               if(var_explained < .999) {
-                  warning("Truncated SVD with \"maxnumdims\" = ", maxnumdims,
+                  warning("Truncated SVD with ", trunc_svd_dims,
                           " first singular values only accounts for ", var_explained,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".", immediate. = TRUE)
               }
           } else { #use svds, suppressing warnings that it prints if uses full size svd
-              svd.out= RSpectra::svds(K, maxnumdims)
-              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
-                      maxnumdims," first singular values is unknown.", immediate. = TRUE)
+              svd.out= RSpectra::svds(K, trunc_svd_dims)
+              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with",
+                      trunc_svd_dims," first singular values is unknown.",
+                      immediate. = TRUE)
               var_explained = NULL
           }
           U=svd.out$u
@@ -880,28 +889,28 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
      #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
       if(!fullSVD) {
-          if(printprogress) {cat("Running SVD on kernel matrix up to \"maxnumdims\" =",
-                                 maxnumdims, "dimensions \n")}
+          if(printprogress) {cat("Running SVD on kernel matrix up to",
+                                 trunc_svd_dims, "dimensions \n")}
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
-              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, maxnumdims))
+              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
               rspec.out$values[ abs(rspec.out$values) <= 1e-13 ] = 0
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
               var_explained = round(sum(svd.out$d)/nrow(K),6)
-              if(printprogress) {cat("Truncated SVD with \"maxnumdims\" =", maxnumdims,
+              if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
                                      "first singular values accounts for", var_explained,
                                      "of the variance of \"K\" \n")}
               
               if(var_explained < .999) {
-                  warning("Truncated SVD with \"maxnumdims\" = ", maxnumdims,
+                  warning("Truncated SVD with ", trunc_svd_dims,
                           " first singular values only accounts for ", var_explained,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
                   }
           } else { #use truncated svd
-              svd.out= RSpectra::svds(K, maxnumdims)
-              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with \"maxnumdims\" = ",
-                      maxnumdims," is unknown", immediate. = TRUE)
+              svd.out= RSpectra::svds(K, trunc_svd_dims)
+              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
+                      trunc_svd_dims," is unknown", immediate. = TRUE)
               var_explained = NULL
           }
           U=svd.out$u
@@ -1164,7 +1173,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
   }
   if(!is.null(meanfirst) && meanfirst) {
-      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K \"  from kernel balancing.\n")
+      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
   }
     
   R=list()
