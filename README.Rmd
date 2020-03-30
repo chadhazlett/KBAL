@@ -32,7 +32,7 @@ See www.chadhazlett.com for details and paper.
 You can install the released version of KBAL from [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
-install.packages("KBAL")
+install.packages("kbal)
 ```
 
 And the development version from [GitHub](https://github.com/) with:
