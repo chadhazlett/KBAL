@@ -680,7 +680,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             stop("\"population.w\" must have the same length as the number of population/treated units")
         }
         if(sum(sign(population.w)) != sum(target)) {
-            stop("\"population.w\" must be non-negative")
+            stop("\"population.w\" must be positive")
         }
         #check population weights sum to num of treated/population units
         if(sum(population.w) != sum(target)) {

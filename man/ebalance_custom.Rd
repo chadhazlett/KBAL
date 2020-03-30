@@ -27,15 +27,15 @@ ebalance_custom(Treatment, X, base.weight = NULL, norm.constant = NULL,
 }
 \value{
 \item{target.margins}{Column sums of \code{X} among the treated units.}
-\item{co.xdata}{Covariance matrix for the controls only used to search for weights built from \code{X} with an additional appended column of ones.}
+\item{co.xdata}{Covariate matrix for the controls only built from \code{X} with an additional appended column of ones.}
 \item{w}{weights found using ebalance. Note that treated units all recieve flat weights of 1}
 \item{maxdiff}{absolute value of the largest component of the gradient in the last iteration.}
 \item{norm.constant}{norm constant used}
-\item{constraint.tolerance}{user-specified max iterations used}
-\item{max.iterations}{user-specified max iterations used}
-\item{base.weight}{user-specified base weights used}
-\item{print.level}{user-specified print level used}
-\item{converged}{Convergence status. If ebalance failed to find weights within the specified \code{constraint.tolerance} after \code{max.iterations} this is FALSE. Note that even if ebalance does not converge, the last iteration's weights \code{w} are returned.}
+\item{constraint.tolerance}{tolerance used to evaluate convergence}
+\item{max.iterations}{max iterations used}
+\item{base.weight}{base weights used}
+\item{print.level}{print level used}
+\item{converged}{Convergence status. If ebalance failed to find weights within the specified \code{constraint.tolerance} after \code{max.iterations} this is \code{FALSE}. Note that even if ebalance does not converge, the last iteration's weights \code{w} are returned.}
 }
 \description{
 This is a custom version of the \code{ebal} (entropy balancing) pacakge by Jens Hainmueller.  Chooses weights on controls to make
