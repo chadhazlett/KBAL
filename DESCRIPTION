@@ -7,7 +7,7 @@ Authors@R: c(person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("au
             person("Ciara", "Sterbenz", email = "cster@g.ucla.edu", role = "aut"),
             person("Erin", "Hartman", email = "ekhartman@ucla.edu", role = "ctb"))
 Description: A weighting approach the employs kernels to make one group
-    have a similar distribution to another on covariates
+    have a similar distribution to another group on covariates
     not only in terms of means or marginal distributions, but also on higher order transformations implied 
     by the choice of kernel. This applies to both treatment 
     effect estimation and to survey reweighting problems. 
