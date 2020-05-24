@@ -7,15 +7,15 @@
 biasbound(observed, target, svd.out, w, w.pop = NULL, hilbertnorm = 1)
 }
 \arguments{
-\item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
+\item{observed}{a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 
-\item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+\item{target}{a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
 
-\item{svd.out}{the list object output from \code{svd()} performed on the kernel matrix.}
+\item{svd.out}{the list object output from \code{svd()} performed on the kernel matrix. Requires a list object with left singular vectors in \code{svd.out$u} and singular values in \code{svd.out$d}}
 
 \item{w}{numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.}
 
-\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units/rows in \code{allx} with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
+\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
 \item{hilbertnorm}{numeric value of the hilbertnorm. Default value is 1.}
 }
@@ -31,13 +31,11 @@ xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75"
 
 #need a kernel matrix to run SVD on and pass in so get that first with makeK
 #running makeK with the sampled units as the bases
-K = makeK(allx = lalonde[,xvars],
-useasbases = as.numeric(1-lalonde$nsw),
-b = 2*ncol(lalonde[,xvars]))
+K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
 #svd on this kernel
-svd_pass = svd(K)
-#let's use the original weights of 1/number of sampled units, and 1/numer of target units
+svd_pass = svd(K)  
+#let's use the original weights of 1/number of sampled units, and 1/number of target units
 #this is the default if we pass in w as all 1's
 biasbound(observed=(1-lalonde$nsw),
  target=lalonde$nsw,

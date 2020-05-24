@@ -17,6 +17,7 @@
   \item{re75}{real income in 1975}
   \item{u74}{unemployment in 1974; actually an indicator for zero income in 1974}
   \item{u75}{unemployment in 1975; actually an indicator for zero income in 1975}
+  \item{educ}{Years of education of the individual}
 }}
 \usage{
 lalonde
