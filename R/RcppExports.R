@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 new_gauss_kern <- function(newx, oldx, b) {
-    .Call('_KBAL_new_gauss_kern', PACKAGE = 'KBAL', newx, oldx, b)
+    .Call('_kbal_new_gauss_kern', PACKAGE = 'kbal', newx, oldx, b)
 }
 

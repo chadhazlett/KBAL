@@ -1,19 +1,31 @@
-Package: KBAL
+Package: kbal
 Type: Package
 Title: Kernel Balancing
 Version: 0.1
-Date: 2015-09-10
+Date: 2020-02-14
 Authors@R: c(person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre")),
             person("Ciara", "Sterbenz", email = "cster@g.ucla.edu", role = "aut"),
             person("Erin", "Hartman", email = "ekhartman@ucla.edu", role = "ctb"))
-Description: A weighting approach to make one group have similar distribution as another,  with application to ATT estimation (making control group look like treated), survey reweighting(making a sampled group look like a population), etc.
+Description: A weighting approach the employs kernels to make one group
+    have a similar distribution to another group on covariates
+    not only in terms of means or marginal distributions, but also on higher order transformations implied 
+    by the choice of kernel. This applies to both treatment 
+    effect estimation and to survey reweighting problems. 
+    Based on  Hazlett, C. (2020) "Kernel Balancing: A flexible 
+    non-parametric weighting procedure 
+    for estimating causal effects." Statistica Sinica. 
+    <https://www.researchgate.net/publication/299013953_Kernel_Balancing_A_flexible_non-parametric_weighting_procedure_for_estimating_causal_effects/stats>
+URL: https://github.com/chadhazlett/kbal
 License: GPL (>=2)
 LazyData: TRUE
 LazyLoad: yes
 Depends:
     R (>= 2.14)
 Imports:
-    Rcpp (>= 0.11.0)
+    Rcpp (>= 0.11.0),
+    RSpectra
 LinkingTo: Rcpp
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
 RoxygenNote: 6.1.1
+Encoding: UTF-8
+

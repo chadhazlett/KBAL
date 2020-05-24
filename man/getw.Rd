@@ -4,20 +4,21 @@
 \alias{getw}
 \title{Find Weights using Entropy Balancing.}
 \usage{
-getw(target, observed, svd.U, ebal.tol = 1e-06)
+getw(target, observed, svd.U, ebal.tol = 1e-06, nconstraint = NULL)
 }
 \arguments{
-\item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+\item{target}{a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
 
-\item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
+\item{observed}{a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 
-\item{svd.U}{matrix whose columns contain the left singular vectors of the kernel matrix.}
+\item{svd.U}{a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.}
 
-\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}.}
+\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is 1e-6}
+
+\item{nconstraint}{in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric input to indicate the number of vector constraints appended}
 }
 \value{
 \item{w}{numeric vector of weights.}
-\item{earlyfail}{boolean indicating if ebalance failed to converge within the first two dimensions of \code{svd.U}.}
 }
 \description{
 Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
@@ -31,9 +32,7 @@ xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75"
 
 #need a kernel matrix to run SVD on then find weights with so get that first with makeK
 #running makeK with the sampled units as the bases
-K = makeK(allx = lalonde[,xvars],
-useasbases = as.numeric(1-lalonde$nsw),
-b = 2*ncol(lalonde[,xvars]))
+K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
 #svd on this kernel and get matrix with left singular values
 U = svd(K)$u
