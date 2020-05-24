@@ -11,7 +11,7 @@ dimw(X, w, target)
 
 \item{w}{numeric vector of weights for each observation.}
 
-\item{target}{numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+\item{target}{numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
 }
 \value{
 \item{dim}{the simple, unweighted difference in means.}

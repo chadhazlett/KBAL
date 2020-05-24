@@ -32,9 +32,7 @@ xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75"
 
 #need a kernel matrix to run SVD on then find weights with so get that first with makeK
 #running makeK with the sampled units as the bases
-K = makeK(allx = lalonde[,xvars],
-useasbases = as.numeric(1-lalonde$nsw),
-b = 2*ncol(lalonde[,xvars]))
+K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
 #svd on this kernel and get matrix with left singular values
 U = svd(K)$u

@@ -74,7 +74,7 @@ The \code{kbal} function implements kernel balancing using a gaussian kernel to 
 }
 \examples{
 #----------------------------------------------------------------
-# Example 1: Reweight a control group to a treated to esimate ATT. 
+# Example 1: Reweight a control group to a treated to estimate ATT. 
 # Benchmark using Lalonde et al.
 #----------------------------------------------------------------
 data(lalonde)
@@ -95,13 +95,12 @@ summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))
 
 # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
 kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
-               useasbases=rep(1,nrow(lalonde)),
-               treatment=lalonde$nsw, linkernel=TRUE)
+              useasbases=rep(1,nrow(lalonde)),
+              treatment=lalonde$nsw, linkernel=TRUE)
 
 # Check balance with and without these weights:
 dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
-
-summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))  
+summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))
  
 #----------------------------------------------------------------
 # Example 2: Reweight a sample to a target population.
@@ -147,8 +146,6 @@ ebal_out <- ebalance_custom(Treatment = 1-sampled,
                             X=dat[,1:2],
                             constraint.tolerance=1e-6, 
                             print.level=-1)
-                            
-                            
  
 # We can see everything gets even weights, since already mean balanced.
 length(unique(ebal_out$w))

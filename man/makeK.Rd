@@ -28,10 +28,7 @@ data(lalonde)
 lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
-#note that lalonde$nsw is the treatment vector, so the observered is 1-lalodne$nsw
+#note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
 #running makeK with the sampled/observed units as the bases given the large size of the data
-#and with b as twice the number of covariates
-K = makeK(allx = lalonde[,xvars],
-useasbases = 1-lalonde$nsw,
-b = 2*ncol(lalonde[,xvars]))}
+K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) }
 }

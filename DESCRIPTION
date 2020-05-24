@@ -7,8 +7,8 @@ Authors@R: c(person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("au
             person("Ciara", "Sterbenz", email = "cster@g.ucla.edu", role = "aut"),
             person("Erin", "Hartman", email = "ekhartman@ucla.edu", role = "ctb"))
 Description: A weighting approach the employs kernels to make one group
-    have similar distribution as another on covariates, 
-    not just but on higher order transformations implied 
+    have a similar distribution to another on covariates
+    not only in terms of means or marginal distributions, but also on higher order transformations implied 
     by the choice of kernel. This applies to both treatment 
     effect estimation and to survey reweighting problems. 
     Based on  Hazlett, C. (2020) "Kernel Balancing: A flexible 
@@ -27,4 +27,5 @@ Imports:
 LinkingTo: Rcpp
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
 RoxygenNote: 6.1.1
+Encoding: UTF-8
 

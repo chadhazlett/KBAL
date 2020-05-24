@@ -16,12 +16,9 @@
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
-#' #note that lalonde$nsw is the treatment vector, so the observered is 1-lalodne$nsw
+#' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
 #' #running makeK with the sampled/observed units as the bases given the large size of the data
-#' #and with b as twice the number of covariates
-#' K = makeK(allx = lalonde[,xvars],
-#' useasbases = 1-lalonde$nsw,
-#' b = 2*ncol(lalonde[,xvars]))}
+#' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) }
 #' @useDynLib kbal
 #' @importFrom stats sd 
 #' @importFrom Rcpp sourceCpp
@@ -73,13 +70,11 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
 #'
 #' #need a kernel matrix to run SVD on and pass in so get that first with makeK
 #' #running makeK with the sampled units as the bases
-#' K = makeK(allx = lalonde[,xvars],
-#' useasbases = as.numeric(1-lalonde$nsw),
-#' b = 2*ncol(lalonde[,xvars]))
+#' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 #'
 #' #svd on this kernel
-#'   
-#' #let's use the original weights of 1/number of sampled units, and 1/numer of target units
+#' svd_pass = svd(K)  
+#' #let's use the original weights of 1/number of sampled units, and 1/number of target units
 #' #this is the default if we pass in w as all 1's
 #' biasbound(observed=(1-lalonde$nsw),
 #'  target=lalonde$nsw,
@@ -198,9 +193,7 @@ dimw = function(X,w,target){
 #'
 #' #need a kernel matrix to run SVD on then find weights with so get that first with makeK
 #' #running makeK with the sampled units as the bases
-#' K = makeK(allx = lalonde[,xvars],
-#' useasbases = as.numeric(1-lalonde$nsw),
-#' b = 2*ncol(lalonde[,xvars]))
+#' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 #'
 #' #svd on this kernel and get matrix with left singular values
 #' U = svd(K)$u
@@ -284,23 +277,25 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
 #' #need to first build gaussian kernel matrix
 #' K_pass <- makeK(allx = lalonde[,xvars])
 #' #also need the SVD of this matrix
-#' svd.U_pass <- svd(K_pass)
+#' svd_pass <- svd(K_pass)
 #'
 #' #running without passing weights in directly, using numdims=33
 #' l1_lalonde <- getdist(target = lalonde$nsw,
 #'                       observed = 1-lalonde$nsw,
 #'                       K = K_pass,
-#'                       svd.out = svd.U_pass,
+#'                       svd.U = svd_pass$u,
 #'                       numdims = 33)
 #'
 #'  #alternatively, we can get the weights ourselves and pass them in directly
-#'  w_opt <- getw(target= lalonde$nsw,
-#'                observed = 1-lalonde$nsw,
-#'                ebal.tol=1e-6)$w
-#'  l1_lalonde2 <- getdist(target = lalonde$nsw,
-#'                   observed = 1-lalonde$nsw,
-#'                   K = K_pass,
-#'                   w = w_opt)}
+#'  #using the first 33 dims of svd_pass$u to match the above
+#' w_opt <- getw(target= lalonde$nsw,
+#'               observed = 1-lalonde$nsw,
+#'               svd.U = svd_pass$u[,1:33],
+#'               ebal.tol=1e-6)$w
+#' l1_lalonde2 <- getdist(target = lalonde$nsw,
+#'                  observed = 1-lalonde$nsw,
+#'                  K = K_pass,
+#'                  w = w_opt)}
 #' @export
 getdist <- function(target, observed, K, svd.U = NULL,
                     w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL) {
@@ -421,7 +416,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #' @examples
 #' #----------------------------------------------------------------
-#' # Example 1: Reweight a control group to a treated to esimate ATT. 
+#' # Example 1: Reweight a control group to a treated to estimate ATT. 
 #' # Benchmark using Lalonde et al.
 #' #----------------------------------------------------------------
 #' data(lalonde)
@@ -441,14 +436,14 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' #----------------------------------------------------------------
 #'
 #' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
-#' kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'                useasbases=rep(1,nrow(lalonde)),
-#'                treatment=lalonde$nsw, linkernel=TRUE)
+#'kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
+#'               useasbases=rep(1,nrow(lalonde)),
+#'               treatment=lalonde$nsw, linkernel=TRUE)
 #' 
 #' # Check balance with and without these weights:
-#' dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
-#' 
-#' summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))  
+#'dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
+#'
+#'summary(lm(re78~nsw,w=kbalout.lin$w, data = lalonde))
 #'  
 #' #----------------------------------------------------------------
 #' # Example 2: Reweight a sample to a target population.
@@ -494,8 +489,6 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'                             X=dat[,1:2],
 #'                             constraint.tolerance=1e-6, 
 #'                             print.level=-1)
-#'                             
-#'                             
 #'  
 #' # We can see everything gets even weights, since already mean balanced.
 #' length(unique(ebal_out$w))

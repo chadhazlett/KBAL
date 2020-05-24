@@ -31,13 +31,11 @@ xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75"
 
 #need a kernel matrix to run SVD on and pass in so get that first with makeK
 #running makeK with the sampled units as the bases
-K = makeK(allx = lalonde[,xvars],
-useasbases = as.numeric(1-lalonde$nsw),
-b = 2*ncol(lalonde[,xvars]))
+K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
 #svd on this kernel
-  
-#let's use the original weights of 1/number of sampled units, and 1/numer of target units
+svd_pass = svd(K)  
+#let's use the original weights of 1/number of sampled units, and 1/number of target units
 #this is the default if we pass in w as all 1's
 biasbound(observed=(1-lalonde$nsw),
  target=lalonde$nsw,
