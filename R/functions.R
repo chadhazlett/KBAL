@@ -753,7 +753,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         #note that b and useasbases are irrelevant here since we're using a linear kernel
-        kbalout.mean = kbal(allx=allx, 
+        kbalout.mean = suppressWarnings(kbal(allx=allx, 
                            treatment=treatment,
                            sampled = sampled,
                            sampledinpop = sampledinpop,
@@ -761,7 +761,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            meanfirst = FALSE,
                            ebal.convergence = TRUE, 
                            linkernel = TRUE,
-                           printprogress = FALSE)
+                           printprogress = FALSE))
         
         constraint_svd_keep = kbalout.mean$svdK$u[, 1:kbalout.mean$numdims]
         if(printprogress) {
@@ -1172,7 +1172,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\"from kernel balancing.\n")
   }
     
-  b_out = ifelse(linkernel, NULL, b)
+  b_out = ifelse(linkernel, NA, b)
+  if(is.na(b_out)){ b_out = NULL}
   
   R=list()
   R$w= getw.out$w
