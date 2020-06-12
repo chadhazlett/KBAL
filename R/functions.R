@@ -413,6 +413,8 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{L1.opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
 #'  \item{svdK}{a list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
+#'  \item{b} numeric scaling factor used in the the calculation of gaussian kernel  equivalent to the denominator \eqn{2\sigma^2} of the exponent.
+#'  \item{bases} vector of bases (rows in \code{allx}) used to construct kernel matrix 
 #'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #' @examples
@@ -751,7 +753,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         #note that b and useasbases are irrelevant here since we're using a linear kernel
-        kbalout.mean = suppressWarnings(kbal(allx=allx, 
+        kbalout.mean = kbal(allx=allx, 
                            treatment=treatment,
                            sampled = sampled,
                            sampledinpop = sampledinpop,
@@ -759,7 +761,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            meanfirst = FALSE,
                            ebal.convergence = TRUE, 
                            linkernel = TRUE,
-                           printprogress = FALSE))
+                           printprogress = FALSE)
         
         constraint_svd_keep = kbalout.mean$svdK$u[, 1:kbalout.mean$numdims]
         if(printprogress) {
@@ -878,7 +880,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
           K = makeK(allx = allx, useasbases = useasbases, b=b)
       } else {
           K = makeK(allx = allx,
-                    useasbases = useasbases, 
+                    useasbases = useasbases,  #unnecc/bases not used for lin kernel
                     linkernel = TRUE)
       }
      #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
@@ -1167,9 +1169,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
   }
   if(!is.null(meanfirst) && meanfirst) {
-      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
+      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\"from kernel balancing.\n")
   }
     
+  b_out = ifelse(linkernel, NULL, b)
+  
   R=list()
   R$w= getw.out$w
   R$biasbound.opt=biasbound_opt
@@ -1181,6 +1185,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$K = K
   R$linkernel = linkernel
   R$svdK = svd.out
+  R$b = b_out
+  R$bases = useasbases
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst.dims = meanfirst_dims
