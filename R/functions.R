@@ -1146,12 +1146,25 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(is.null(constraint)) {
             dimseq=seq(minnumdims,maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+            if (length(numdims)>1){
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                        immediate. = TRUE)
+                numdims=min(numdims)
+            }
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
         } else {
             dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+            if (length(numdims)>1){
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                        immediate. = TRUE)
+                numdims=min(numdims)
+            }
             U_final.w.pop <- w.pop*U[,1:(numdims + ncol(constraint)), drop = FALSE]
         }
+        
+        
+        
         if(printprogress == TRUE) {
             cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
         }
