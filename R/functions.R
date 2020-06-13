@@ -753,7 +753,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
-            Warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.")
+            warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.")
         }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
         kbalout.mean = suppressWarnings(kbal(allx=allx, 
