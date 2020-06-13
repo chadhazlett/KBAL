@@ -711,7 +711,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if (is.null(minnumdims)){minnumdims=1}
     if (is.null(maxnumdims)){
         if(linkernel == FALSE) {
-            maxnumdims= min(500, sum(useasbases)) 
+            maxnumdims= min(500, sum(useasbases))  
+            if(!is.null(K)) {maxnumdims = ncol(K)}
+            if(!is.null(K.svd)) {maxnumdims = ncol(K.svd$u)}
+            
         } else { maxnumdims = min(ncol(allx), 500) } 
         trunc_svd_dims = maxnumdims #reducing to use RSpectra to 500 unless K is smaller
     } else{#pass in maxnumdims manually, then we still need to set Rspectra = min 500
