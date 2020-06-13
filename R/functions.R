@@ -752,6 +752,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 ################## MEAN FIRST #################
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
+        if(!is.null(constraint)) {
+            Warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.")
+        }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
         kbalout.mean = suppressWarnings(kbal(allx=allx, 
                            treatment=treatment,
@@ -959,7 +962,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   L1_orig = getdist.orig$L1
 
   if(printprogress==TRUE) {
-      cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,3), "and the L1 discrepancy is", round(L1_orig,3), "\n")
+      cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
   }
   
 ############# NUMDIMS GIVEN  ###################
@@ -983,11 +986,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified", numdims,"dimensions, biasbound (norm=1) of ",
-                 round(biasboundnow,3), " \n")
+                 round(biasboundnow,5), " \n")
     } else if(printprogress) {
         numdims = numdims - ncol(constraint)
         cat("With user-specified",numdims,"dimensions of K, biasbound (norm=1) of ",
-            round(biasboundnow,3), " \n")
+            round(biasboundnow,5), " \n")
         
     }
     
@@ -1026,10 +1029,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                              hilbertnorm = 1)
       if(printprogress == TRUE & is.null(constraint)) {
           cat("With",thisnumdims,"dimensions of K, ebalance convergence is", getw.out$converged ,"yielding biasbound (norm=1) of",
-                       round(biasboundnow,3), " \n")
+                       round(biasboundnow,5), " \n")
       } else if(printprogress == TRUE) {
           cat("With",thisnumdims - ncol(constraint),"dimensions of K, ebalance convergence is",getw.out$converged, "yielding biasbound (norm=1) of",
-               round(biasboundnow,3), " \n")
+               round(biasboundnow,5), " \n")
       }
       
       dist.record=c(dist.record,biasboundnow)
@@ -1169,7 +1172,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
   }
   if(!is.null(meanfirst) && meanfirst) {
-      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\"from kernel balancing.\n")
+      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
   }
     
   b_out = ifelse(linkernel, NA, b)
