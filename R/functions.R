@@ -924,7 +924,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   }
     #adjust singular values for linear kernel since we just do svd(X) instead of svd(XX')
     if(linkernel == TRUE) {
-        #svd.out$d = svd.out$d^2
+        svd.out$d = svd.out$d^2
     }
     
 ####### Adding Constraint to minimization: paste constraint vector to front of U
