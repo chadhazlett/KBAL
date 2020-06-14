@@ -41,7 +41,7 @@ You can install the released version of KBAL from
 [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
-install.packages("KBAL")
+install.packages("kbal")
 ```
 
 And the development version from [GitHub](https://github.com/) with:
@@ -56,7 +56,7 @@ devtools::install_github("chadhazlett/KBAL")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library(KBAL)
+library(kbal)
 ## basic example code
 ```
 
