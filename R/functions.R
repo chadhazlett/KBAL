@@ -875,7 +875,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(b != 2*ncol(allx)) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
-      if(!(c("d", "u") %in% ls(K.svd))) {
+      if(length(ls(K.svd)) != 2 || !(c("d", "u") %in% ls(K.svd))) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
       }
       svd.out = K.svd
