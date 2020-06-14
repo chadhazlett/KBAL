@@ -878,7 +878,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(!(length(ls(K.svd)) == 2 && (c("d", "u") %in% ls(K.svd)))) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
       } else if(ncol(K.svd$u) != length(K.svd$d)) {
-          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of  \"u\"  do not match dimensions of  \"d\".")
+          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of \"u\" do not match dimensions of \"d\".")
       }
       svd.out = K.svd
       U = K.svd$u
