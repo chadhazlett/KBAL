@@ -875,6 +875,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(b != 2*ncol(allx)) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
+      if(!(c("d", "u") %in% ls(K.svd))) {
+          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
+      }
       svd.out = K.svd
       U = K.svd$u
       K = U
@@ -944,6 +947,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         } 
         minnumdims <- ncol(constraint) + minnumdims
         maxnumdims <- ncol(constraint) + maxnumdims
+        #binds constraint to front of separate object U, leaving original U in svd.out
+        #this way we run biasbound() on svd.out to get biasbound on svd(K) only
+        #but use U for getw to get weights that balance on constraints as well
         U = cbind(constraint, U) 
         nconstraint = ncol(constraint)
         #if numdims given move it up to accomodate the constraint
