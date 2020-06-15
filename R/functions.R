@@ -781,6 +781,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     
 ########### BUILDING K ################
+    #pass out b and bases used if kernel built internally and gaussian  
+    b_out = ifelse((linkernel | !is.null(K.svd) | !is.null(K)), NA, b)
+    if(is.na(b_out)){ b_out = NULL}
+    if(linkernel | !is.null(K.svd) | !is.null(K)) {
+        useasbases_out = NULL
+    } else{ useasbases_out = useasbases}
+    
+    
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
   if(!is.null(K) & !is.null(K.svd)){
@@ -875,7 +883,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(b != 2*ncol(allx)) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
-      if(!(length(ls(K.svd)) == 2 && (c("d", "u") %in% ls(K.svd)))) {
+      if(!(length(ls(K.svd)) >= 2 && (c("d", "u") %in% ls(K.svd)))) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
       } else if(ncol(K.svd$u) != length(K.svd$d)) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of \"u\" do not match dimensions of \"d\".")
@@ -1198,10 +1206,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   if(!is.null(meanfirst) && meanfirst) {
       cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
   }
-    
-  b_out = ifelse(linkernel, NA, b)
-  if(is.na(b_out)){ b_out = NULL}
-  
+
+
+      
   R=list()
   R$w= getw.out$w
   R$biasbound.opt=biasbound_opt
@@ -1214,7 +1221,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$linkernel = linkernel
   R$svdK = svd.out
   R$b = b_out
-  R$bases = useasbases
+  R$bases = useasbases_out
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst.dims = meanfirst_dims
