@@ -413,6 +413,8 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{L1.opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
 #'  \item{svdK}{a list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
+#'  \item{b} numeric scaling factor used in the the calculation of gaussian kernel  equivalent to the denominator \eqn{2\sigma^2} of the exponent.
+#'  \item{bases} vector of bases (rows in \code{allx}) used to construct kernel matrix 
 #'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #' @examples
@@ -709,7 +711,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if (is.null(minnumdims)){minnumdims=1}
     if (is.null(maxnumdims)){
         if(linkernel == FALSE) {
-            maxnumdims= min(500, sum(useasbases)) 
+            maxnumdims= min(500, sum(useasbases))  
+            if(!is.null(K)) {maxnumdims = ncol(K)}
+            if(!is.null(K.svd)) {maxnumdims = ncol(K.svd$u)}
+            
         } else { maxnumdims = min(ncol(allx), 500) } 
         trunc_svd_dims = maxnumdims #reducing to use RSpectra to 500 unless K is smaller
     } else{#pass in maxnumdims manually, then we still need to set Rspectra = min 500
@@ -750,6 +755,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 ################## MEAN FIRST #################
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
+        if(!is.null(constraint)) {
+            warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.", immediate. = TRUE)
+        }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
         kbalout.mean = suppressWarnings(kbal(allx=allx, 
                            treatment=treatment,
@@ -773,6 +781,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     
 ########### BUILDING K ################
+    #pass out b and bases used if kernel built internally and gaussian  
+    b_out = ifelse((linkernel | !is.null(K.svd) | !is.null(K)), NA, b)
+    if(is.na(b_out)){ b_out = NULL}
+    if(linkernel | !is.null(K.svd) | !is.null(K)) {
+        useasbases_out = NULL
+    } else{ useasbases_out = useasbases}
+    
+    
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
   if(!is.null(K) & !is.null(K.svd)){
@@ -867,6 +883,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(b != 2*ncol(allx)) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
       }
+      if(!(length(ls(K.svd)) >= 2 && (c("d", "u") %in% ls(K.svd)))) {
+          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
+      } else if(ncol(K.svd$u) != length(K.svd$d)) {
+          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of \"u\" do not match dimensions of \"d\".")
+      }
       svd.out = K.svd
       U = K.svd$u
       K = U
@@ -878,7 +899,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
           K = makeK(allx = allx, useasbases = useasbases, b=b)
       } else {
           K = makeK(allx = allx,
-                    useasbases = useasbases, 
+                    useasbases = useasbases,  #unnecc/bases not used for lin kernel
                     linkernel = TRUE)
       }
      #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
@@ -936,6 +957,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         } 
         minnumdims <- ncol(constraint) + minnumdims
         maxnumdims <- ncol(constraint) + maxnumdims
+        #binds constraint to front of separate object U, leaving original U in svd.out
+        #this way we run biasbound() on svd.out to get biasbound on svd(K) only
+        #but use U for getw to get weights that balance on constraints as well
         U = cbind(constraint, U) 
         nconstraint = ncol(constraint)
         #if numdims given move it up to accomodate the constraint
@@ -957,7 +981,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   L1_orig = getdist.orig$L1
 
   if(printprogress==TRUE) {
-      cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,3), "and the L1 discrepancy is", round(L1_orig,3), "\n")
+      cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
   }
   
 ############# NUMDIMS GIVEN  ###################
@@ -981,11 +1005,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified", numdims,"dimensions, biasbound (norm=1) of ",
-                 round(biasboundnow,3), " \n")
+                 round(biasboundnow,5), " \n")
     } else if(printprogress) {
         numdims = numdims - ncol(constraint)
         cat("With user-specified",numdims,"dimensions of K, biasbound (norm=1) of ",
-            round(biasboundnow,3), " \n")
+            round(biasboundnow,5), " \n")
         
     }
     
@@ -1024,10 +1048,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                              hilbertnorm = 1)
       if(printprogress == TRUE & is.null(constraint)) {
           cat("With",thisnumdims,"dimensions of K, ebalance convergence is", getw.out$converged ,"yielding biasbound (norm=1) of",
-                       round(biasboundnow,3), " \n")
+                       round(biasboundnow,5), " \n")
       } else if(printprogress == TRUE) {
           cat("With",thisnumdims - ncol(constraint),"dimensions of K, ebalance convergence is",getw.out$converged, "yielding biasbound (norm=1) of",
-               round(biasboundnow,3), " \n")
+               round(biasboundnow,5), " \n")
       }
       
       dist.record=c(dist.record,biasboundnow)
@@ -1141,12 +1165,25 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(is.null(constraint)) {
             dimseq=seq(minnumdims,maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+            if (length(numdims)>1){
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                        immediate. = TRUE)
+                numdims=min(numdims)
+            }
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
         } else {
             dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+            if (length(numdims)>1){
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                        immediate. = TRUE)
+                numdims=min(numdims)
+            }
             U_final.w.pop <- w.pop*U[,1:(numdims + ncol(constraint)), drop = FALSE]
         }
+        
+        
+        
         if(printprogress == TRUE) {
             cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
         }
@@ -1169,7 +1206,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   if(!is.null(meanfirst) && meanfirst) {
       cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
   }
-    
+
+
+      
   R=list()
   R$w= getw.out$w
   R$biasbound.opt=biasbound_opt
@@ -1181,6 +1220,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   R$K = K
   R$linkernel = linkernel
   R$svdK = svd.out
+  R$b = b_out
+  R$bases = useasbases_out
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst.dims = meanfirst_dims
