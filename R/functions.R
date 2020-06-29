@@ -21,7 +21,8 @@
 #' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) }
 #' @useDynLib kbal
 #' @importFrom stats sd 
-#' @importFrom Rcpp sourceCpp
+#' @importFrom Rcpp sourceCpp 
+#' @importFrom RcppParallel RcppParallelLibs
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   N=nrow(allx)
@@ -45,7 +46,14 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   if(linkernel == TRUE) {
       K = allx
   } else {
-      K = new_gauss_kern(newx = allx, oldx = bases, b = b)
+      if(sum(useasbases) == N) {
+          #symmetric K, build faster using
+          K = kernel_parallel(X = allx, b = b)
+      } else {
+          K = kernel_parallel_2(X = allx, Y = bases, b = b)
+      }
+            #old
+          #new_gauss_kern(newx = allx, oldx = bases, b = b)
   }
   return(K)
 }
@@ -328,6 +336,8 @@ getdist <- function(target, observed, K, svd.U = NULL,
             
         }
         #if user does not provide weights, go get them
+        
+        #### THIS IS WRONG IF WE USE MEANFIRST!!!! XXXX GO FIX!!!
         # XXXX INCORPERATE w.pop XXX
         if(is.null(w)) {
             if(is.null(ebal.tol)) {ebal.tol = 1e-6}
@@ -413,8 +423,8 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #'  \item{L1.opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
 #'  \item{svdK}{a list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
-#'  \item{b} numeric scaling factor used in the the calculation of gaussian kernel  equivalent to the denominator \eqn{2\sigma^2} of the exponent.
-#'  \item{bases} vector of bases (rows in \code{allx}) used to construct kernel matrix 
+#'  \item{b}{numeric scaling factor used in the the calculation of gaussian kernel  equivalent to the denominator \eqn{2\sigma^2} of the exponent.}
+#'  \item{bases}{vector of bases (rows in \code{allx}) used to construct kernel matrix}
 #'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #' @examples
