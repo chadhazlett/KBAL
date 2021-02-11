@@ -23,8 +23,9 @@ Depends:
     R (>= 2.14)
 Imports:
     Rcpp (>= 0.11.0),
+    RcppParallel (>= 4.4.4),
     RSpectra
-LinkingTo: Rcpp
+LinkingTo: Rcpp, RcppParallel
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
 RoxygenNote: 6.1.1
 Encoding: UTF-8
