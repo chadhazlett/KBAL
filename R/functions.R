@@ -24,7 +24,7 @@
 #' @importFrom Rcpp sourceCpp 
 #' @importFrom RcppParallel RcppParallelLibs
 #' @export
-makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
+makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, categorical = FALSE){
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
   if(is.null(useasbases)) {useasbases = rep(1, N)}
@@ -32,8 +32,10 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
   
-  if(scale) {
+  if(!categorical) {
       allx = scale(allx)
+  } else {
+      b = 2
   }
   bases = allx[useasbases==1, ]
   
@@ -559,28 +561,35 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #default setting/data set up
   
   #0. multicolinearity check
-    qr_X = qr(allx)
-    multicollin = FALSE
-    if(qr_X$rank < ncol(allx)) {
-      warning("\"allx\" contains collinear columns. Dropping these columns", 
-              immediate. = TRUE)
-      multicollin = TRUE
+    if(!categorical) {
+        qr_X = qr(allx)
+        multicollin = FALSE
+        if(qr_X$rank < ncol(allx)) {
+            warning("\"allx\" contains collinear columns. Dropping these columns", 
+                    immediate. = TRUE)
+            multicollin = TRUE
+        }
+        allx_update = allx
+        dropped_cols = NULL
+        while(multicollin == TRUE){
+            cor = cor(allx_update)
+            diag(cor) = 0
+            cor[lower.tri(cor)] = 0
+            cor = abs(cor)
+            drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
+            dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
+            allx_update = allx_update[,-drop]
+            if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
+            
+        }
+        allx = allx_update
+    } else {
+        multicollin = NA
+        dropped_cols = NULL
     }
     
-    allx_update = allx
-    dropped_cols = NULL
-    while(multicollin == TRUE){
-      cor = cor(allx_update)
-      diag(cor) = 0
-      cor[lower.tri(cor)] = 0
-      cor = abs(cor)
-      drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
-      dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
-      allx_update = allx_update[,-drop]
-      if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
-      
-    }
-    allx = allx_update
+    
+    
     
   #1. checking sampled and sampledinpop
   if(!is.null(sampled)) { 
@@ -735,13 +744,13 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     #setting defaults - b: adding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
-    if (is.null(b)){ b = 2*ncol(allx) }
     if(!is.null(b) && length(b) != 1) {
         stop("\"b \" must be a scalar.")
     }
     if(!is.null(b) && categorical) {
         warning("With categorical data, \"b\" is not used\n", immediate. = TRUE)
     }
+    if (is.null(b)){ b = 2*ncol(allx) }
     
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
@@ -913,7 +922,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(printprogress == TRUE) {cat("Building kernel matrix \n")}
       if(linkernel == FALSE) {
           K = makeK(allx = allx, useasbases = useasbases, b=b, 
-                    scale = FALSE)
+                    categorical = categorical)
       } else {
           K = makeK(allx = allx,
                     useasbases = useasbases,  #unnecc/bases not used for lin kernel
