@@ -24,7 +24,7 @@
 #' @importFrom Rcpp sourceCpp 
 #' @importFrom RcppParallel RcppParallelLibs
 #' @export
-makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
+makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
   if(is.null(useasbases)) {useasbases = rep(1, N)}
@@ -32,7 +32,9 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE){
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
   
-  allx = scale(allx)
+  if(scale) {
+      allx = scale(allx)
+  }
   bases = allx[useasbases==1, ]
   
   #removed scaling based on bases and just rescaled all of allx then subsetted
@@ -534,6 +536,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 treatment=NULL,
                 population.w = NULL,
                 K=NULL, K.svd = NULL,
+                categorical = FALSE,
                 linkernel = FALSE,
                 meanfirst = NULL,
                 constraint = NULL,
@@ -736,6 +739,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(!is.null(b) && length(b) != 1) {
         stop("\"b \" must be a scalar.")
     }
+    if(!is.null(b) && categorical) {
+        warning("With categorical data, \"b\" is not used\n", immediate. = TRUE)
+    }
     
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
@@ -906,7 +912,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   } else { 
       if(printprogress == TRUE) {cat("Building kernel matrix \n")}
       if(linkernel == FALSE) {
-          K = makeK(allx = allx, useasbases = useasbases, b=b)
+          K = makeK(allx = allx, useasbases = useasbases, b=b, 
+                    scale = FALSE)
       } else {
           K = makeK(allx = allx,
                     useasbases = useasbases,  #unnecc/bases not used for lin kernel
