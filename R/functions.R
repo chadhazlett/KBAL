@@ -784,7 +784,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         kbalout.mean = suppressWarnings(kbal(allx=allx, 
                            treatment=treatment,
                            sampled = sampled,
-                           scale_data = scale_data, 
+                           scale_data = TRUE, 
                            drop_multicollin = TRUE, #this doesnt really matter I think
                            sampledinpop = sampledinpop,
                            useasbases = useasbases,
@@ -983,6 +983,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         } 
         minnumdims <- ncol(constraint) + minnumdims
         maxnumdims <- ncol(constraint) + maxnumdims
+        #want to scale so don't have convergence issues:
+        constraint <- scale(constraint)
         #binds constraint to front of separate object U, leaving original U in svd.out
         #this way we run biasbound() on svd.out to get biasbound on svd(K) only
         #but use U for getw to get weights that balance on constraints as well
