@@ -775,6 +775,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
 ################## MEAN FIRST #################
+    if(!is.null(constraint)) {
+        constraint <- scale(constraint)
+    }
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
@@ -983,8 +986,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         } 
         minnumdims <- ncol(constraint) + minnumdims
         maxnumdims <- ncol(constraint) + maxnumdims
-        #want to scale so don't have convergence issues:
-        constraint <- scale(constraint)
         #binds constraint to front of separate object U, leaving original U in svd.out
         #this way we run biasbound() on svd.out to get biasbound on svd(K) only
         #but use U for getw to get weights that balance on constraints as well
