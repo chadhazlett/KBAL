@@ -775,9 +775,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
 ################## MEAN FIRST #################
-    if(!is.null(constraint)) {
-        constraint <- scale(constraint)
-    }
+    # if(!is.null(constraint)) {
+    #     constraint <- scale(constraint)
+    # }
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
