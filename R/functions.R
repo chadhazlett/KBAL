@@ -192,7 +192,6 @@ dimw = function(X,w,target){
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
 #' @param svd.U a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is 1e-6
-#' @param nconstraint in the case that the user wants to require mean balance on a set of vectors appended to the front of \code{svd.U}, a numeric input to indicate the number of vector constraints appended
 #' @return \item{w}{numeric vector of weights.}
 #' @examples
 #' \donttest{
@@ -212,7 +211,7 @@ dimw = function(X,w,target){
 #' U2=U[,1:10, drop=FALSE]
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
-getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
+getw = function(target, observed, svd.U, ebal.tol=1e-6){
 
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -237,11 +236,8 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, nconstraint = NULL){
   converged = FALSE
   #earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
-      # if((is.null(nconstraint) & ncol(svd.U) <= 2) || (!is.null(nconstraint) && ncol(svd.U) - nconstraint <= 2)) {
-      #     earlyfail = TRUE
-      #     warning("Kbal was unable to successfully find weights because ebalance convergence failed within first two dimensions of K. Returning equal weights.")
-      #     
-      # }
+          warning("\'ebalace_custom()\' encountered an error. Returning equal weights.", 
+                  .immediate = T)
     w=rep(1,N)
     
   }
@@ -338,20 +334,17 @@ getdist <- function(target, observed, K, svd.U = NULL,
             
         }
         #if user does not provide weights, go get them
-        
-        #### THIS IS WRONG IF WE USE MEANFIRST!!!! XXXX GO FIX!!!
-        # XXXX INCORPERATE w.pop XXX
         if(is.null(w)) {
             if(is.null(ebal.tol)) {ebal.tol = 1e-6}
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
             U_w.pop <- w.pop*svd.U
-            w = getw(target = target, observed=observed,
+            w = suppressWarnings(getw(target = target, observed=observed,
                      svd.U = U_w.pop[,1:numdims, drop=FALSE],
-                     ebal.tol=ebal.tol)$w
+                     ebal.tol=ebal.tol)$w)
 
             #if ebal fails we get weights of 1 for everyone
             if (sum(w ==1) == length(w)){
-                stop("ebalance failed to converge for this choice of numdims dimensions of the SVD of the kernel matrix")
+                stop("ebalance failed for this choice of numdims dimensions of the SVD of the kernel matrix")
             }
         }
         #just "average row Kt"
@@ -973,8 +966,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
 ####### Adding Constraint to minimization: paste constraint vector to front of U
-    #default of nconstraint is NULL, unless we have a constraint and then its just the number of cols
-    nconstraint = NULL
     if(!is.null(constraint)) {
         #check dims of constraint
         #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
@@ -990,7 +981,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         #this way we run biasbound() on svd.out to get biasbound on svd(K) only
         #but use U for getw to get weights that balance on constraints as well
         U = cbind(constraint, U) 
-        nconstraint = ncol(constraint)
         #if numdims given move it up to accomodate the constraint
         if(!is.null(numdims)) {
             numdims = numdims + ncol(constraint)
@@ -1019,8 +1009,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     U2=U[,1:numdims, drop=FALSE]
     
     U2.w.pop <- w.pop*U2
-    getw.out=getw(target=target, observed=observed, svd.U=U2.w.pop,
-                  nconstraint = nconstraint)
+    getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop)
     converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
@@ -1031,6 +1020,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         numpass = numdims
         if(!is.null(constraint)) {numpass = numdims - ncol(constraint)}
         warning("With user-specified ", numpass," dimensions ebalance did not converge within tolerance. Disregarding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.")
+        
     }
     if(printprogress == TRUE & is.null(constraint)) {
         cat("With user-specified", numdims,"dimensions, biasbound (norm=1) of ",
@@ -1065,8 +1055,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
-      getw.out=getw(target = target, observed=observed, svd.U = U_try.w.pop, 
-                    nconstraint = nconstraint)
+      getw.out= suppressWarnings(getw(target = target,
+                                      observed=observed, svd.U = U_try.w.pop))
       
       convergence.record = c(convergence.record, getw.out$converged)
     
@@ -1137,8 +1127,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
         }
         
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                        nconstraint = nconstraint)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1154,10 +1143,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(!is.null(constraint)){
             U_constraint=U[,1:(minnumdims-1), drop=FALSE]
             U_c.w.pop <- w.pop*U_constraint
-            getw.out=getw(target = target, observed=observed, svd.U = U_c.w.pop, 
-                          nconstraint = nconstraint)
+            getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop)
             convergence.record = getw.out$converged
-            warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
+            warning("Ebalance did not converge within tolerance for any ",
+                    dist_pass[1,1],"-",
                     dist_pass[1,ncol(dist_pass)],
                     " searched dimensions of K.\nNo optimal numdims to return. Returning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
             
@@ -1177,8 +1166,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             #disregard convergence and pick minnumdims
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                            nconstraint = nconstraint)
+            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
                                      w.pop = w.pop,
@@ -1211,14 +1199,11 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             U_final.w.pop <- w.pop*U[,1:(numdims + ncol(constraint)), drop = FALSE]
         }
         
-        
-        
         if(printprogress == TRUE) {
             cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
         }
 
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop,
-                        nconstraint = nconstraint)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
