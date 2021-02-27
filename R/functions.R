@@ -767,10 +767,23 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         fullSVD = TRUE
     }
     
+############ Direct CONSTRAINT #############
+    #if user passes in constraint to append, ensure it's scaled and dn have mc issues
+    if(!is.null(constraint)) {
+        constraint <- scale(constraint)
+        
+        qr_constr = qr(constraint)
+        multicollin_constr = FALSE
+        if(qr_constr$rank < ncol(constraint)) {
+            stop("\"constraint\" contains collinear columns.")
+        }
+        
+    }
+    
+    
+    
 ################## MEAN FIRST #################
-    # if(!is.null(constraint)) {
-    #     constraint <- scale(constraint)
-    # }
+    
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
