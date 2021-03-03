@@ -529,7 +529,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 treatment=NULL,
                 population.w = NULL,
                 K=NULL, K.svd = NULL,
-                scale_data = FALSE,
+                scale_data = TRUE,
                 drop_multicollin = TRUE,
                 linkernel = FALSE,
                 meanfirst = NULL,
@@ -665,15 +665,20 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     #Setting defaults - useasbases: If we don't specify which observations to use as bases,
     # use all as default unless K is very large, then use sample set.
-    if (is.null(useasbases) & N <= 4000) {
+    if (is.null(useasbases) & N <= 4000 & !linkernel) {
             useasbases = rep(1,N)
-    } else if(is.null(useasbases)) {
+    } else if(is.null(useasbases) & !linkernel) {
         if(is.null(K) & is.null(K.svd) ) {
             warning("Dimensions of K greater than 4000, using sampled as default bases",
                     immediate. = TRUE)
         }
           useasbases = as.numeric(observed==1)
     }
+    #for a linear kernel, the bases are gonna be defined by the cols of the data
+    #we will use all of them
+    if (is.null(useasbases) & linkernel) {
+        useasbases = rep(1,ncol(allx))
+    } 
  
     #Population  weights
     #default for population weights is to have them all equal
@@ -731,8 +736,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             
         } else { maxnumdims = min(ncol(allx), 500) } 
         trunc_svd_dims = .8*sum(useasbases) 
-    } else{#pass in maxnumdims manually, then we still need to set Rspectra = min 500
+    } else{#2021: if pass max, want to still get svd out more dims so that bb is correct
         trunc_svd_dims = max(.8*sum(useasbases), maxnumdims)
+        #in case that's bigger than the columns we have is checked below afer we have have K
     }
     #setting defaults - b: adding default b within the kbal function rather than in makeK
     #changing default to be 2*ncol to match kbal
@@ -765,7 +771,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         fullSVD = TRUE
     } else if(maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
         fullSVD = TRUE
-    }
+    } 
     
 ############ Direct CONSTRAINT #############
     #if user passes in constraint to append, ensure it's scaled and dn have mc issues
@@ -798,6 +804,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            sampledinpop = sampledinpop,
                            useasbases = useasbases,
                            meanfirst = FALSE,
+                           ebal.tol = ebal.tol,
                            ebal.convergence = TRUE, 
                            linkernel = TRUE,
                            printprogress = FALSE))
@@ -877,8 +884,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".", immediate. = TRUE)
               }
           } else { #use svds, suppressing warnings that it prints if uses full size svd
+             
               svd.out= RSpectra::svds(K, trunc_svd_dims)
-              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with",
+              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
                       trunc_svd_dims," first singular values is unknown.",
                       immediate. = TRUE)
               var_explained = NULL
@@ -958,7 +966,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
                   }
           } else { #use truncated svd
-              svd.out= RSpectra::svds(K, trunc_svd_dims)
+              svd.out= RSpectra::svds(K, round(trunc_svd_dims))
               warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
                       trunc_svd_dims," is unknown", immediate. = TRUE)
               var_explained = NULL
@@ -1022,7 +1030,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     U2=U[,1:numdims, drop=FALSE]
     
     U2.w.pop <- w.pop*U2
-    getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop)
+    getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop, 
+                   ebal.tol = ebal.tol)
     converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
@@ -1069,7 +1078,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
       getw.out= suppressWarnings(getw(target = target,
-                                      observed=observed, svd.U = U_try.w.pop))
+                                      observed=observed, svd.U = U_try.w.pop, 
+                                      ebal.tol = ebal.tol))
       
       convergence.record = c(convergence.record, getw.out$converged)
     
@@ -1140,7 +1150,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
         }
         
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                        ebal.tol = ebal.tol)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1156,7 +1167,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         if(!is.null(constraint)){
             U_constraint=U[,1:(minnumdims-1), drop=FALSE]
             U_c.w.pop <- w.pop*U_constraint
-            getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop)
+            getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop, 
+                           ebal.tol = ebal.tol)
             convergence.record = getw.out$converged
             warning("Ebalance did not converge within tolerance for any ",
                     dist_pass[1,1],"-",
@@ -1179,7 +1191,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             #disregard convergence and pick minnumdims
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                            ebal.tol = ebal.tol)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
                                      w.pop = w.pop,
@@ -1216,7 +1229,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
         }
 
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop)
+        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+                        ebal.tol = ebal.tol)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
