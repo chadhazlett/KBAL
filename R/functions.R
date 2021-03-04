@@ -304,7 +304,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
 #'                  w = w_opt)}
 #' @export
 getdist <- function(target, observed, K, svd.U = NULL,
-                    w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL) {
+                    w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL, ebal.maxit = NULL) {
 
         R=list()
         N=nrow(K)
@@ -340,7 +340,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
             U_w.pop <- w.pop*svd.U
             w = suppressWarnings(getw(target = target, observed=observed,
                      svd.U = U_w.pop[,1:numdims, drop=FALSE],
-                     ebal.tol=ebal.tol)$w)
+                     ebal.tol=ebal.tol, ebal.maxit = ebal.maxit)$w)
 
             #if ebal fails we get weights of 1 for everyone
             if (sum(w ==1) == length(w)){
@@ -1032,7 +1032,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     U2.w.pop <- w.pop*U2
     getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop, 
-                   ebal.tol = ebal.tol)
+                   ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
     converged = getw.out$converged
     biasboundnow=biasbound( w = getw.out$w,
                             observed=observed,  target = target,
@@ -1080,7 +1080,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       U_try.w.pop <- w.pop*U_try
       getw.out= suppressWarnings(getw(target = target,
                                       observed=observed, svd.U = U_try.w.pop, 
-                                      ebal.tol = ebal.tol))
+                                      ebal.tol = ebal.tol, ebal.maxit = ebal.maxit))
       
       convergence.record = c(convergence.record, getw.out$converged)
     
@@ -1152,7 +1152,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         }
         
         getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                        ebal.tol = ebal.tol)
+                        ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
@@ -1169,7 +1169,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             U_constraint=U[,1:(minnumdims-1), drop=FALSE]
             U_c.w.pop <- w.pop*U_constraint
             getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop, 
-                           ebal.tol = ebal.tol)
+                           ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
             convergence.record = getw.out$converged
             warning("Ebalance did not converge within tolerance for any ",
                     dist_pass[1,1],"-",
@@ -1193,7 +1193,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
             getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                            ebal.tol = ebal.tol)
+                            ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
                                      w.pop = w.pop,
@@ -1231,7 +1231,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         }
 
         getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                        ebal.tol = ebal.tol)
+                        ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
         biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                  svd.out = svd.out, 
                                  w.pop = w.pop,
