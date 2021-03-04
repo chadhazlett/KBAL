@@ -211,7 +211,7 @@ dimw = function(X,w,target){
 #' U2=U[,1:10, drop=FALSE]
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
-getw = function(target, observed, svd.U, ebal.tol=1e-6){
+getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
 
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -228,7 +228,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6){
                                    base.weight = NULL,
                                    norm.constant  = NULL,
                                    coefs = NULL ,
-                                   max.iterations = 200,
+                                   max.iterations = ebal.maxit,
                                    constraint.tolerance = ebal.tol,
                                    print.level=0),
                    silent=TRUE)
@@ -538,6 +538,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
                 fullSVD = FALSE,
                 incrementby=1,
+                ebal.maxit = NULL,
                 ebal.tol=1e-6,
                 ebal.convergence = NULL,
                 printprogress = TRUE) {
