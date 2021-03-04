@@ -534,6 +534,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 linkernel = FALSE,
                 meanfirst = NULL,
                 constraint = NULL,
+                scale_constraint = TRUE,
                 numdims=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
                 fullSVD = FALSE,
@@ -777,8 +778,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 ############ Direct CONSTRAINT #############
     #if user passes in constraint to append, ensure it's scaled and dn have mc issues
     if(!is.null(constraint)) {
-        constraint <- scale(constraint)
-        
+        if(scale_constraint) {
+            constraint <- scale(constraint)
+        }
         qr_constr = qr(constraint)
         multicollin_constr = FALSE
         if(qr_constr$rank < ncol(constraint)) {
