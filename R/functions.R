@@ -992,7 +992,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     if(!is.null(constraint)) {
         #check dims of constraint
         #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
-        if(!class(constraint) %in% c("matrix", "data.frame")) {
+        if(!class(constraint)[1] %in% c("matrix", "data.frame")) {
             stop("\"constraint\" must be a matrix")
         }
         if(nrow(constraint) != N) { 
