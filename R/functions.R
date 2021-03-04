@@ -806,6 +806,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            useasbases = useasbases,
                            meanfirst = FALSE,
                            ebal.tol = ebal.tol,
+                           ebal.maxit = ebal.maxit,
                            ebal.convergence = TRUE, 
                            linkernel = TRUE,
                            printprogress = FALSE))
