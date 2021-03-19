@@ -554,7 +554,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 #####start of big error catch series to check if data is passed in correctly and
     #default setting/data set up
   
-  #0. multicolinearity check
+############# multicolinearity check ###################
     if(drop_multicollin) {
         qr_X = qr(allx)
         multicollin = FALSE
@@ -583,7 +583,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
     
-    
+############### ERROR CHECKS ##################    
     
   #1. checking sampled and sampledinpop
   if(!is.null(sampled)) { 
@@ -803,7 +803,10 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            treatment=treatment,
                            sampled = sampled,
                            scale_data = TRUE, 
-                           drop_multicollin = TRUE, #this doesnt really matter I think
+                           #we don't want to do drop mc cols with cat data
+                           #with mf routine we take the svd anyway so even w other data
+                           #this issue will resolve itself
+                           drop_multicollin = FALSE, 
                            sampledinpop = sampledinpop,
                            useasbases = useasbases,
                            meanfirst = FALSE,
