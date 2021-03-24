@@ -679,8 +679,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #for a linear kernel, the bases are gonna be defined by the cols of the data
     #we will use all of them
     if (is.null(useasbases) & linkernel) {
-        #this does not get used in makeK just for the rest of the checks
-        useasbases = rep(1,N)
+        #this does not get used in makeK just for the rest of the
+        useasbases = rep(1,ncol(allx))
     } 
  
     #Population  weights
@@ -731,6 +731,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
     #Setting defaults: minnumdims, maxnumdims
     if (is.null(minnumdims)){minnumdims=1}
+    
     if (is.null(maxnumdims)){
         if(linkernel == FALSE) {
             maxnumdims= min(500, sum(useasbases))  
@@ -914,7 +915,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       #check maxnumdims
       if(maxnumdims > ncol(K.svd$u) ) {
           warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
-          maxnumdims = ncol(K)
+          maxnumdims = ncol(K.svd$u)
       }
       #check numdims
       if(!is.null(numdims) && numdims > ncol(K.svd$u) ) {
