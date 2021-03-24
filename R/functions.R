@@ -679,7 +679,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     #for a linear kernel, the bases are gonna be defined by the cols of the data
     #we will use all of them
     if (is.null(useasbases) & linkernel) {
-        useasbases = rep(1,ncol(allx))
+        #this does not get used in makeK just for the rest of the checks
+        useasbases = rep(1,N)
     } 
  
     #Population  weights
