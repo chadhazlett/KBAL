@@ -840,10 +840,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     
 #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
-  if(!is.null(K) & !is.null(K.svd)){
-      stop("\"K\" and \"K.svd\" should not be specified simultaneously")
-#CASE 1: if user pases K, always conduct SVD upto maxnumdims or numdims
-  } else if(!is.null(K)) { 
+#CASE 1: if user pases K without svd, always conduct SVD upto maxnumdims or numdims
+  if(!is.null(K) & is.null(K.svd)) { 
       #error checks:
       #check maxnumdims
       if(maxnumdims > ncol(K) ) {
@@ -908,8 +906,18 @@ kbal = function(allx, useasbases=NULL, b=NULL,
           U = svd.out$u
           var_explained = NULL
       }
-#CASE 2: if user pases in K.svd never conduct SVD   
+#CASE 2: if user pases in K.svd (with or without K) dn conduct SVD   
   } else if(!is.null(K.svd)) {
+      
+      if(!is.null(K)) {
+          warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input")
+          K = K
+      } else {
+          warning("With only \"K.svd\" input, L1 distance will be computed on the left singular vectors u")
+          #L1 distance will compute but be sort of strange on U instead
+          K = U
+      }
+      
       #NB: we require K.svd to have $u and $d just as a real svd woulda
       #error catches
       #check maxnumdims
@@ -940,7 +948,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
       svd.out = K.svd
       U = K.svd$u
-      K = U
+      
       var_explained = NULL
 #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
   } else { 
@@ -1010,6 +1018,8 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         #binds constraint to front of separate object U, leaving original U in svd.out
         #this way we run biasbound() on svd.out to get biasbound on svd(K) only
         #but use U for getw to get weights that balance on constraints as well
+        #note also that L1 distance uses K and that remains unchanged so it is ok
+        #while we have a K matrix (if pass in svd not as straight forward)
         U = cbind(constraint, U) 
         #if numdims given move it up to accomodate the constraint
         if(!is.null(numdims)) {
@@ -1024,7 +1034,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                            w.pop = w.pop, 
                            observed=observed, target = target,
                            svd.out = svd.out, hilbertnorm = 1)
-#NB: not well defined when pass in K.svd not K
+#NB: not well defined when pass in K.svd not K (added warning above)
   getdist.orig = getdist(target=target, observed = observed,
                          w = rep(1,N), w.pop = w.pop, K=K)
   L1_orig = getdist.orig$L1
