@@ -212,7 +212,7 @@ dimw = function(X,w,target){
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
 getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
-
+    
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
   # (1) anybody who is "observed" but also considered part of the target
@@ -237,7 +237,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
   #earlyfail = FALSE
   if ("try-error"%in%class(bal.out.pc)){
           warning("\'ebalace_custom()\' encountered an error. Returning equal weights.", 
-                  .immediate = T)
+                  immediate. = T)
     w=rep(1,N)
     
   }
@@ -539,7 +539,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
                 minnumdims=NULL, maxnumdims=NULL,
                 fullSVD = FALSE,
                 incrementby=1,
-                ebal.maxit = NULL,
+                ebal.maxit = 500,
                 ebal.tol=1e-6,
                 ebal.convergence = NULL,
                 printprogress = TRUE) {
@@ -869,7 +869,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}
       #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
       if(!fullSVD) { 
-          if(printprogress) {cat("Running SVD on kernel matrix up to",
+          if(printprogress) {cat("Running trucated SVD on kernel matrix up to",
                                  trunc_svd_dims, "dimensions \n")}
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
@@ -909,14 +909,6 @@ kbal = function(allx, useasbases=NULL, b=NULL,
 #CASE 2: if user pases in K.svd (with or without K) dn conduct SVD   
   } else if(!is.null(K.svd)) {
       
-      if(!is.null(K)) {
-          warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input")
-          K = K
-      } else {
-          warning("With only \"K.svd\" input, L1 distance will be computed on the left singular vectors u")
-          #L1 distance will compute but be sort of strange on U instead
-          K = U
-      }
       
       #NB: we require K.svd to have $u and $d just as a real svd woulda
       #error catches
@@ -948,8 +940,16 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
       svd.out = K.svd
       U = K.svd$u
-      
       var_explained = NULL
+      if(!is.null(K)) {
+          warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input")
+      } else {
+          warning("With only \"K.svd\" input, L1 distance will be computed on the left singular vectors u")
+          #L1 distance will compute but be sort of strange on U instead
+          K = U
+      }
+      
+      
 #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
   } else { 
       if(printprogress == TRUE) {cat("Building kernel matrix \n")}
@@ -964,7 +964,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
      #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
       if(!fullSVD) {
-          if(printprogress) {cat("Running SVD on kernel matrix up to",
+          if(printprogress) {cat("Running truncated SVD on kernel matrix up to",
                                  trunc_svd_dims, "dimensions \n")}
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
@@ -999,7 +999,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       }
   }
     #adjust singular values for linear kernel since we just do svd(X) instead of svd(XX')
-    if(linkernel == TRUE) {
+   if(linkernel == TRUE) {
         svd.out$d = svd.out$d^2
     }
     
