@@ -583,6 +583,40 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
     
+    ####Updated to fix problem where dropping wrong cols here: INCORPORATE W MORE TIME FOR ERROR CHECKS
+    # if(drop_multicollin) {
+    #     qr_X = qr(X_truth)
+    #     multicollin = FALSE
+    #     if(qr_X$rank < ncol(X_truth)) {
+    #         multicollin = TRUE
+    #     }
+    #     allx_update = allx
+    #     dropped_cols = NULL
+    #     cor = cor(allx_update)
+    #     diag(cor) = 0
+    #     cor[lower.tri(cor)] = 0
+    #     cor = abs(cor)
+    #     all_cor <- sort(c(cor), decreasing = TRUE)
+    #     i = 1
+    #     rank_target = qr(X_truth)$rank
+    #     while(multicollin == TRUE){
+    #         drop = which(cor == all_cor[i], arr.ind = T)[1,1]
+    #         
+    #         if(qr(allx_update[,-drop])$rank == rank_target) {
+    #             dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i], 
+    #                                                           arr.ind  =TRUE))[1])
+    #             allx_update <- allx_update[,-drop]
+    #         } 
+    #         #cat(i, drop, ncol(allx_update),"\n")
+    #         i = i + 1
+    #         if(qr_X$rank == ncol(allx_update)) {multicollin = FALSE}
+    #         
+    #     }
+    #     allx = allx_update
+    # }
+    
+    
+    
 ############### ERROR CHECKS ##################    
     
   #1. checking sampled and sampledinpop
@@ -701,7 +735,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
             stop("\"population.w\" must be positive")
         }
         #check population weights sum to num of treated/population units
-        if(sum(population.w) != sum(target)) {
+        if(round(sum(population.w)) != sum(target)) {
             #allow user to pass in weights that sum to one and transform them here
             if(sum(population.w) == 1) {
                 population.w = population.w/mean(population.w)
