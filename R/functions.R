@@ -110,9 +110,9 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
             stop("\"w.pop\" must the value 1 for all sampled/treated units")
         }
         #check population weights sum to num of treated/population units
-        if(sum(w.pop[target ==1 ]) != sum(target)) {
+        if(round(sum(w.pop[target ==1 ])) != sum(target)) {
             #allow user to pass in weights that sum to one and transform them here
-            if(sum(w.pop[target ==1]) == 1) {
+            if(round(sum(w.pop[target ==1])) == 1) {
                 w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
             } else { #in this case they don't sum to N_t or 1 so ng
                 stop("\"w.pop\" must sum to either 1 or the number of treated/population units")
@@ -323,9 +323,9 @@ getdist <- function(target, observed, K, svd.U = NULL,
                 stop("\"w.pop\" must the value 1 for all sampled/treated units")
             }
             #check population weights sum to num of treated/population units
-            if(sum(w.pop[target ==1 ]) != sum(target)) {
+            if(round(sum(w.pop[target ==1 ])) != sum(target)) {
                 #allow user to pass in weights that sum to one and transform them here
-                if(sum(w.pop[target ==1]) == 1) {
+                if(round(sum(w.pop[target ==1])) == 1) {
                     w.pop[target==1] = w.pop[target ==1]/mean(w.pop[target==1])
                 } else { #in this case they don't sum to N_t or 1 so ng
                     stop("\"population.w\" must sum to either 1 or the number of treated/population units")
@@ -737,7 +737,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         #check population weights sum to num of treated/population units
         if(round(sum(population.w)) != sum(target)) {
             #allow user to pass in weights that sum to one and transform them here
-            if(sum(population.w) == 1) {
+            if(round(sum(population.w)) == 1) {
                 population.w = population.w/mean(population.w)
             } else { #in this case they don't sum to N_t or 1 so ng
                 stop("\"population.w\" must sum to either 1 or the number of treated/population units")
