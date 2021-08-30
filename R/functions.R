@@ -376,6 +376,76 @@ getdist <- function(target, observed, K, svd.U = NULL,
 } ## end of getdist
 
 
+#' One hot Encoding for Categorical Data
+#' @description Converts raw categorical string/factor sample and population data into numeric one-hot encoded full data matrix to be passed to \code{kbal} argument \code{allx}
+#' @param sample_data a dataframe where rows are sample/control observations and columns are string or factor type covariates
+#' @param population_data a dataframe where rows are population/treated observations and columns are string or factor type covariates
+#' @return \item{onehot_data}{a matrix of combined sample and population data with rows corresponding to units and columns one-hot encoded categorical covariates}
+#' \item{sampled}{a numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
+#' @examples
+#' \donttest{XX Fill in XX }
+#' @export
+one_hot <- function(sample_data, population_data) {
+    onehot_data <- bind_rows(sample_data, population_data)
+    onehot_data <- data.frame(lapply(onehot_data, as.factor))
+    
+    onehot_data <- model.matrix(~ ., onehot_data,
+                                contrasts.arg = lapply(onehot_data[,], 
+                                                       contrasts, 
+                                                       contrasts=FALSE))
+    onehot_data <- onehot_data[, -1]
+    sampled <- c(rep(1, nrow(sample_data)), rep(0, nrow(population_data)))
+    
+    return(list(onehot_data = onehot_data,
+                sampled = sampled))
+}
+
+
+#' Maximum Variance of Kernel Matrix
+#' @description Searches for the argmax of the variance of the Kernel matrix
+#' @param onehot_data a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.
+#' @param sampled numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
+#' @param max_search_b the maximum b searched during maximization. Default is 2000
+#' @param useasebases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
+#' @return \item{b_maxvar}{numeric b value which produces the maximum variance of K}
+#' \item{var_K}{numeric maximum variance of K found with \code{b_maxvar}}
+#' @examples
+#' \donttest{XX Fill in XX }
+b_maxvarK <- function(onehot_data,
+                      sampled, 
+                      max_search_b = NULL, useasebases) {
+    if(is.null(max_search_b)) { max_search_b = 2000}
+    
+    #categorical kernel + b range:
+    #get raw counts:
+    K <- makeK(onehot_data, b=2,
+               useasbases = useasbases,
+               linkernel = FALSE, scale = FALSE)
+    raw_counts <- -log(K)
+    n_d <- data.frame(diff = c(raw_counts)) %>% group_by(diff) %>% summarise(n())
+    
+    #internal function to get the variance of K 
+    var_K= function(b, n_d, diag_length){
+        d <- n_d[,1] %>% pull()
+        n_d <- as.vector(n_d[,2] %>% pull())
+        #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION
+        n_d[1] <- n_d[1] - diag_length
+        p_d <- n_d/ sum(n_d) 
+        
+        mean_k = sum(exp(-1*d/b)*p_d)
+        var_k = sum((exp(-1*d/b)-mean_k)^2 * p_d)
+        return(var_k)
+    }
+    
+    #does this diag technique work for all shapes of K?
+    res = optimize(var_K, n_d, length(diag(K)),
+                   interval=c(0, max_search_b), maximum=TRUE)
+    
+    return(list(b_maxvar = res$maximum, 
+                var_K = res$objective))
+}
+
+
 # The main event: Actual kbal function!
 #' Kernel Balancing
 #'
@@ -524,19 +594,25 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' # and upweights the non-white republicans and white non-republicans
 #' unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
 #' @export
-kbal = function(allx, useasbases=NULL, b=NULL, 
-                sampled=NULL, sampledinpop=NULL,
+kbal = function(allx, 
+                useasbases=NULL,
+                b=NULL, 
+                sampled=NULL, 
+                sampledinpop=NULL,
                 treatment=NULL,
                 population.w = NULL,
-                K=NULL, K.svd = NULL,
+                K=NULL,
+                K.svd = NULL,
                 scale_data = TRUE,
                 drop_multicollin = TRUE,
                 linkernel = FALSE,
+                cat_data = FALSE,
                 meanfirst = NULL,
                 constraint = NULL,
                 scale_constraint = TRUE,
                 numdims=NULL,
-                minnumdims=NULL, maxnumdims=NULL,
+                minnumdims=NULL, 
+                maxnumdims=NULL,
                 fullSVD = FALSE,
                 incrementby=1,
                 ebal.maxit = 500,
@@ -672,7 +748,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     }
     
     
-#####Setting up data: build observed and target from inputs 
+    ##### Setting up data: build observed and target from inputs  #####
     if(!is.null(sampled) & sampledinpop==FALSE) {
         observed = sampled
         target = 1-sampled
@@ -685,6 +761,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         target = treatment
     }
     
+    ###### Setting defaults - useasbases #####
     #7. checking useasbases if passed in
     if(!is.null(useasbases)) {
         if(length(useasbases) != N) {
@@ -717,7 +794,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         useasbases = rep(1,ncol(allx))
     } 
  
-    #Population  weights
+    ###### Setting defaults: Population  weights #####
     #default for population weights is to have them all equal
     #population weights need to sum to N because the averaging among the treated occurs
     #within ebal (so we don't want to double average)
@@ -749,6 +826,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         
     }
     
+    ###### Setting defaults: minnumdims, maxnumdims #####
     #8. now checking maxnumdims: the most dims you can use is the number of bases
     if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)) {
         warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing \"maxnumdims\".", immediate. = TRUE)
@@ -758,9 +836,14 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         stop("\"maxnumdims\" must be greater than zero")
     } #when linkernel ==TRUE ensure maxnumdims not greater than cols of X
     if(linkernel == TRUE && !is.null(maxnumdims) && maxnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing to the number of coumns in \"allx\".", 
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"maxnumdims\" to the number of coumns in \"allx\".", 
                 immediate. = TRUE )
         maxnumdims = ncol(allx)
+    }
+    if(linkernel == TRUE && !is.null(minnumdims) && minnumdims > ncol(allx)) {
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.", 
+                immediate. = TRUE )
+        minnumdims = 1
     }
     
     #Setting defaults: minnumdims, maxnumdims
@@ -778,14 +861,30 @@ kbal = function(allx, useasbases=NULL, b=NULL,
         trunc_svd_dims = max(.8*sum(useasbases), maxnumdims)
         #in case that's bigger than the columns we have is checked below afer we have have K
     }
-    #setting defaults - b: adding default b within the kbal function rather than in makeK
-    #changing default to be 2*ncol to match kbal
+    
+    
+    ##### Setting Defaults: b (maxvar b) #####
+    #adding default b within the kbal function rather than in makeK
+    #changing default for not cat data to be 2*ncol to match kbal
     if(!is.null(b) && length(b) != 1) {
         stop("\"b \" must be a scalar.")
     }
+    maxvar_K_out = NULL
+    if(!cat_data) {
+        if (is.null(b)){ b = 2*ncol(allx) }
+    } else {
+        if(is.null(b)) {
+            res = b_maxvar(sample_dat = allx[observed], 
+                         population_data  = allx[target], 
+                         useasbases = useasbases)
+            b = res$b_maxvar
+            maxvar_K_out = res$var_K
+            
+        }
+    }
     
-    if (is.null(b)){ b = 2*ncol(allx) }
     
+
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
         warning("\"numdims\" cannot exceed \"maxnumdims\". Reducing to maximum allowed.",
@@ -810,7 +909,9 @@ kbal = function(allx, useasbases=NULL, b=NULL,
     } else if(maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
         fullSVD = TRUE
     } 
+
     
+        
 ############ Direct CONSTRAINT #############
     #if user passes in constraint to append, ensure it's scaled and dn have mc issues
     if(!is.null(constraint)) {
@@ -944,7 +1045,7 @@ kbal = function(allx, useasbases=NULL, b=NULL,
   } else if(!is.null(K.svd)) {
       
       
-      #NB: we require K.svd to have $u and $d just as a real svd woulda
+      #NB: we require K.svd to have $u and $d just as a real svd would
       #error catches
       #check maxnumdims
       if(maxnumdims > ncol(K.svd$u) ) {
@@ -1305,20 +1406,22 @@ kbal = function(allx, useasbases=NULL, b=NULL,
       
   R=list()
   R$w= getw.out$w
-  R$biasbound.opt=biasbound_opt
-  R$biasbound.orig=dist.orig
-  R$dist.record= dist_pass
+  R$biasbound_opt=biasbound_opt
+  R$biasbound_orig=dist.orig
+  R$biasbound_ratio= dist.orig/biasbound_opt
+  R$dist_record= dist_pass
   R$numdims=numdims
-  R$L1.orig = L1_orig
-  R$L1.opt = L1_optim
+  R$L1_orig = L1_orig
+  R$L1_opt = L1_optim
   R$K = K
   R$linkernel = linkernel
   R$svdK = svd.out
   R$b = b_out
   R$bases = useasbases_out
+  R$maxvar_K = maxvar_K_out
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
-  R$meanfirst.dims = meanfirst_dims
+  R$meanfirst_dims = meanfirst_dims
   return(R)
 } # end kbal main function
 
