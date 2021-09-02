@@ -4,8 +4,17 @@
 \alias{getdist}
 \title{L1 Distance}
 \usage{
-getdist(target, observed, K, svd.U = NULL, w = NULL, numdims = NULL,
-  w.pop = NULL, ebal.tol = NULL)
+getdist(
+  target,
+  observed,
+  K,
+  svd.U = NULL,
+  w = NULL,
+  numdims = NULL,
+  w.pop = NULL,
+  ebal.tol = NULL,
+  ebal.maxit = NULL
+)
 }
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}

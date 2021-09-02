@@ -4,12 +4,33 @@
 \alias{kbal}
 \title{Kernel Balancing}
 \usage{
-kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
-  sampledinpop = NULL, treatment = NULL, population.w = NULL,
-  K = NULL, K.svd = NULL, linkernel = FALSE, meanfirst = NULL,
-  constraint = NULL, numdims = NULL, minnumdims = NULL,
-  maxnumdims = NULL, fullSVD = FALSE, incrementby = 1,
-  ebal.tol = 1e-06, ebal.convergence = NULL, printprogress = TRUE)
+kbal(
+  allx,
+  useasbases = NULL,
+  b = NULL,
+  sampled = NULL,
+  sampledinpop = NULL,
+  treatment = NULL,
+  population.w = NULL,
+  K = NULL,
+  K.svd = NULL,
+  scale_data = NULL,
+  drop_multicollin = TRUE,
+  linkernel = FALSE,
+  cat_data = FALSE,
+  meanfirst = NULL,
+  constraint = NULL,
+  scale_constraint = TRUE,
+  numdims = NULL,
+  minnumdims = NULL,
+  maxnumdims = NULL,
+  fullSVD = FALSE,
+  incrementby = 1,
+  ebal.maxit = 500,
+  ebal.tol = 1e-06,
+  ebal.convergence = NULL,
+  printprogress = TRUE
+)
 }
 \arguments{
 \item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
@@ -29,6 +50,8 @@ kbal(allx, useasbases = NULL, b = NULL, sampled = NULL,
 \item{K}{optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound. When \code{K} is specified, the code does not build the kernel matrix internally.}
 
 \item{K.svd}{optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.}
+
+\item{scale_data}{if true and kernel build interally data is scaled before building K (demeans and scales varaince to 1). This is appropriate when \code{allx} contains continuous variables with different scales, but not recommended for categorical data. Default is \code{TRUE} when \code{cat_kernel} is \code{FALSE} and \code{FALSE} otherwise.}
 
 \item{linkernel}{if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead and adjusts singular values accoringly. This is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancing on means. The difference is that it employs SVD on X then seeks balance on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.}
 

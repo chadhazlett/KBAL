@@ -4,7 +4,8 @@
 \name{lalonde}
 \alias{lalonde}
 \title{Data from National Supported Work program and Panel Study in Income Dynamics}
-\format{A data frame with 2675 rows and 12 columns.
+\format{
+A data frame with 2675 rows and 12 columns.
 \describe{
   \item{nsw}{treatment indicator: participation in the National Supported Work program.}
   \item{re78}{real earnings in 1978 (outcome)}
@@ -18,7 +19,8 @@
   \item{u74}{unemployment in 1974; actually an indicator for zero income in 1974}
   \item{u75}{unemployment in 1975; actually an indicator for zero income in 1975}
   \item{educ}{Years of education of the individual}
-}}
+}
+}
 \usage{
 lalonde
 }

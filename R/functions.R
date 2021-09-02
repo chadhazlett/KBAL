@@ -235,7 +235,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
   N=nrow(svd.U)
   converged = FALSE
   #earlyfail = FALSE
-  if ("try-error"%in%class(bal.out.pc)){
+  if ("try-error"%in%class(bal.out.pc)[1]){
           warning("\'ebalace_custom()\' encountered an error. Returning equal weights.", 
                   immediate. = T)
     w=rep(1,N)
@@ -411,9 +411,11 @@ one_hot <- function(sample_data, population_data) {
 #' \item{var_K}{numeric maximum variance of K found with \code{b_maxvar}}
 #' @examples
 #' \donttest{XX Fill in XX }
+#' @export
 b_maxvarK <- function(onehot_data,
                       sampled, 
-                      max_search_b = NULL, useasebases) {
+                      max_search_b = NULL, 
+                      useasbases) {
     if(is.null(max_search_b)) { max_search_b = 2000}
     
     #categorical kernel + b range:
@@ -467,8 +469,9 @@ b_maxvarK <- function(onehot_data,
 #' @param population.w optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound. When \code{K} is specified, the code does not build the kernel matrix internally.
 #' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.
-#' @param linkernel if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead and adjusts singular values accoringly. This is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancing on means. The difference is that it employs SVD on X then seeks balance on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
-#' @param meanfirst if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.
+#' @param scale_data logical if true and kernel build interally data is scaled before building K (demeans and scales varaince to 1). This is appropriate when \code{allx} contains continuous variables with different scales, but not recommended for categorical data. Default is \code{TRUE} when \code{cat_kernel} is \code{FALSE} and \code{FALSE} otherwise. 
+#' @param linkernel logical if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead and adjusts singular values accoringly. This is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancing on means. The difference is that it employs SVD on X then seeks balance on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
+#' @param meanfirst logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.
 #' @param constraint optional matrix argument which requires returned weights \code{w} to achieve mean balance on the columns of \code{constraint}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of \code{K}. 
 #' @param numdims optional numeric argument to specify the number of dimensions of the kernel matrix to find balance on rather than searching for the number of dimensions which minimize the bias.
 #' @param minnumdims numeric argument to specify the minimum number of dimensions of the SVD of the kernel matrix to find balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
@@ -603,8 +606,8 @@ kbal = function(allx,
                 population.w = NULL,
                 K=NULL,
                 K.svd = NULL,
-                scale_data = TRUE,
-                drop_multicollin = TRUE,
+                scale_data = NULL,
+                drop_multicollin = NULL,
                 linkernel = FALSE,
                 cat_data = FALSE,
                 meanfirst = NULL,
@@ -624,11 +627,27 @@ kbal = function(allx,
     
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
-      if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){ ebal.convergence=FALSE} else (ebal.convergence=TRUE)
+      if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
+          ebal.convergence=FALSE
+          }  else (ebal.convergence=TRUE)
     }
     
 #####start of big error catch series to check if data is passed in correctly and
     #default setting/data set up
+    
+    ####Setting Defaults: scale_data and drop_multicollin
+    if(is.null(scale_data) & !cat_data) { 
+        scale_data = TRUE
+    } else if(is.null(scale_data)) {
+        scale_data = FALSE
+    }
+    if(is.null(drop_multicollin) & !cat_data) { 
+        drop_multicollin = TRUE
+    } else if(is.null(drop_multicollin)) {
+        drop_multicollin = FALSE
+    }
+    
+    
   
 ############# multicolinearity check ###################
     if(drop_multicollin) {
@@ -772,7 +791,7 @@ kbal = function(allx,
         }
         #check do not pass in K
         if(!is.null(K) | !is.null(K.svd)) {
-            warning("\"useasbases\" argument only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+            warning("\"useasbases\" argument only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
         }
     }
     
@@ -856,13 +875,14 @@ kbal = function(allx,
             if(!is.null(K.svd)) {maxnumdims = ncol(K.svd$u)}
             
         } else { maxnumdims = min(ncol(allx), 500) } 
-        trunc_svd_dims = .8*sum(useasbases) 
+        trunc_svd_dims = round(.8*sum(useasbases))
     } else{#2021: if pass max, want to still get svd out more dims so that bb is correct
-        trunc_svd_dims = max(.8*sum(useasbases), maxnumdims)
+        trunc_svd_dims = round(max(.8*sum(useasbases), maxnumdims))
         #in case that's bigger than the columns we have is checked below afer we have have K
     }
     
-    
+   
+
     ##### Setting Defaults: b (maxvar b) #####
     #adding default b within the kbal function rather than in makeK
     #changing default for not cat data to be 2*ncol to match kbal
@@ -874,12 +894,24 @@ kbal = function(allx,
         if (is.null(b)){ b = 2*ncol(allx) }
     } else {
         if(is.null(b)) {
-            res = b_maxvar(sample_dat = allx[observed], 
-                         population_data  = allx[target], 
-                         useasbases = useasbases)
+            res = b_maxvarK(onehot_data = allx, 
+                            sampled = observed,
+                            useasbases = useasbases)
             b = res$b_maxvar
             maxvar_K_out = res$var_K
-            
+        }
+        if(scale_data) {
+            warning("\"scale_data\" should be FALSE when using categorical data.", 
+                    immediate. = T)
+        }
+        if(drop_multicollin) {
+            warning("\"drop_multicollin\" should be FALSE when using categorical data.", 
+                    immediate. = TRUE)
+        }
+        if(linkernel) {
+            warning("\"linkernel\" should be FALSE when \"cat_data\" is TRUE. Proceeding with gaussian kernel.", 
+                    immediate. = TRUE)
+            linkernel = FALSE
         }
     }
     
@@ -899,7 +931,6 @@ kbal = function(allx,
         warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.", immediate. = TRUE)
         incrementby = 1
     }
-    
    
 #####end of big error catch series and data setup
 
@@ -918,12 +949,11 @@ kbal = function(allx,
         if(scale_constraint) {
             constraint <- scale(constraint)
         }
-        qr_constr = qr(constraint)
+        qr_constr = qr(constraint) 
         multicollin_constr = FALSE
         if(qr_constr$rank < ncol(constraint)) {
             stop("\"constraint\" contains collinear columns.")
         }
-        
     }
     
     
@@ -998,7 +1028,7 @@ kbal = function(allx,
           warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
       #provided we pass all those checks get svd with RSpectra
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}
@@ -1066,7 +1096,7 @@ kbal = function(allx,
           warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied. Using all columns.", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
       }
       if(!(length(ls(K.svd)) >= 2 && (c("d", "u") %in% ls(K.svd)))) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
@@ -1177,7 +1207,7 @@ kbal = function(allx,
   if(printprogress==TRUE) {
       cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
   }
-  
+
 ############# NUMDIMS GIVEN  ###################
   # If numdims given, just get the weights in one shot:
   if(!is.null(numdims)){
@@ -1220,6 +1250,8 @@ kbal = function(allx,
   
 ############# BIASBOUND OPTIMIZATION ###################
   # If numdims not given, we search to minimize biasbound:
+  cat("To safe exit dims search and proceed with minimum biasbound thus far, please enter \"exit\".")
+  
   if(is.null(numdims)){
     thisnumdims=minnumdims
     dist.record=NULL
@@ -1228,6 +1260,8 @@ kbal = function(allx,
     wayover=FALSE
     mindistsofar=998
     
+    safe_exit = FALSE
+    duration = 
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
@@ -1265,8 +1299,22 @@ kbal = function(allx,
          # (dist.now>mindistsofar)  # XXX this was in there, but needed?
          # Need to work on "keepgoing" for case where ebal fails.
       }
-
+    
+      if(readLines(, n = 1) == "exit") {
+          break
+      } else {
+          close()
+      }
       
+      open_time = proc.time()[3]
+      tryCatch({
+          setTimeLimit(elapsed=(open_time + duration - proc.time()[3]),
+                             transient = TRUE) 
+          readline()}
+          
+        error = function(e) { return("NULL")})
+      #you need to set up back this function... (but why i dont know????)
+      setTimeLimit(elapsed = Inf, transient = TRUE)
       
     } # End of while loop for "keepgoing"
 
@@ -1394,10 +1442,6 @@ kbal = function(allx,
                            w = getw.out$w, w.pop = w.pop, K=K)$L1
     }
 }
-  #for now a crude warning if pass K.svd in for L1 distance
-  if(!is.null(K.svd)) {
-      warning("Please note that the L1 distance is calculated on the svd of the kernel matrix passed in as \"K.svd\".", immediate. = TRUE)
-  }
   if(!is.null(meanfirst) && meanfirst) {
       cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
   }

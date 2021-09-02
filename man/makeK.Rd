@@ -4,7 +4,7 @@
 \alias{makeK}
 \title{Build the Gaussian Kernel Matrix}
 \usage{
-makeK(allx, useasbases = NULL, b = NULL, linkernel = FALSE)
+makeK(allx, useasbases = NULL, b = NULL, linkernel = FALSE, scale = TRUE)
 }
 \arguments{
 \item{allx}{A data matrix containing all observations where rows are units and columns are covariates.}
