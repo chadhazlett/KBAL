@@ -629,7 +629,9 @@ kbal = function(allx,
     if(is.null(ebal.convergence)){
       if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
           ebal.convergence=FALSE
-          }  else (ebal.convergence=TRUE)
+          }  else {
+              ebal.convergence=TRUE
+          }
     }
     
 #####start of big error catch series to check if data is passed in correctly and
@@ -783,9 +785,9 @@ kbal = function(allx,
     ###### Setting defaults - useasbases #####
     #7. checking useasbases if passed in
     if(!is.null(useasbases)) {
-        if(length(useasbases) != N) {
+        if( (length(useasbases) != N & !linkernel) )  {
             stop("Dimensions of \"useasbases\" do not match data \"allx\"")
-        }
+        }  
         if(!(all(useasbases %in% c(0,1)))) {
             stop("\"useasbases\" contains non-binary elements")
         }
