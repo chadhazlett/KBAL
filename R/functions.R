@@ -1262,8 +1262,6 @@ kbal = function(allx,
     wayover=FALSE
     mindistsofar=998
     
-    safe_exit = FALSE
-    duration = 
     while(keepgoing==TRUE){
       U_try=U[,1:thisnumdims, drop=FALSE]
       U_try.w.pop <- w.pop*U_try
@@ -1301,22 +1299,7 @@ kbal = function(allx,
          # (dist.now>mindistsofar)  # XXX this was in there, but needed?
          # Need to work on "keepgoing" for case where ebal fails.
       }
-    
-      if(readLines(, n = 1) == "exit") {
-          break
-      } else {
-          close()
-      }
-      
-      open_time = proc.time()[3]
-      tryCatch({
-          setTimeLimit(elapsed=(open_time + duration - proc.time()[3]),
-                             transient = TRUE) 
-          readline()}
-          
-        error = function(e) { return("NULL")})
-      #you need to set up back this function... (but why i dont know????)
-      setTimeLimit(elapsed = Inf, transient = TRUE)
+
       
     } # End of while loop for "keepgoing"
 
