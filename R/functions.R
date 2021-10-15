@@ -376,7 +376,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
 } ## end of getdist
 
 
-#' One hot Encoding for Categorical Data
+#' One-Hot Encoding for Categorical Data
 #' @description Converts raw categorical string/factor sample and population data into numeric one-hot encoded full data matrix to be passed to \code{kbal} argument \code{allx}
 #' @param sample_data a dataframe where rows are sample/control observations and columns are string or factor type covariates
 #' @param population_data a dataframe where rows are population/treated observations and columns are string or factor type covariates
@@ -759,8 +759,9 @@ kbal = function(allx,
         if(!is.null(sampledinpop) && sampledinpop == TRUE) {warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)}
         sampledinpop=FALSE
     }
+
     #5. checking for covariates with no variance:
-    if(0 %in% apply(allx, 2, sd)) {
+    if(!cat_data && 0 %in% apply(allx, 2, sd)) {
         stop("One or more column in \"allx\" has zero variance")
     }
     #6. error catch for NAs in data
@@ -894,8 +895,12 @@ kbal = function(allx,
     maxvar_K_out = NULL
     if(!cat_data) {
         if (is.null(b)){ b = 2*ncol(allx) }
-    } else {
+    } else { #cat_data = TRUE, onehot encode data and findfind maxvar b
         if(is.null(b)) {
+            allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
+            if(0 %in% apply(allx, 2, sd)) {
+                stop("One or more column in \"allx\" has zero variance")
+            }
             res = b_maxvarK(onehot_data = allx, 
                             sampled = observed,
                             useasbases = useasbases)
@@ -1252,8 +1257,6 @@ kbal = function(allx,
   
 ############# BIASBOUND OPTIMIZATION ###################
   # If numdims not given, we search to minimize biasbound:
-  cat("To safe exit dims search and proceed with minimum biasbound thus far, please enter \"exit\".")
-  
   if(is.null(numdims)){
     thisnumdims=minnumdims
     dist.record=NULL

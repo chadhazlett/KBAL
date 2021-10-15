@@ -15,7 +15,7 @@ kbal(
   K = NULL,
   K.svd = NULL,
   scale_data = NULL,
-  drop_multicollin = TRUE,
+  drop_multicollin = NULL,
   linkernel = FALSE,
   cat_data = FALSE,
   meanfirst = NULL,
@@ -51,11 +51,11 @@ kbal(
 
 \item{K.svd}{optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.}
 
-\item{scale_data}{if true and kernel build interally data is scaled before building K (demeans and scales varaince to 1). This is appropriate when \code{allx} contains continuous variables with different scales, but not recommended for categorical data. Default is \code{TRUE} when \code{cat_kernel} is \code{FALSE} and \code{FALSE} otherwise.}
+\item{scale_data}{logical if true and kernel build interally data is scaled before building K (demeans and scales varaince to 1). This is appropriate when \code{allx} contains continuous variables with different scales, but not recommended for categorical data. Default is \code{TRUE} when \code{cat_kernel} is \code{FALSE} and \code{FALSE} otherwise.}
 
-\item{linkernel}{if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead and adjusts singular values accoringly. This is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancing on means. The difference is that it employs SVD on X then seeks balance on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.}
+\item{linkernel}{logical if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead and adjusts singular values accoringly. This is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancing on means. The difference is that it employs SVD on X then seeks balance on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.}
 
-\item{meanfirst}{if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.}
+\item{meanfirst}{logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.}
 
 \item{constraint}{optional matrix argument which requires returned weights \code{w} to achieve mean balance on the columns of \code{constraint}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of \code{K}.}
 

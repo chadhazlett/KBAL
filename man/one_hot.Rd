@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{one_hot}
 \alias{one_hot}
-\title{One hot Encoding for Categorical Data}
+\title{One-Hot Encoding for Categorical Data}
 \usage{
 one_hot(sample_data, population_data)
 }

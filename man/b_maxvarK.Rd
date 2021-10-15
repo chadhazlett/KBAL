@@ -4,7 +4,7 @@
 \alias{b_maxvarK}
 \title{Maximum Variance of Kernel Matrix}
 \usage{
-b_maxvarK(onehot_data, sampled, max_search_b = NULL, useasebases)
+b_maxvarK(onehot_data, sampled, max_search_b = NULL, useasbases)
 }
 \arguments{
 \item{onehot_data}{a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.}
