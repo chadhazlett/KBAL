@@ -847,44 +847,6 @@ kbal = function(allx,
         w.pop[target==1] = population.w
         
     }
-    
-    ###### Setting defaults: minnumdims, maxnumdims #####
-    #8. now checking maxnumdims: the most dims you can use is the number of bases
-    if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)) {
-        warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing \"maxnumdims\".", immediate. = TRUE)
-        maxnumdims=sum(useasbases)
-    }#make sure don't send in a neg
-    if (!is.null(maxnumdims) && maxnumdims<=0) {
-        stop("\"maxnumdims\" must be greater than zero")
-    } #when linkernel ==TRUE ensure maxnumdims not greater than cols of X
-    if(linkernel == TRUE && !is.null(maxnumdims) && maxnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"maxnumdims\" to the number of coumns in \"allx\".", 
-                immediate. = TRUE )
-        maxnumdims = ncol(allx)
-    }
-    if(linkernel == TRUE && !is.null(minnumdims) && minnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.", 
-                immediate. = TRUE )
-        minnumdims = 1
-    }
-    
-    #Setting defaults: minnumdims, maxnumdims
-    if (is.null(minnumdims)){minnumdims=1}
-    
-    if (is.null(maxnumdims)){
-        if(linkernel == FALSE) {
-            maxnumdims= min(500, sum(useasbases))  
-            if(!is.null(K)) {maxnumdims = ncol(K)}
-            if(!is.null(K.svd)) {maxnumdims = ncol(K.svd$u)}
-            
-        } else { maxnumdims = min(ncol(allx), 500) } 
-        trunc_svd_dims = round(.8*sum(useasbases))
-    } else{#2021: if pass max, want to still get svd out more dims so that bb is correct
-        trunc_svd_dims = round(max(.8*sum(useasbases), maxnumdims))
-        #in case that's bigger than the columns we have is checked below afer we have have K
-    }
-    
-   
 
     ##### Setting Defaults: b (maxvar b) #####
     #adding default b within the kbal function rather than in makeK
@@ -929,9 +891,45 @@ kbal = function(allx,
     }
     
     
+    ###### Setting defaults: minnumdims, maxnumdims #####
+    #8. now checking maxnumdims: the most dims you can use is the number of bases
+    if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)) {
+        warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing \"maxnumdims\".", immediate. = TRUE)
+        maxnumdims=sum(useasbases)
+    }#make sure don't send in a neg
+    if (!is.null(maxnumdims) && maxnumdims<=0) {
+        stop("\"maxnumdims\" must be greater than zero")
+    } #when linkernel ==TRUE ensure maxnumdims not greater than cols of X
+    if(linkernel == TRUE && !is.null(maxnumdims) && maxnumdims > ncol(allx)) {
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"maxnumdims\" to the number of coumns in \"allx\".", 
+                immediate. = TRUE )
+        maxnumdims = ncol(allx)
+    }
+    if(linkernel == TRUE && !is.null(minnumdims) && minnumdims > ncol(allx)) {
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.", 
+                immediate. = TRUE )
+        minnumdims = 1
+    }
+    
+    #Setting defaults: minnumdims, maxnumdims
+    if (is.null(minnumdims)){minnumdims=1}
+    
+    if (is.null(maxnumdims)){
+        if(linkernel == FALSE) {
+            maxnumdims= min(500, sum(useasbases))  
+            if(!is.null(K)) {maxnumdims = ncol(K)}
+            if(!is.null(K.svd)) {maxnumdims = ncol(K.svd$u)}
+            
+        } else { maxnumdims = min(ncol(allx), 500) } 
+        trunc_svd_dims = round(.8*sum(useasbases))
+    } else{#2021: if pass max, want to still get svd out more dims so that bb is correct
+        trunc_svd_dims = round(max(.8*sum(useasbases), maxnumdims))
+        #in case that's bigger than the columns we have is checked below afer we have have K
+    }
+    
 
     #9. now checking numdims if passed in
-    if(!is.null(numdims) && numdims>maxnumdims) { #check not over max
+    if(!is.null(numdims) && numdims>maxnumdims) { #check not over max (mainly for truc SVD)
         warning("\"numdims\" cannot exceed \"maxnumdims\". Reducing to maximum allowed.",
                 immediate. = TRUE)
         numdims= maxnumdims
