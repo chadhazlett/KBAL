@@ -804,7 +804,7 @@ kbal = function(allx,
             useasbases = rep(1,N)
     } else if(is.null(useasbases) & !linkernel) {
         if(is.null(K) & is.null(K.svd) ) {
-            warning("Dimensions of K greater than 4000, using sampled as default bases",
+            warning("Dimensions of K greater than 4000, using sampled as default bases\n",
                     immediate. = TRUE)
         }
           useasbases = as.numeric(observed==1)
@@ -895,30 +895,34 @@ kbal = function(allx,
     maxvar_K_out = NULL
     if(!cat_data) {
         if (is.null(b)){ b = 2*ncol(allx) }
-    } else { #cat_data = TRUE, onehot encode data and findfind maxvar b
-        if(is.null(b)) {
-            allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
-            if(0 %in% apply(allx, 2, sd)) {
-                stop("One or more column in \"allx\" has zero variance")
+    } else { #cat_data = TRUE, onehot encode data and find maxvar b
+        if(!is.null(K.svd) | !is.null(K)) {
+            warning("\"cat_data\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+        } else {
+            if(is.null(b)) {
+                allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
+                if(0 %in% apply(allx, 2, sd)) {
+                    stop("One or more column in \"allx\" has zero variance")
+                }
+                res = b_maxvarK(onehot_data = allx, 
+                                sampled = observed,
+                                useasbases = useasbases)
+                b = res$b_maxvar
+                maxvar_K_out = res$var_K
             }
-            res = b_maxvarK(onehot_data = allx, 
-                            sampled = observed,
-                            useasbases = useasbases)
-            b = res$b_maxvar
-            maxvar_K_out = res$var_K
-        }
-        if(scale_data) {
-            warning("\"scale_data\" should be FALSE when using categorical data.", 
-                    immediate. = T)
-        }
-        if(drop_multicollin) {
-            warning("\"drop_multicollin\" should be FALSE when using categorical data.", 
-                    immediate. = TRUE)
-        }
-        if(linkernel) {
-            warning("\"linkernel\" should be FALSE when \"cat_data\" is TRUE. Proceeding with gaussian kernel.", 
-                    immediate. = TRUE)
-            linkernel = FALSE
+            if(scale_data) {
+                warning("\"scale_data\" should be FALSE when using categorical data.", 
+                        immediate. = TRUE)
+            }
+            if(drop_multicollin) {
+                warning("\"drop_multicollin\" should be FALSE when using categorical data.", 
+                        immediate. = TRUE)
+            }
+            if(linkernel) {
+                warning("\"linkernel\" should be FALSE when \"cat_data\" is TRUE. Proceeding with gaussian kernel.", 
+                        immediate. = TRUE)
+                linkernel = FALSE
+            }
         }
     }
     
@@ -1017,25 +1021,25 @@ kbal = function(allx,
       #error checks:
       #check maxnumdims
       if(maxnumdims > ncol(K) ) {
-          warning("\"maxnumdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.", immediate. = TRUE)
+          warning("\"maxnumdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.\n", immediate. = TRUE)
           maxnumdims = ncol(K)
       }
       #check numdims
       if(!is.null(numdims) && numdims > ncol(K) ) {
-          warning("\"numdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.", immediate. = TRUE)
+          warning("\"numdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.\n", immediate. = TRUE)
           numdims = ncol(K)
       }
       #check minnumdims 
       if(minnumdims > maxnumdims) {
-          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.", immediate. = TRUE)
+          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.\n", immediate. = TRUE)
           minnumdims = 1
       }
       #warning that linkernel meaningless
       if(!is.null(linkernel) && linkernel) {
-          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
       #provided we pass all those checks get svd with RSpectra
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}
@@ -1060,13 +1064,13 @@ kbal = function(allx,
               if(var_explained < .999) {
                   warning("Truncated SVD with ", trunc_svd_dims,
                           " first singular values only accounts for ", var_explained,
-                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".", immediate. = TRUE)
+                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".\n", immediate. = TRUE)
               }
           } else { #use svds, suppressing warnings that it prints if uses full size svd
              
               svd.out= RSpectra::svds(K, trunc_svd_dims)
               warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
-                      trunc_svd_dims," first singular values is unknown.",
+                      trunc_svd_dims," first singular values is unknown.\n",
                       immediate. = TRUE)
               var_explained = NULL
           }
@@ -1086,7 +1090,7 @@ kbal = function(allx,
       #error catches
       #check maxnumdims
       if(maxnumdims > ncol(K.svd$u) ) {
-          warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
+          warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.\n", immediate. = TRUE)
           maxnumdims = ncol(K.svd$u)
       }
       #check numdims
@@ -1096,14 +1100,14 @@ kbal = function(allx,
       }
       #check minnumdims 
       if(minnumdims > maxnumdims) {
-          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.", immediate. = TRUE)
+          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.\n", immediate. = TRUE)
           minnumdims = 1
       }
       if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
-          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
       if(!(length(ls(K.svd)) >= 2 && (c("d", "u") %in% ls(K.svd)))) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
@@ -1114,9 +1118,9 @@ kbal = function(allx,
       U = K.svd$u
       var_explained = NULL
       if(!is.null(K)) {
-          warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input")
+          warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input\n")
       } else {
-          warning("With only \"K.svd\" input, L1 distance will be computed on the left singular vectors u")
+          warning("With only \"K.svd\" input, L1 distance will be computed on the left singular vectors u\n")
           #L1 distance will compute but be sort of strange on U instead
           K = U
       }
@@ -1124,7 +1128,7 @@ kbal = function(allx,
       
 #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
   } else { 
-      if(printprogress == TRUE) {cat("Building kernel matrix \n")}
+      if(printprogress == TRUE) {cat("Building kernel matrix\n")}
       if(linkernel == FALSE) {
           K = makeK(allx = allx, useasbases = useasbases, b=b, 
                     scale = scale_data)
