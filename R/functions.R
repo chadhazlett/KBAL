@@ -864,10 +864,10 @@ kbal = function(allx,
             if (is.null(b)){ b = 2*ncol(allx) } 
         } else {
             allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
+            if(0 %in% apply(allx, 2, sd)) {
+                stop("One or more column in \"allx\" has zero variance")
+            }
             if(is.null(b)) {
-                if(0 %in% apply(allx, 2, sd)) {
-                    stop("One or more column in \"allx\" has zero variance")
-                }
                 res = b_maxvarK(onehot_data = allx, 
                                 sampled = observed,
                                 useasbases = useasbases)
@@ -906,8 +906,7 @@ kbal = function(allx,
         maxnumdims = ncol(allx)
     }
     if(linkernel == TRUE && !is.null(minnumdims) && minnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.\n", 
-                immediate. = TRUE )
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.\n", immediate. = TRUE )
         minnumdims = 1
     }
     
@@ -1441,6 +1440,7 @@ kbal = function(allx,
 
       
   R=list()
+  if(cat_data) {R$onehot_data = allx}
   R$w= getw.out$w
   R$biasbound_opt=biasbound_opt
   R$biasbound_orig=dist.orig
