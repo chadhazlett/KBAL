@@ -656,7 +656,7 @@ kbal = function(allx,
         qr_X = qr(allx)
         multicollin = FALSE
         if(qr_X$rank < ncol(allx)) {
-            warning("\"allx\" contains collinear columns. Dropping these columns", 
+            warning("\"allx\" contains collinear columns. Dropping these columns \n", 
                     immediate. = TRUE)
             multicollin = TRUE
         }
@@ -730,7 +730,7 @@ kbal = function(allx,
       #now check sampledinpop
       if(is.null(sampledinpop)) { 
           #if pass in sampled and dn specify sampledinpop set default and give warning
-          warning("using default parameter \"sampledinpop\" = TRUE", immediate. = TRUE)
+          warning("using default parameter \"sampledinpop\" = TRUE \n", immediate. = TRUE)
           sampledinpop = TRUE
       } else if(!(sampledinpop %in% c(0,1))) { #if pass in sampledinpop check its binary
           stop("\"sampledinpop\" is not binary" )
@@ -756,7 +756,7 @@ kbal = function(allx,
     }
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
     if(!is.null(treatment) & (is.null(sampledinpop) || sampledinpop == TRUE)) {
-        if(!is.null(sampledinpop) && sampledinpop == TRUE) {warning("Targeting ATT, which implies sampledinpop=FALSE.", immediate. = TRUE)}
+        if(!is.null(sampledinpop) && sampledinpop == TRUE) {warning("Targeting ATT, which implies sampledinpop=FALSE.\n", immediate. = TRUE)}
         sampledinpop=FALSE
     }
 
@@ -794,7 +794,7 @@ kbal = function(allx,
         }
         #check do not pass in K
         if(!is.null(K) | !is.null(K.svd)) {
-            warning("\"useasbases\" argument only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied.", immediate. = TRUE)
+            warning("\"useasbases\" argument only used in the construction of the kernel matrix \"K\" and should not be specified when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
         }
     }
     
@@ -875,15 +875,15 @@ kbal = function(allx,
                 maxvar_K_out = res$var_K
             }
             if(scale_data) {
-                warning("\"scale_data\" should be FALSE when using categorical data.", 
+                warning("\"scale_data\" should be FALSE when using categorical data. \n", 
                         immediate. = TRUE)
             }
             if(drop_multicollin) {
-                warning("\"drop_multicollin\" should be FALSE when using categorical data.", 
+                warning("\"drop_multicollin\" should be FALSE when using categorical data.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
-                warning("\"linkernel\" should be FALSE when \"cat_data\" is TRUE. Proceeding with gaussian kernel.", 
+                warning("\"linkernel\" should be FALSE when \"cat_data\" is TRUE. Proceeding with gaussian kernel.\n", 
                         immediate. = TRUE)
                 linkernel = FALSE
             }
@@ -894,19 +894,19 @@ kbal = function(allx,
     ###### Setting defaults: minnumdims, maxnumdims #####
     #8. now checking maxnumdims: the most dims you can use is the number of bases
     if (!is.null(maxnumdims) && maxnumdims>sum(useasbases)) {
-        warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing \"maxnumdims\".", immediate. = TRUE)
+        warning("Cannot allow dimensions of K to be greater than the number of bases. Reducing \"maxnumdims\". \n", immediate. = TRUE)
         maxnumdims=sum(useasbases)
     }#make sure don't send in a neg
     if (!is.null(maxnumdims) && maxnumdims<=0) {
         stop("\"maxnumdims\" must be greater than zero")
     } #when linkernel ==TRUE ensure maxnumdims not greater than cols of X
-    if(linkernel == TRUE && !is.null(maxnumdims) && maxnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"maxnumdims\" to the number of coumns in \"allx\".", 
+    if(linkernel == TRUE && cat_data = FALSE && !is.null(maxnumdims) && maxnumdims > ncol(allx)) {
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"maxnumdims\" to the number of coumns in \"allx\ \n", 
                 immediate. = TRUE )
         maxnumdims = ncol(allx)
     }
     if(linkernel == TRUE && !is.null(minnumdims) && minnumdims > ncol(allx)) {
-        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.", 
+        warning("When using a linear kernel, cannot allow dimensions of K to be greater than the number of columns in \"allx\". Reducing \"minnumdims\" to 1.\n", 
                 immediate. = TRUE )
         minnumdims = 1
     }
@@ -930,7 +930,7 @@ kbal = function(allx,
 
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max (mainly for truc SVD)
-        warning("\"numdims\" cannot exceed \"maxnumdims\". Reducing to maximum allowed.",
+        warning("\"numdims\" cannot exceed \"maxnumdims\". Reducing to maximum allowed.\n",
                 immediate. = TRUE)
         numdims= maxnumdims
     } else if(!is.null(numdims) && numdims <= 0) { #check not leq zero
@@ -939,7 +939,7 @@ kbal = function(allx,
     
     #10. incrementby not null and geq 1
     if(is.null(incrementby) || incrementby < 1){
-        warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.", immediate. = TRUE)
+        warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.\n", immediate. = TRUE)
         incrementby = 1
     }
    
@@ -974,7 +974,7 @@ kbal = function(allx,
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
-            warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.", immediate. = TRUE)
+            warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.\n", immediate. = TRUE)
         }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
         kbalout.mean = suppressWarnings(kbal(allx=allx, 
@@ -1095,7 +1095,7 @@ kbal = function(allx,
       }
       #check numdims
       if(!is.null(numdims) && numdims > ncol(K.svd$u) ) {
-          warning("\"numdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.", immediate. = TRUE)
+          warning("\"numdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.\n", immediate. = TRUE)
           numdims = ncol(K)
       }
       #check minnumdims 
@@ -1161,7 +1161,7 @@ kbal = function(allx,
           } else { #use truncated svd
               svd.out= RSpectra::svds(K, round(trunc_svd_dims))
               warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
-                      trunc_svd_dims," is unknown", immediate. = TRUE)
+                      trunc_svd_dims," is unknown \n", immediate. = TRUE)
               var_explained = NULL
           }
           U=svd.out$u
@@ -1236,7 +1236,7 @@ kbal = function(allx,
     if(!converged) {
         numpass = numdims
         if(!is.null(constraint)) {numpass = numdims - ncol(constraint)}
-        warning("With user-specified ", numpass," dimensions ebalance did not converge within tolerance. Disregarding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.")
+        warning("With user-specified ", numpass," dimensions ebalance did not converge within tolerance. Disregarding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.\n")
         
     }
     if(printprogress == TRUE & is.null(constraint)) {
@@ -1328,7 +1328,7 @@ kbal = function(allx,
         # If nothing improved balance, there will be multiple minima.
         # Throw warning, and choose the fewest numdims.
         if (length(numdims)>1){
-            warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+            warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
                     immediate. = TRUE)
             numdims=min(numdims)
         }
@@ -1403,7 +1403,7 @@ kbal = function(allx,
             dimseq=seq(minnumdims,maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             if (length(numdims)>1){
-                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
                         immediate. = TRUE)
                 numdims=min(numdims)
             }
@@ -1412,7 +1412,7 @@ kbal = function(allx,
             dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
             if (length(numdims)>1){
-                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.",
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
                         immediate. = TRUE)
                 numdims=min(numdims)
             }
