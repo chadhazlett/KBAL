@@ -898,9 +898,11 @@ kbal = function(allx,
     } else { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(K.svd) | !is.null(K)) {
             warning("\"cat_data\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            #don't use this it's internal for a check for later if user passes in a b + k.svd
+            if (is.null(b)){ b = 2*ncol(allx) } 
         } else {
+            allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
             if(is.null(b)) {
-                allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
                 if(0 %in% apply(allx, 2, sd)) {
                     stop("One or more column in \"allx\" has zero variance")
                 }
