@@ -624,7 +624,6 @@ kbal = function(allx,
                 printprogress = TRUE) {
 
     N=nrow(allx)
-    
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
       if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
@@ -645,73 +644,80 @@ kbal = function(allx,
     }
     if(is.null(drop_multicollin) & !cat_data) { 
         drop_multicollin = TRUE
-    } else if(is.null(drop_multicollin)) {
+    } else if(is.null(drop_multicollin)) { 
+        drop_multicollin = FALSE
+    } else if(drop_multicollin) { 
+        warning("\"drop_multicollin\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
+                immediate. = TRUE)
         drop_multicollin = FALSE
     }
-    
-    
+ 
   
 ############# multicolinearity check ###################
-    if(drop_multicollin) {
-        qr_X = qr(allx)
-        multicollin = FALSE
-        if(qr_X$rank < ncol(allx)) {
-            warning("\"allx\" contains collinear columns. Dropping these columns \n", 
-                    immediate. = TRUE)
-            multicollin = TRUE
-        }
-        allx_update = allx
-        dropped_cols = NULL
-        while(multicollin == TRUE){
-            cor = cor(allx_update)
-            diag(cor) = 0
-            cor[lower.tri(cor)] = 0
-            cor = abs(cor)
-            drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
-            dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
-            allx_update = allx_update[,-drop]
-            if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
-            
-        }
-        allx = allx_update
-    } else {
-        multicollin = NA
-        dropped_cols = NULL
-    }
     
-    
-    ####Updated to fix problem where dropping wrong cols here: INCORPORATE W MORE TIME FOR ERROR CHECKS
     # if(drop_multicollin) {
-    #     qr_X = qr(X_truth)
+    #     if(cat_data) {
+    #         warning("\"drop_multicollin\" should be FALSE when using categorical data.\n", 
+    #                 immediate. = TRUE)
+    #     }
+    #     qr_X = qr(allx)
     #     multicollin = FALSE
-    #     if(qr_X$rank < ncol(X_truth)) {
+    #     if(qr_X$rank < ncol(allx)) {
+    #         warning("\"allx\" contains collinear columns. Dropping these columns \n", 
+    #                 immediate. = TRUE)
     #         multicollin = TRUE
     #     }
     #     allx_update = allx
     #     dropped_cols = NULL
-    #     cor = cor(allx_update)
-    #     diag(cor) = 0
-    #     cor[lower.tri(cor)] = 0
-    #     cor = abs(cor)
-    #     all_cor <- sort(c(cor), decreasing = TRUE)
-    #     i = 1
-    #     rank_target = qr(X_truth)$rank
     #     while(multicollin == TRUE){
-    #         drop = which(cor == all_cor[i], arr.ind = T)[1,1]
-    #         
-    #         if(qr(allx_update[,-drop])$rank == rank_target) {
-    #             dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i], 
-    #                                                           arr.ind  =TRUE))[1])
-    #             allx_update <- allx_update[,-drop]
-    #         } 
-    #         #cat(i, drop, ncol(allx_update),"\n")
-    #         i = i + 1
-    #         if(qr_X$rank == ncol(allx_update)) {multicollin = FALSE}
+    #         cor = cor(allx_update)
+    #         diag(cor) = 0
+    #         cor[lower.tri(cor)] = 0
+    #         cor = abs(cor)
+    #         drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
+    #         dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
+    #         allx_update = allx_update[,-drop]
+    #         if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
     #         
     #     }
     #     allx = allx_update
+    # } else {
+    #     multicollin = NA
+    #     dropped_cols = NULL
     # }
+    # 
     
+    ####Updated to fix problem where dropping wrong cols here: INCORPORATE W MORE TIME FOR ERROR CHECKS
+    if(drop_multicollin) {
+        qr_X = qr(allx)
+        multicollin = FALSE
+        if(qr_X$rank < ncol(allx)) {
+            multicollin = TRUE
+        }
+        allx_update = allx
+        dropped_cols = NULL
+        cor = cor(allx_update)
+        diag(cor) = 0
+        cor[lower.tri(cor)] = 0
+        cor = abs(cor)
+        all_cor <- sort(c(cor), decreasing = TRUE)
+        i = 1
+        rank_target = qr(allx)$rank
+        while(multicollin == TRUE){
+            drop = which(cor == all_cor[i], arr.ind = T)[1,1]
+
+            if(qr(allx_update[,-drop])$rank == rank_target) {
+                dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
+                                                              arr.ind  =TRUE))[1])
+                allx_update <- allx_update[,-drop]
+            }
+            #cat(i, drop, ncol(allx_update),"\n")
+            i = i + 1
+            if(qr_X$rank == ncol(allx_update)) {multicollin = FALSE}
+
+        }
+        allx = allx_update
+    }
     
     
 ############### ERROR CHECKS ##################    
@@ -807,10 +813,10 @@ kbal = function(allx,
             warning("Dimensions of K greater than 4000, using sampled as default bases\n",
                     immediate. = TRUE)
         }
-          useasbases = as.numeric(observed==1)
+        useasbases = as.numeric(observed==1)
     }
     #for a linear kernel, the bases are gonna be defined by the cols of the data
-    #we will use all of them
+    #we will use all of them 
     if (is.null(useasbases) & linkernel) {
         #this does not get used in makeK just for the rest of the
         useasbases = rep(1,ncol(allx))
@@ -855,6 +861,7 @@ kbal = function(allx,
         stop("\"b \" must be a scalar.")
     }
     maxvar_K_out = NULL
+    onehot = NULL
     if(!cat_data) {
         if (is.null(b)){ b = 2*ncol(allx) }
     } else { #cat_data = TRUE, onehot encode data and find maxvar b
@@ -864,28 +871,35 @@ kbal = function(allx,
             if (is.null(b)){ b = 2*ncol(allx) } 
         } else {
             allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
+            onehot = allx
             if(0 %in% apply(allx, 2, sd)) {
                 stop("One or more column in \"allx\" has zero variance")
             }
-            if(is.null(b)) {
-                res = b_maxvarK(onehot_data = allx, 
-                                sampled = observed,
-                                useasbases = useasbases)
-                b = res$b_maxvar
-                maxvar_K_out = res$var_K
-            }
+            #checks
             if(scale_data) {
                 warning("\"scale_data\" should be FALSE when using categorical data. \n", 
-                        immediate. = TRUE)
-            }
-            if(drop_multicollin) {
-                warning("\"drop_multicollin\" should be FALSE when using categorical data.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
                 warning("\"linkernel\" should be FALSE when \"cat_data\" is TRUE. Proceeding with gaussian kernel.\n", 
                         immediate. = TRUE)
                 linkernel = FALSE
+                #fix useasbases whose default was messed up by this above:
+                if (N <= 4000) {
+                    useasbases = rep(1,N)
+                } else {
+                    warning("Dimensions of K greater than 4000, using sampled as default bases\n",
+                            immediate. = TRUE)
+                    useasbases = as.numeric(observed==1)
+                }
+            }
+            #go get best b
+            if(is.null(b)) {
+                res = b_maxvarK(onehot_data = allx, 
+                                sampled = observed,
+                                useasbases = useasbases)
+                b = res$b_maxvar
+                maxvar_K_out = res$var_K
             }
         }
     }
@@ -947,7 +961,7 @@ kbal = function(allx,
 #if pass maxnumdims = N then they want the full svd, so change this for them to avoid all those if statement checks below just to do the same thing
     if(!linkernel && maxnumdims == nrow(allx)) {
         fullSVD = TRUE
-    } else if(maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
+    } else if(linkernel & maxnumdims == ncol(allx)) { #for linear kernel this is maxnumdims = ncol
         fullSVD = TRUE
     } 
 
@@ -1438,9 +1452,9 @@ kbal = function(allx,
   }
 
 
+  
       
   R=list()
-  if(cat_data) {R$onehot_data = allx}
   R$w= getw.out$w
   R$biasbound_opt=biasbound_opt
   R$biasbound_orig=dist.orig
@@ -1450,6 +1464,7 @@ kbal = function(allx,
   R$L1_orig = L1_orig
   R$L1_opt = L1_optim
   R$K = K
+  R$onehot_data = onehot
   R$linkernel = linkernel
   R$svdK = svd.out
   R$b = b_out
