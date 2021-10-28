@@ -235,9 +235,12 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
   N=nrow(svd.U)
   converged = FALSE
   #earlyfail = FALSE
+  error = NULL
   if ("try-error"%in%class(bal.out.pc)[1]){
-          warning("\'ebalace_custom()\' encountered an error. Returning equal weights.", 
+          warning("\'ebalace_custom()\' encountered an error. Returning equal weights. See \"ebal_error\" for details. ", 
                   immediate. = T)
+      error = bal.out.pc[1]
+      
     w=rep(1,N)
     
   }
@@ -254,7 +257,8 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
   }
  
     out <- list(w = w, 
-                converged=converged)
+                converged=converged, 
+                ebal_error = error)
   return(out)
 } # end of getw.
 
@@ -448,7 +452,14 @@ b_maxvarK <- function(onehot_data,
 }
 
 
-
+#' Drop Multicollinear Columns
+#' @description Drops multicollienar columns in order of highest correlation
+#' @param allx a matrix of data to check for multicollinearity
+#' @return \item{allx_noMC}{resulting data matrix of full rank after multicolliear columns have been dropped}
+#' \item{dropped_cols}{column names of those dropped}
+#' @examples
+#' \donttest{XX Fill in XX }
+#' @export
 drop_multicollin <- function(allx) {
     
     qr_X = qr(allx)
@@ -684,9 +695,9 @@ kbal = function(allx,
     }
     if(is.null(drop_MC) & !cat_data) { 
         drop_MC = TRUE
-    } else if(is.null(drop_MC)) { 
+    } else if(is.null(drop_MC) & cat_data) { 
         drop_MC = FALSE
-    } else if(drop_MC) { 
+    } else if(drop_MC & cat_data) { 
         warning("\"drop_MC\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
                 immediate. = TRUE)
         drop_MC = FALSE
@@ -1435,7 +1446,7 @@ kbal = function(allx,
   }
 
 
-  
+  ebal_error = getw.out$ebal_error
       
   R=list()
   R$w= getw.out$w
@@ -1456,6 +1467,7 @@ kbal = function(allx,
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst_dims = meanfirst_dims
+  R$ebal_error = ebal_error
   return(R)
 } # end kbal main function
 
