@@ -448,6 +448,46 @@ b_maxvarK <- function(onehot_data,
 }
 
 
+
+drop_multicollin <- function(allx) {
+    
+    qr_X = qr(allx)
+    multicollin = FALSE
+    if(qr_X$rank < ncol(allx)) {
+        multicollin = TRUE
+    }
+    allx_update = allx
+    dropped_cols = NULL
+    cor = cor(allx_update)
+    diag(cor) = 0
+    cor[lower.tri(cor)] = 0
+    cor = abs(cor)
+    all_cor <- sort(c(cor), decreasing = TRUE)
+    i = 1
+    rank_target = qr(allx)$rank
+    while(multicollin == TRUE){
+        drop = which(cor == all_cor[i], arr.ind = T)[1,1]
+        
+        if(qr(allx_update[,-drop])$rank == rank_target) {
+            dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
+                                                          arr.ind  =TRUE))[1])
+            allx_update <- allx_update[,-drop]
+        }
+        #cat(i, drop, ncol(allx_update),"\n")
+        i = i + 1
+        if(qr_X$rank == ncol(allx_update)) {multicollin = FALSE}
+        
+    }
+    allx = allx_update
+        
+    return(list(allx_noMC = allx, 
+                dropped_cols = dropped_cols))
+}
+
+
+
+
+
 # The main event: Actual kbal function!
 #' Kernel Balancing
 #'
@@ -607,7 +647,7 @@ kbal = function(allx,
                 K=NULL,
                 K.svd = NULL,
                 scale_data = NULL,
-                drop_multicollin = NULL,
+                drop_MC = NULL,
                 linkernel = FALSE,
                 cat_data = FALSE,
                 meanfirst = NULL,
@@ -636,87 +676,26 @@ kbal = function(allx,
 #####start of big error catch series to check if data is passed in correctly and
     #default setting/data set up
     
-    ####Setting Defaults: scale_data and drop_multicollin
+    ####Setting Defaults: scale_data and drop_MC
     if(is.null(scale_data) & !cat_data) { 
         scale_data = TRUE
     } else if(is.null(scale_data)) {
         scale_data = FALSE
     }
-    if(is.null(drop_multicollin) & !cat_data) { 
-        drop_multicollin = TRUE
-    } else if(is.null(drop_multicollin)) { 
-        drop_multicollin = FALSE
-    } else if(drop_multicollin) { 
-        warning("\"drop_multicollin\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
+    if(is.null(drop_MC) & !cat_data) { 
+        drop_MC = TRUE
+    } else if(is.null(drop_MC)) { 
+        drop_MC = FALSE
+    } else if(drop_MC) { 
+        warning("\"drop_MC\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
                 immediate. = TRUE)
-        drop_multicollin = FALSE
+        drop_MC = FALSE
     }
  
-  
-############# multicolinearity check ###################
-    
-    # if(drop_multicollin) {
-    #     if(cat_data) {
-    #         warning("\"drop_multicollin\" should be FALSE when using categorical data.\n", 
-    #                 immediate. = TRUE)
-    #     }
-    #     qr_X = qr(allx)
-    #     multicollin = FALSE
-    #     if(qr_X$rank < ncol(allx)) {
-    #         warning("\"allx\" contains collinear columns. Dropping these columns \n", 
-    #                 immediate. = TRUE)
-    #         multicollin = TRUE
-    #     }
-    #     allx_update = allx
-    #     dropped_cols = NULL
-    #     while(multicollin == TRUE){
-    #         cor = cor(allx_update)
-    #         diag(cor) = 0
-    #         cor[lower.tri(cor)] = 0
-    #         cor = abs(cor)
-    #         drop = which(cor == max(cor), arr.ind  =TRUE)[1,1]
-    #         dropped_cols = c(dropped_cols, rownames(which(cor == max(cor), arr.ind  =TRUE))[1])
-    #         allx_update = allx_update[,-drop]
-    #         if(qr(allx_update)$rank == ncol(allx_update)) {multicollin = FALSE}
-    #         
-    #     }
-    #     allx = allx_update
-    # } else {
-    #     multicollin = NA
-    #     dropped_cols = NULL
-    # }
-    # 
-    
-    ####Updated to fix problem where dropping wrong cols here: INCORPORATE W MORE TIME FOR ERROR CHECKS
-    if(drop_multicollin) {
-        qr_X = qr(allx)
-        multicollin = FALSE
-        if(qr_X$rank < ncol(allx)) {
-            multicollin = TRUE
-        }
-        allx_update = allx
-        dropped_cols = NULL
-        cor = cor(allx_update)
-        diag(cor) = 0
-        cor[lower.tri(cor)] = 0
-        cor = abs(cor)
-        all_cor <- sort(c(cor), decreasing = TRUE)
-        i = 1
-        rank_target = qr(allx)$rank
-        while(multicollin == TRUE){
-            drop = which(cor == all_cor[i], arr.ind = T)[1,1]
-
-            if(qr(allx_update[,-drop])$rank == rank_target) {
-                dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
-                                                              arr.ind  =TRUE))[1])
-                allx_update <- allx_update[,-drop]
-            }
-            #cat(i, drop, ncol(allx_update),"\n")
-            i = i + 1
-            if(qr_X$rank == ncol(allx_update)) {multicollin = FALSE}
-
-        }
-        allx = allx_update
+    if(drop_MC) {
+        MC_out <- drop_multicollin(allx)
+        dropped_cols <- MC_out$dropped_cols
+        allx <- MC_out$allx_noMC
     }
     
     
@@ -976,7 +955,11 @@ kbal = function(allx,
         qr_constr = qr(constraint) 
         multicollin_constr = FALSE
         if(qr_constr$rank < ncol(constraint)) {
-            stop("\"constraint\" contains collinear columns.")
+            MC_out <- drop_multicollin(constraint)
+            warning("\"constraint\" contains collinear columns: ", MC_out$dropped_cols, 
+                    " which will be dropped\n",
+                    immediate. = TRUE)
+            constraint <- MC_out$allx_noMC
         }
     }
     
@@ -997,7 +980,7 @@ kbal = function(allx,
                            #we don't want to do drop mc cols with cat data
                            #with mf routine we take the svd anyway so even w other data
                            #this issue will resolve itself
-                           drop_multicollin = FALSE, 
+                           drop_MC = FALSE, 
                            sampledinpop = sampledinpop,
                            useasbases = useasbases,
                            meanfirst = FALSE,
