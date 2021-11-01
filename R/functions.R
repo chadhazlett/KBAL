@@ -382,26 +382,22 @@ getdist <- function(target, observed, K, svd.U = NULL,
 
 #' One-Hot Encoding for Categorical Data
 #' @description Converts raw categorical string/factor sample and population data into numeric one-hot encoded full data matrix to be passed to \code{kbal} argument \code{allx}
-#' @param sample_data a dataframe where rows are sample/control observations and columns are string or factor type covariates
-#' @param population_data a dataframe where rows are population/treated observations and columns are string or factor type covariates
+#' @param data a dataframe or matrix where columns are string or factor type covariates
 #' @return \item{onehot_data}{a matrix of combined sample and population data with rows corresponding to units and columns one-hot encoded categorical covariates}
 #' \item{sampled}{a numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 #' @examples
 #' \donttest{XX Fill in XX }
 #' @export
-one_hot <- function(sample_data, population_data) {
-    onehot_data <- bind_rows(sample_data, population_data)
-    onehot_data <- data.frame(lapply(onehot_data, as.factor))
+one_hot <- function(data) {
+    onehot_data <- data.frame(apply(data,2, as.factor))
     
     onehot_data <- model.matrix(~ ., onehot_data,
-                                contrasts.arg = lapply(onehot_data[,], 
+                                contrasts.arg = lapply(onehot_data[,,drop = F], 
                                                        contrasts, 
                                                        contrasts=FALSE))
     onehot_data <- onehot_data[, -1]
-    sampled <- c(rep(1, nrow(sample_data)), rep(0, nrow(population_data)))
     
-    return(list(onehot_data = onehot_data,
-                sampled = sampled))
+    return(onehot_data)
 }
 
 
@@ -416,36 +412,60 @@ one_hot <- function(sample_data, population_data) {
 #' @examples
 #' \donttest{XX Fill in XX }
 #' @export
-b_maxvarK <- function(onehot_data,
+b_maxvarK <- function(data,
                       sampled, 
+                      mixed = FALSE,
                       max_search_b = NULL, 
                       useasbases) {
     if(is.null(max_search_b)) { max_search_b = 2000}
     
     #categorical kernel + b range:
     #get raw counts:
-    K <- makeK(onehot_data, b=2,
+    if(!mixed) {
+        onehot_data = data
+        K <- makeK(onehot_data, b=2,
                useasbases = useasbases,
                linkernel = FALSE, scale = FALSE)
-    raw_counts <- -log(K)
-    n_d <- data.frame(diff = c(raw_counts)) %>% group_by(diff) %>% summarise(n())
-    
-    #internal function to get the variance of K 
-    var_K= function(b, n_d, diag_length){
-        d <- n_d[,1] %>% pull()
-        n_d <- as.vector(n_d[,2] %>% pull())
-        #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION
-        n_d[1] <- n_d[1] - diag_length
-        p_d <- n_d/ sum(n_d) 
+        raw_counts <- -log(K)
+        n_d <- data.frame(diff = c(raw_counts)) %>% group_by(diff) %>% summarise(n())
         
-        mean_k = sum(exp(-1*d/b)*p_d)
-        var_k = sum((exp(-1*d/b)-mean_k)^2 * p_d)
-        return(var_k)
+        #internal function to get the variance of K 
+        var_K= function(b, n_d, diag_length){
+            d <- n_d[,1] %>% pull()
+            n_d <- as.vector(n_d[,2] %>% pull())
+            #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION
+            n_d[1] <- n_d[1] - diag_length
+            p_d <- n_d/ sum(n_d) 
+            
+            mean_k = sum(exp(-1*d/b)*p_d)
+            var_k = sum((exp(-1*d/b)-mean_k)^2 * p_d)
+            return(var_k)
+        }
+        
+        #does this diag technique work for all shapes of K?
+        res = optimize(var_K, n_d, length(diag(K)),
+                       interval=c(0, max_search_b), maximum=TRUE)
+    } else {
+        var_K= function(b, data){
+            
+            #makeK
+            #option 1: do not divide by 2 and scale X to have sd = 2 
+            K <- makeK(data, b=b,
+                       useasbases = useasbases,
+                       linkernel = FALSE,
+                       scale = FALSE)
+            d <- n_d[,1] %>% pull()
+            n_d <- as.vector(n_d[,2] %>% pull())
+            #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION
+            n_d[1] <- n_d[1] - diag_length
+            p_d <- n_d/ sum(n_d) 
+            
+            mean_k = sum(exp(-1*d/b)*p_d)
+            var_k = sum((exp(-1*d/b)-mean_k)^2 * p_d)
+            return(var_k)
+        }
+        
     }
-    
-    #does this diag technique work for all shapes of K?
-    res = optimize(var_K, n_d, length(diag(K)),
-                   interval=c(0, max_search_b), maximum=TRUE)
     
     return(list(b_maxvar = res$maximum, 
                 var_K = res$objective))
@@ -519,7 +539,7 @@ drop_multicollin <- function(allx) {
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated).  \code{sampledinpop} is forced to be \code{FALSE}.
 #' @param population.w optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound. When \code{K} is specified, the code does not build the kernel matrix internally.
-#' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.
+#' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include three objects \code{K.svd$u}, a matrix of left-singular vectors, \code{K.svd$v}, a matrix of righ-singular vectors, and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.
 #' @param scale_data logical if true and kernel build interally data is scaled before building K (demeans and scales varaince to 1). This is appropriate when \code{allx} contains continuous variables with different scales, but not recommended for categorical data. Default is \code{TRUE} when \code{cat_kernel} is \code{FALSE} and \code{FALSE} otherwise. 
 #' @param linkernel logical if true, uses the linear kernel which is technicaly \eqn{K=XX'}. In practice this simply achieves mean balance on the original X. For speed purposes, the code effectively employs \eqn{K=X} instead and adjusts singular values accoringly. This is equivalent to \eqn{K=XX'} for our purposes because they have the same left-singular vectors. It is thus nearly equivalent to entropy balancing on means. The difference is that it employs SVD on X then seeks balance on the left singular vectors, using the bias bound to determine how many dimensions to balance. Thus in cases where full balance may be infeasible, it automatically resorts to approximate balance.
 #' @param meanfirst logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with ebalance convergence and a minimal bias bound.
@@ -657,10 +677,12 @@ kbal = function(allx,
                 population.w = NULL,
                 K=NULL,
                 K.svd = NULL,
+                cat_data = FALSE,
+                mixed_data = FALSE,
+                cat_columns = NULL,
                 scale_data = NULL,
                 drop_MC = NULL,
                 linkernel = FALSE,
-                cat_data = FALSE,
                 meanfirst = NULL,
                 constraint = NULL,
                 scale_constraint = TRUE,
@@ -687,22 +709,27 @@ kbal = function(allx,
 #####start of big error catch series to check if data is passed in correctly and
     #default setting/data set up
     
-    ####Setting Defaults: scale_data and drop_MC
-    if(is.null(scale_data) & !cat_data) { 
-        scale_data = TRUE
-    } else if(is.null(scale_data)) {
-        scale_data = FALSE
+    if(cat_data & mixed_data) {
+        warning("\"cat_data\" and \"mixed_data\" should not both be TRUE. Proceeding with \"mixed_data\" TRUE only.", immediate. = TRUE)
+        cat_data = FALSE
     }
-    if(is.null(drop_MC) & !cat_data) { 
+    
+    ####Setting Defaults: scale_data and drop_MC
+    #cont data default = scaled 
+    if(is.null(scale_data) & !cat_data & !mixed_data) { 
+        scale_data = TRUE
+    } else if(is.null(scale_data)) { #if cat data, default = don't scale
+        scale_data = FALSE
+    } 
+    if(is.null(drop_MC) & !cat_data & !mixed_data) { #cont data default = drop MC
         drop_MC = TRUE
-    } else if(is.null(drop_MC) & cat_data) { 
+    } else if(is.null(drop_MC)) { #cat data default = dn drop MC
         drop_MC = FALSE
-    } else if(drop_MC & cat_data) { 
+    } else if( (drop_MC & cat_data) | (drop_MC & mixed_data)) { #if user asks for drop and cat, tell them no
         warning("\"drop_MC\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
                 immediate. = TRUE)
         drop_MC = FALSE
-    }
- 
+    } 
     if(drop_MC) {
         MC_out <- drop_multicollin(allx)
         dropped_cols <- MC_out$dropped_cols
@@ -852,22 +879,22 @@ kbal = function(allx,
     }
     maxvar_K_out = NULL
     onehot = NULL
-    if(!cat_data) {
+    if(!cat_data & !mixed_data) {
         if (is.null(b)){ b = 2*ncol(allx) }
-    } else { #cat_data = TRUE, onehot encode data and find maxvar b
+    } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(K.svd) | !is.null(K)) {
             warning("\"cat_data\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #don't use this it's internal for a check for later if user passes in a b + k.svd
             if (is.null(b)){ b = 2*ncol(allx) } 
         } else {
-            allx = one_hot(allx[observed ==1,], allx[observed==0,])$onehot_data
+            allx = one_hot(allx)
             onehot = allx
             if(0 %in% apply(allx, 2, sd)) {
                 stop("One or more column in \"allx\" has zero variance")
             }
             #checks
             if(scale_data) {
-                warning("\"scale_data\" should be FALSE when using categorical data. \n", 
+                warning("Note that \"scale_data\" should be FALSE when using categorical data. \n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -885,8 +912,58 @@ kbal = function(allx,
             }
             #go get best b
             if(is.null(b)) {
-                res = b_maxvarK(onehot_data = allx, 
+                res = b_maxvarK(data = allx, 
                                 sampled = observed,
+                                mixed = FALSE,
+                                useasbases = useasbases)
+                b = res$b_maxvar
+                maxvar_K_out = res$var_K
+            }
+        }
+    } else { #mixed data: one hot encoded cat data, maxvarK
+        if(!is.null(K.svd) | !is.null(K)) {
+            warning("\"mixed_data\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            #don't use this it's internal for a check for later if user passes in a b + k.svd
+            if (is.null(b)){ b = 2*ncol(allx) } 
+        } else {
+            if(is.null(cat_columns)) {
+                stop("\"cat_columns\" argument must be specified when \"mixed_data\" is TRUE.")
+            } else if(class(cat_columns) == "character" & sum(cat_columns %in% colnames(allx)) != length(cat_columns)) {
+                stop("One or more \"cat_columns\" elements does not match the column names in \"allx\".")
+            }
+            allx_cat = one_hot(allx[,cat_columns, drop= F])
+            onehot = allx_cat
+            apply(allx[, -cat_columns, drop = F],2 , sd)
+            #sd = 2
+            allx_cont <- allx[, -cat_columns, drop = F]/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/2))
+            allx <- cbind(allx_cat, allx_cont)
+            if(0 %in% apply(allx, 2, sd)) {
+                stop("One or more column in \"allx\" has zero variance")
+            }
+            #checks
+            if(scale_data) {
+                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continous data. \n", 
+                        immediate. = TRUE)
+            }
+            if(linkernel) {
+                warning("\"linkernel\" should be FALSE when \"mixed_data\" is TRUE. Proceeding with gaussian kernel.\n", 
+                        immediate. = TRUE)
+                #otherwise we get mc issues bc of the onehot encoding
+                linkernel = FALSE
+                #fix useasbases whose default was messed up by this above:
+                if (N <= 4000) {
+                    useasbases = rep(1,N)
+                } else {
+                    warning("Dimensions of K greater than 4000, using sampled as default bases\n",
+                            immediate. = TRUE)
+                    useasbases = as.numeric(observed==1)
+                }
+            }
+            #go get best b
+            if(is.null(b)) {
+                res = b_maxvarK(data = allx, 
+                                sampled = observed,
+                                mixed = TRUE,
                                 useasbases = useasbases)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
@@ -1063,24 +1140,37 @@ kbal = function(allx,
               rspec.out$values[abs(rspec.out$values) <= 1e-13 ] = 0
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
+              #tr(K) = sum eigenvalues
               var_explained <- round(sum(svd.out$d)/nrow(K),6)
               if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
                                      "first singular values accounts for", 
-                                     var_explained,
-                                     "of the variance of \"K\" \n")}
+                                     round(100*var_explained, 2),
+                                     "% of the variance of \"K\" \n")}
               if(var_explained < .999) {
-                  warning("Truncated SVD with ", trunc_svd_dims,
-                          " first singular values only accounts for ", var_explained,
-                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the varince of \"K\".\n", immediate. = TRUE)
+                  warning("Truncated SVD with only ", trunc_svd_dims,
+                          " first singular values only accounts for ", round(100*var_explained, 2) ,
+                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the total varince of \"K\".\n", immediate. = TRUE)
               }
           } else { #use svds, suppressing warnings that it prints if uses full size svd
              
               svd.out= RSpectra::svds(K, trunc_svd_dims)
-              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
-                      trunc_svd_dims," first singular values is unknown.\n",
-                      immediate. = TRUE)
-              var_explained = NULL
+              #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
+              max_rank = min(nrow(K), ncol(K))
+              worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
+              var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
+              
+              if(printprogress) {
+                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", trunc_svd_dims,"first singular values is lower bounded (worst-case) to explain",
+                      round(100*var_explained, 2), "% of the variance of \"K\" \n")
+              }
+              if(var_explained < .999) {
+                  warning("Truncated SVD with only ", trunc_svd_dims,
+                          " first singular values accounts for, worst-case, approximately only ", round(100*var_explained, 2) ,
+                          "% of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the total varince of \"K\".\n", immediate. = TRUE)
+              }
+    
           }
+          
           U=svd.out$u
      #if user asked for full SVD, get it
       } else { 
@@ -1092,8 +1182,7 @@ kbal = function(allx,
 #CASE 2: if user pases in K.svd (with or without K) dn conduct SVD   
   } else if(!is.null(K.svd)) {
       
-      
-      #NB: we require K.svd to have $u and $d just as a real svd would
+      #NB: we require K.svd to have $u and $d $v just as a real svd would
       #error catches
       #check maxnumdims
       if(maxnumdims > ncol(K.svd$u) ) {
@@ -1127,10 +1216,12 @@ kbal = function(allx,
       if(!is.null(K)) {
           warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input\n")
       } else {
-          warning("With only \"K.svd\" input, L1 distance will be computed on the left singular vectors u\n")
-          #L1 distance will compute but be sort of strange on U instead
-          K = U
+          #reconstruct K for the L1 distance
+          d_diag <- matrix(0, nrow = ncol(K.svd$u), ncol = ncol(K.svd$v))
+          diag(d_diag) <- K.svd$d
+          K = K.svd$u %*% d_diag  %*% t(K.svd$v)
       }
+      
       
       
 #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
