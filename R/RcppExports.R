@@ -9,3 +9,7 @@ kernel_parallel_2 <- function(X, Y, b) {
     .Call('_kbal_kernel_parallel_2', PACKAGE = 'kbal', X, Y, b)
 }
 
+kernel_parallel_old <- function(X, Y, b) {
+    .Call('_kbal_kernel_parallel_old', PACKAGE = 'kbal', X, Y, b)
+}
+

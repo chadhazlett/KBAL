@@ -52,7 +52,10 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
           #symmetric K, build faster using
           K = kernel_parallel(X = allx, b = b)
       } else {
-          K = kernel_parallel_2(X = allx, Y = bases, b = b)
+          #updated to build only triangle
+         #K = kernel_parallel_2(X = allx, Y = bases, b = b)
+          K = kernel_parallel_old(X = allx, Y = bases, b = b)
+          
       }
             #old
           #new_gauss_kern(newx = allx, oldx = bases, b = b)
@@ -447,29 +450,26 @@ b_maxvarK <- function(data,
                        interval=c(0, max_search_b), maximum=TRUE)
     } else {
         var_K= function(b, data){
-            
             #makeK
             #option 1: do not divide by 2 and scale X to have sd = 2 
             K <- makeK(data, b=b,
                        useasbases = useasbases,
                        linkernel = FALSE,
                        scale = FALSE)
-            d <- n_d[,1] %>% pull()
-            n_d <- as.vector(n_d[,2] %>% pull())
-            #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION
-            n_d[1] <- n_d[1] - diag_length
-            p_d <- n_d/ sum(n_d) 
-            
-            mean_k = sum(exp(-1*d/b)*p_d)
-            var_k = sum((exp(-1*d/b)-mean_k)^2 * p_d)
+            #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION (this appears to be the fastest way w large matrices)
+            diag(K) <- NA
+            var_k <- var(na.omit(as.vector(K)))
             return(var_k)
         }
-        
+        res = optimize(var_K, data,
+                       interval=c(0, max_search_b), maximum=TRUE)
     }
     
     return(list(b_maxvar = res$maximum, 
                 var_K = res$objective))
 }
+
+
 
 
 #' Drop Multicollinear Columns
@@ -933,9 +933,9 @@ kbal = function(allx,
             }
             allx_cat = one_hot(allx[,cat_columns, drop= F])
             onehot = allx_cat
-            apply(allx[, -cat_columns, drop = F],2 , sd)
+           
             #sd = 2
-            allx_cont <- allx[, -cat_columns, drop = F]/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/2))
+            allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/2)))
             allx <- cbind(allx_cat, allx_cont)
             if(0 %in% apply(allx, 2, sd)) {
                 stop("One or more column in \"allx\" has zero variance")
