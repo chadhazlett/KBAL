@@ -914,7 +914,6 @@ kbal = function(allx,
             #go get best b
             if(is.null(b)) {
                 res = b_maxvarK(data = allx, 
-                                sampled = observed,
                                 cat_data = FALSE,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
@@ -965,7 +964,6 @@ kbal = function(allx,
             #go get best b
             if(is.null(b)) {
                 res = b_maxvarK(data = allx, 
-                                sampled = observed,
                                 cat_data = TRUE,
                                 useasbases = useasbases)
                 b = res$b_maxvar
