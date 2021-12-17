@@ -4,12 +4,10 @@
 \alias{one_hot}
 \title{One-Hot Encoding for Categorical Data}
 \usage{
-one_hot(sample_data, population_data)
+one_hot(data)
 }
 \arguments{
-\item{sample_data}{a dataframe where rows are sample/control observations and columns are string or factor type covariates}
-
-\item{population_data}{a dataframe where rows are population/treated observations and columns are string or factor type covariates}
+\item{data}{a dataframe or matrix where columns are string or factor type covariates}
 }
 \value{
 \item{onehot_data}{a matrix of combined sample and population data with rows corresponding to units and columns one-hot encoded categorical covariates}

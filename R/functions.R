@@ -23,6 +23,7 @@
 #' @importFrom stats sd 
 #' @importFrom Rcpp sourceCpp 
 #' @importFrom RcppParallel RcppParallelLibs
+#' @importFrom dplyr filter '%>%' group_by summarise n
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
   N=nrow(allx)
@@ -52,12 +53,12 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
           #symmetric K, build faster using
           K = kernel_parallel(X = allx, b = b)
       } else {
-          #updated to build only triangle and mirror (faster)
+          #updated to build only triangle and mirror (4x faster)
           K = kernel_parallel_2(X = allx, Y = bases, b = b)
           #K = kernel_parallel_old(X = allx, Y = bases, b = b)
           
       }
-            #old
+            #old non parallel
           #new_gauss_kern(newx = allx, oldx = bases, b = b)
   }
   return(K)
@@ -407,8 +408,8 @@ one_hot <- function(data) {
 #' Maximum Variance of Kernel Matrix
 #' @description Searches for the argmax of the variance of the Kernel matrix
 #' @param onehot_data a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.
-#' @param sampled numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
-#' @param max_search_b the maximum b searched during maximization. Default is 2000
+#' @param cat_data logical for if kernel only contains categorical data
+#' @param maxsearch_b the maximum b searched during maximization. Default is 2000
 #' @param useasebases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
 #' @return \item{b_maxvar}{numeric b value which produces the maximum variance of K}
 #' \item{var_K}{numeric maximum variance of K found with \code{b_maxvar}}
@@ -416,17 +417,15 @@ one_hot <- function(data) {
 #' \donttest{XX Fill in XX }
 #' @export
 b_maxvarK <- function(data,
-                      sampled, 
-                      mixed = FALSE,
-                      max_search_b = NULL, 
+                      cat_data = TRUE,
+                      maxsearch_b = NULL, 
                       useasbases) {
-    if(is.null(max_search_b)) { max_search_b = 2000}
+    if(is.null(maxsearch_b)) { maxsearch_b = 2000}
     
     #categorical kernel + b range:
     #get raw counts:
-    if(!mixed) {
-        onehot_data = data
-        K <- makeK(onehot_data, b=2,
+    if(cat_data) {
+        K <- makeK(data, b=2,
                useasbases = useasbases,
                linkernel = FALSE, scale = FALSE)
         raw_counts <- -log(K)
@@ -447,11 +446,11 @@ b_maxvarK <- function(data,
         
         #does this diag technique work for all shapes of K?
         res = optimize(var_K, n_d, length(diag(K)),
-                       interval=c(0, max_search_b), maximum=TRUE)
+                       interval=c(0, maxsearch_b), maximum=TRUE)
     } else {
         var_K= function(b, data){
             #makeK
-            #option 1: do not divide by 2 and scale X to have sd = 2 
+            #option 1: do not divide by 2 and scale X cont BEFORE HAND (outside func)
             K <- makeK(data, b=b,
                        useasbases = useasbases,
                        linkernel = FALSE,
@@ -462,7 +461,7 @@ b_maxvarK <- function(data,
             return(var_k)
         }
         res = optimize(var_K, data,
-                       interval=c(0, max_search_b), maximum=TRUE)
+                       interval=c(0, maxsearch_b), maximum=TRUE)
     }
     
     return(list(b_maxvar = res$maximum, 
@@ -551,6 +550,7 @@ drop_multicollin <- function(allx) {
 #' @param incrementby numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom()}. Default is 1e-6.
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.
+#' @param maxsearch_b optional argument to specify the maximum b in search for maximum variance of K in \code{b_maxvarK()}
 #' @param printprogress optional logical argument to print updates throughout.
 #'
 #' @return \item{w}{a vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
@@ -694,6 +694,7 @@ kbal = function(allx,
                 ebal.maxit = 500,
                 ebal.tol=1e-6,
                 ebal.convergence = NULL,
+                maxsearch_b = NULL, 
                 printprogress = TRUE) {
 
     N=nrow(allx)
@@ -725,7 +726,7 @@ kbal = function(allx,
         drop_MC = TRUE
     } else if(is.null(drop_MC)) { #cat data default = dn drop MC
         drop_MC = FALSE
-    } else if( (drop_MC & cat_data) | (drop_MC & mixed_data)) { #if user asks for drop and cat, tell them no
+    } else if( drop_MC & (cat_data | mixed_data)) { #if user asks for drop and cat, tell them no
         warning("\"drop_MC\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
                 immediate. = TRUE)
         drop_MC = FALSE
@@ -914,8 +915,9 @@ kbal = function(allx,
             if(is.null(b)) {
                 res = b_maxvarK(data = allx, 
                                 sampled = observed,
-                                mixed = FALSE,
-                                useasbases = useasbases)
+                                cat_data = FALSE,
+                                useasbases = useasbases, 
+                                maxsearch_b = maxsearch_b)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
             }
@@ -934,8 +936,9 @@ kbal = function(allx,
             allx_cat = one_hot(allx[,cat_columns, drop= F])
             onehot = allx_cat
            
-            #sd = 2
-            allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/2)))
+            #sd = 2 
+            #allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/2)))
+            allx_cont <- scale(allx[, -cat_columns, drop = F])
             allx <- cbind(allx_cat, allx_cont)
             if(0 %in% apply(allx, 2, sd)) {
                 stop("One or more column in \"allx\" has zero variance")
@@ -963,7 +966,7 @@ kbal = function(allx,
             if(is.null(b)) {
                 res = b_maxvarK(data = allx, 
                                 sampled = observed,
-                                mixed = TRUE,
+                                cat_data = TRUE,
                                 useasbases = useasbases)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K

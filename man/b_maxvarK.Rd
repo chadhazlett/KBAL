@@ -4,14 +4,16 @@
 \alias{b_maxvarK}
 \title{Maximum Variance of Kernel Matrix}
 \usage{
-b_maxvarK(onehot_data, sampled, max_search_b = NULL, useasbases)
+b_maxvarK(data, sampled, cat_data = TRUE, maxsearch_b = NULL, useasbases)
 }
 \arguments{
-\item{onehot_data}{a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.}
-
 \item{sampled}{numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 
-\item{max_search_b}{the maximum b searched during maximization. Default is 2000}
+\item{cat_data}{logical for if kernel only contains categorical data}
+
+\item{maxsearch_b}{the maximum b searched during maximization. Default is 2000}
+
+\item{onehot_data}{a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.}
 
 \item{useasebases}{binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.}
 }

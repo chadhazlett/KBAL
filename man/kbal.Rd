@@ -14,10 +14,12 @@ kbal(
   population.w = NULL,
   K = NULL,
   K.svd = NULL,
-  scale_data = NULL,
-  drop_multicollin = NULL,
-  linkernel = FALSE,
   cat_data = FALSE,
+  mixed_data = FALSE,
+  cat_columns = NULL,
+  scale_data = NULL,
+  drop_MC = NULL,
+  linkernel = FALSE,
   meanfirst = NULL,
   constraint = NULL,
   scale_constraint = TRUE,
@@ -29,6 +31,7 @@ kbal(
   ebal.maxit = 500,
   ebal.tol = 1e-06,
   ebal.convergence = NULL,
+  maxsearch_b = NULL,
   printprogress = TRUE
 )
 }
@@ -49,7 +52,7 @@ kbal(
 
 \item{K}{optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound. When \code{K} is specified, the code does not build the kernel matrix internally.}
 
-\item{K.svd}{optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include two objects \code{K.svd$u}, a matrix of left-singular vectors and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.}
+\item{K.svd}{optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include three objects \code{K.svd$u}, a matrix of left-singular vectors, \code{K.svd$v}, a matrix of righ-singular vectors, and their corresponding singular values \code{K.svd$d}. When \code{K.svd} is specified, the code does not perform the svd internally.}
 
 \item{scale_data}{logical if true and kernel build interally data is scaled before building K (demeans and scales varaince to 1). This is appropriate when \code{allx} contains continuous variables with different scales, but not recommended for categorical data. Default is \code{TRUE} when \code{cat_kernel} is \code{FALSE} and \code{FALSE} otherwise.}
 
@@ -72,6 +75,8 @@ kbal(
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom()}. Default is 1e-6.}
 
 \item{ebal.convergence}{logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of K that minimize the biasbound.}
+
+\item{maxsearch_b}{optional argument to specify the maximum b in search for maximum variance of K in \code{b_maxvarK()}}
 
 \item{printprogress}{optional logical argument to print updates throughout.}
 }
