@@ -5,9 +5,10 @@
 #'
 #' @description Builds the Gaussian kernel matrix using Rcpp.
 #' @param allx A data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.
+#' @param useasbases Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
-#' @param linkernel Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X} and achieves (approximate) mean balance on \eqn{X}.  
+#' @param linkernel Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.  
+#' @param scale boolean flag for whether or not to standardize `allx` (demeaned with sd=1) before constructing the kernel matrix 
 #' @return \item{K}{The kernel matrix}
 #' @examples
 #' #load and clean data a bit
@@ -66,7 +67,6 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 
 ### Get bias bound, which will be the distance
 ### function to drive the optimization
-#similar to biasboud in kbal
 #' Worst-Case Bias Bound due to Incomplete Balance
 #' @description Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
@@ -75,6 +75,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
 #' @param hilbertnorm numeric value of the hilbertnorm. Default value is 1.
+#' @return \item{biasbound} value of worst-case bias bound due to incomplete balance with inputted weights
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -146,7 +147,6 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 
 # Simple diffference in mean and in weighted means
 # (Not actually used right now but can be convenient)
-
 #' Difference in Means and Difference in Weighted Means
 #'
 #' Calcuates the simple difference in means or weighted difference in means between the control or sample population and the treated or target popultion.
@@ -196,7 +196,10 @@ dimw = function(X,w,target){
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
 #' @param svd.U a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is 1e-6
+#' @param ebal.maxit maximum number of iterations in optimiaztion search used by \code{ebalance_custom}. Default is 350
 #' @return \item{w}{numeric vector of weights.}
+#' @return \item{converged}{boolean indicating if \code{ebalance_custom} converged}
+#' @return \item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -211,11 +214,11 @@ dimw = function(X,w,target){
 #' #svd on this kernel and get matrix with left singular values
 #' U = svd(K)$u
 #' #usually we are getting weights using different number of columns of this matrix, the finding
-#' # the bias and looking for the minimum. For now let's just use the first 10
+#' # the bias and looking for the minimum. For this ex, use the first 10
 #' U2=U[,1:10, drop=FALSE]
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
-getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
+getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 350){
     
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
@@ -275,10 +278,11 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
 #' @param w a optional numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with custom entropy balancing function \code{ebalance_custom()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}.
 #' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
-#' @param ebal.tol an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e^-6
-#' @return \item{w}{numeric vector of weights used}
-#' \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
-#' \item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit.}
+#' @param ebal.tol an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e-6
+#' @param ebal.maxit maximum number of iterations in optimiaztion search used by \code{ebalance_custom}. Default is 350
+#' @return \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
+#' \item{w}{numeric vector of weights used}
+#' \item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit. If population units are specified, this sum is weighted by \code{w.pop} accordingly.}
 #' \item{pX_D0}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every control or sampled unit.}
 #' \item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expaned features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
 #' @examples
@@ -312,9 +316,11 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6,  ebal.maxit = 350){
 #'                  w = w_opt)}
 #' @export
 getdist <- function(target, observed, K, svd.U = NULL,
-                    w=NULL, numdims = NULL, w.pop = NULL, ebal.tol=NULL, ebal.maxit = NULL) {
+                    w=NULL, numdims = NULL, w.pop = NULL, 
+                    ebal.tol=NULL, 
+                    ebal.maxit = NULL) {
 
-        R=list()
+        
         N=nrow(K)
         K_c=K[observed==1, ,drop = FALSE]
         K_t=K[target==1, ,drop=FALSE]
@@ -327,7 +333,8 @@ getdist <- function(target, observed, K, svd.U = NULL,
             if(length(w.pop) != length(observed)) {
                 stop("\"w.pop\" must have the same length as the total number of units")
             }
-            if(!(sum(w.pop[observed==1]) == sum(observed) & sd(w.pop[observed==1]) == 0)) {
+            if(!(sum(w.pop[observed==1]) == sum(observed) & 
+                 (sum(observed) ==1 | sd(w.pop[observed==1]) == 0) ) ) {
                 stop("\"w.pop\" must the value 1 for all sampled/treated units")
             }
             #check population weights sum to num of treated/population units
@@ -345,6 +352,9 @@ getdist <- function(target, observed, K, svd.U = NULL,
         if(is.null(w)) {
             if(is.null(ebal.tol)) {ebal.tol = 1e-6}
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
+            if(is.null(svd.U)) {
+                svd.U = svd(K)$u
+            }
             U_w.pop <- w.pop*svd.U
             w = suppressWarnings(getw(target = target, observed=observed,
                      svd.U = U_w.pop[,1:numdims, drop=FALSE],
@@ -352,31 +362,29 @@ getdist <- function(target, observed, K, svd.U = NULL,
 
             #if ebal fails we get weights of 1 for everyone
             if (sum(w ==1) == length(w)){
-                stop("ebalance failed for this choice of numdims dimensions of the SVD of the kernel matrix")
+                warning("ebalance failed for this choice of numdims dimensions of the SVD of the kernel matrix returning equal weights (1) for all units", immediate. = T)
             }
         }
         #just "average row Kt"
-        pX_D1=(matrix(1,1, sum(target==1))/sum(target==1))%*% K_t 
+        #pX_D1=(matrix(1,1, sum(target==1))/sum(target==1))%*% K_t 
         #average row Kc
         pX_D0=(matrix(1,1,sum(observed==1))/sum(observed==1))%*% K_c 
         #weighted average Kc with ebal weights
         pX_D0w=(w[observed==1]/sum(w[observed==1])) %*% K_c
-        #weighted average Kt ONLT DIFF from pX_D1 if have pop weights not all equal to 1
+        #weighted average Kt ONLY DIFF from pX_D1 if have pop weights not all equal to 1
         pX_D1wpop = (w.pop[target==1]/sum(w.pop[target==1])) %*% K_t 
 
-            # A rescaling to ensure sum is 1 as would be an integral.
-        pX_D1=pX_D1/sum(pX_D1)
+        # A rescaling to ensure sum is 1 as would be an integral.
+        #pX_D1=pX_D1/sum(pX_D1)
         pX_D0=pX_D0/sum(pX_D0)
         pX_D0w=pX_D0w/sum(pX_D0w)
         pX_D1wpop =pX_D1wpop/sum(pX_D1wpop)
         L1 = sum(abs(pX_D1wpop-pX_D0w)) #removed the 0.5 factor -- Oct 20 2017
 
-
+        R=list()
         R$L1=L1
         R$w=w
-        R$pX_D1wpop=pX_D1wpop
-        R$pX_D0w=pX_D0w
-        R$pX_D1=pX_D1
+        R$pX_D1=pX_D1wpop
         R$pX_D0=pX_D0
         R$pX_D0w=pX_D0w
 
@@ -388,7 +396,6 @@ getdist <- function(target, observed, K, svd.U = NULL,
 #' @description Converts raw categorical string/factor sample and population data into numeric one-hot encoded full data matrix to be passed to \code{kbal} argument \code{allx}
 #' @param data a dataframe or matrix where columns are string or factor type covariates
 #' @return \item{onehot_data}{a matrix of combined sample and population data with rows corresponding to units and columns one-hot encoded categorical covariates}
-#' \item{sampled}{a numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 #' @examples
 #' \donttest{XX Fill in XX }
 #' @export
@@ -405,22 +412,21 @@ one_hot <- function(data) {
 }
 
 
-#' Maximum Variance of Kernel Matrix
+#' Maximum Variance of Gaussian Kernel Matrix
 #' @description Searches for the argmax of the variance of the Kernel matrix
 #' @param onehot_data a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.
-#' @param cat_data logical for if kernel only contains categorical data
-#' @param maxsearch_b the maximum b searched during maximization. Default is 2000
+#' @param cat_data logical for whether kernel contains only categorical data
+#' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.
 #' @param useasebases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
-#' @return \item{b_maxvar}{numeric b value which produces the maximum variance of K}
-#' \item{var_K}{numeric maximum variance of K found with \code{b_maxvar}}
+#' @return \item{b_maxvar}{numeric \eqn{b} value, the denominator of the gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
+#' \item{var_K}{numeric maximum variance of \eqn{K} kernel matrix found with \eqn{b} as \code{b_maxvar}}
 #' @examples
 #' \donttest{XX Fill in XX }
 #' @export
 b_maxvarK <- function(data,
                       cat_data = TRUE,
-                      maxsearch_b = NULL, 
+                      maxsearch_b = 2000, 
                       useasbases) {
-    if(is.null(maxsearch_b)) { maxsearch_b = 2000}
     
     #categorical kernel + b range:
     #get raw counts:
