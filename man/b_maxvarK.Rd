@@ -4,7 +4,7 @@
 \alias{b_maxvarK}
 \title{Maximum Variance of Gaussian Kernel Matrix}
 \usage{
-b_maxvarK(data, cat_data = TRUE, maxsearch_b = 2000, useasbases)
+b_maxvarK(data, useasbases, cat_data = TRUE, maxsearch_b = 2000)
 }
 \arguments{
 \item{data}{a matrix data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.}
@@ -23,5 +23,14 @@ b_maxvarK(data, cat_data = TRUE, maxsearch_b = 2000, useasbases)
 Searches for the argmax of the variance of the Kernel matrix
 }
 \examples{
-\donttest{XX Fill in XX }
+\donttest{
+#lalonde with only categorical data
+data(lalonde)
+colnames(lalonde)
+cat_vars=c("black","hisp","married","u74","u75")
+#Convert to one-hot encoded data matrix:
+onehot_lalonde = one_hot(lalonde[, cat_vars])
+colnames(onehot_lalonde)
+best_b <- b_maxvarK(data = onehot_lalonde, 
+                 useasbases = 1-lalonde$nsw) }
 }
