@@ -11,11 +11,20 @@ one_hot(data)
 }
 \value{
 \item{onehot_data}{a matrix of combined sample and population data with rows corresponding to units and columns one-hot encoded categorical covariates}
-\item{sampled}{a numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 }
 \description{
-Converts raw categorical string/factor sample and population data into numeric one-hot encoded full data matrix to be passed to \code{kbal} argument \code{allx}
+Converts raw categorical string/factor data matrix into numeric one-hot encoded data matrix. Intended to help prepare data to be passed to \code{kbal} argument \code{allx} when categorical data is used.
 }
 \examples{
-\donttest{XX Fill in XX }
+\donttest{
+#Ex 1. Make up some categorical demographic data
+dat = data.frame(pid = c(rep("Rep", 37), rep("Dem", 68), rep("Ind", 14)), 
+gender = c(rep("female", 78), rep("male", 37+68+14 - 78)))
+Convert to one-hot encoded data matrix:
+onehot_dat = one_hot(dat)}
+
+#Ex 2. lalonde data
+data(lalonde)
+cat_vars=c("black","hisp","married","nodegr","u74","u75")
+onehot_lalonde = one_hot(lalonde[, cat_vars])
 }

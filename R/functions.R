@@ -8,7 +8,7 @@
 #' @param useasbases Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
 #' @param linkernel Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.  
-#' @param scale boolean flag for whether or not to standardize `allx` (demeaned with sd=1) before constructing the kernel matrix 
+#' @param scale boolean flag for whether or not to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix 
 #' @return \item{K}{The kernel matrix}
 #' @examples
 #' #load and clean data a bit
@@ -74,7 +74,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' @param svd.out the list object output from \code{svd()} performed on the kernel matrix. Requires a list object with left singular vectors in \code{svd.out$u} and singular values in \code{svd.out$d}
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
-#' @param hilbertnorm numeric value of the hilbertnorm. Default value is 1.
+#' @param hilbertnorm numeric value of the hilbertnorm.
 #' @return \item{biasbound} value of worst-case bias bound due to incomplete balance with inputted weights
 #' @examples
 #' \donttest{
@@ -198,8 +198,8 @@ dimw = function(X,w,target){
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}
 #' @param ebal.maxit maximum number of iterations in optimiaztion search used by \code{ebalance_custom}
 #' @return \item{w}{numeric vector of weights.}
-#' @return \item{converged}{boolean indicating if \code{ebalance_custom} converged}
-#' @return \item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
+#' \item{converged}{boolean indicating if \code{ebalance_custom} converged}
+#' \item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -213,9 +213,9 @@ dimw = function(X,w,target){
 #'
 #' #svd on this kernel and get matrix with left singular values
 #' U = svd(K)$u
-#' #usually we are getting weights using different number of columns of this matrix, the finding
-#' # the bias and looking for the minimum. For this ex, use the first 10
-#' U2=U[,1:10, drop=FALSE]
+#' #usually search over all columns of U to find which produces weights with 
+#' #the minimum bias bound; in this ex, search only first 10 dims
+#' U2=U[,1:10]
 #' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 #' @export
 getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
@@ -274,12 +274,12 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' @param target a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
 #' @param K the kernel matrix
-#' @param svd.U a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.
-#' @param w a optional numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with custom entropy balancing function \code{ebalance_custom()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}.
-#' @param numdims a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
-#' @param ebal.tol an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. When not specified, the default is 1e-6
-#' @param ebal.maxit maximum number of iterations in optimiaztion search used by \code{ebalance_custom}. Default is 350
+#' @param w a optional numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}. 
+#' @param numdims an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.
+#' @param ebal.tol an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. 
+#' @param ebal.maxit maximum number of iterations in optimiaztion search used by \code{ebalance_custom} when \code{w} is not specified. 
+#' @param svd.U an optional matrix of left singular vectors from performing \code{svd()} on the kernel matrix in the case that \code{w} is unspecified. If unspecified when \code{w} also not specified, internally computes the svd of \code{K}.
 #' @return \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
 #' \item{w}{numeric vector of weights used}
 #' \item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit. If population units are specified, this sum is weighted by \code{w.pop} accordingly.}
@@ -308,17 +308,17 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #'  #using the first 33 dims of svd_pass$u to match the above
 #' w_opt <- getw(target= lalonde$nsw,
 #'               observed = 1-lalonde$nsw,
-#'               svd.U = svd_pass$u[,1:33],
-#'               ebal.tol=1e-6)$w
+#'               svd.U = svd_pass$u[,1:33])$w
 #' l1_lalonde2 <- getdist(target = lalonde$nsw,
 #'                  observed = 1-lalonde$nsw,
 #'                  K = K_pass,
 #'                  w = w_opt)}
 #' @export
-getdist <- function(target, observed, K, svd.U = NULL,
-                    w=NULL, numdims = NULL, w.pop = NULL, 
-                    ebal.tol=NULL, 
-                    ebal.maxit = NULL) {
+getdist <- function(target, observed, K, w.pop = NULL, 
+                    w=NULL, numdims = NULL, 
+                    ebal.tol= 1e-6, 
+                    ebal.maxit = 500,
+                    svd.U = NULL) {
 
         
         N=nrow(K)
@@ -350,7 +350,6 @@ getdist <- function(target, observed, K, svd.U = NULL,
         }
         #if user does not provide weights, go get them
         if(is.null(w)) {
-            if(is.null(ebal.tol)) {ebal.tol = 1e-6}
             if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
             if(is.null(svd.U)) {
                 svd.U = svd(K)$u
@@ -361,7 +360,7 @@ getdist <- function(target, observed, K, svd.U = NULL,
                      ebal.tol=ebal.tol, ebal.maxit = ebal.maxit)$w)
 
             #if ebal fails we get weights of 1 for everyone
-            if (sum(w ==1) == length(w)){
+            if(sum(w ==1) == length(w)){
                 warning("ebalance failed for this choice of numdims dimensions of the SVD of the kernel matrix returning equal weights (1) for all units", immediate. = T)
             }
         }
@@ -393,14 +392,25 @@ getdist <- function(target, observed, K, svd.U = NULL,
 
 
 #' One-Hot Encoding for Categorical Data
-#' @description Converts raw categorical string/factor sample and population data into numeric one-hot encoded full data matrix to be passed to \code{kbal} argument \code{allx}
+#' @description Converts raw categorical string/factor data matrix into numeric one-hot encoded data matrix. Intended to help prepare data to be passed to \code{kbal} argument \code{allx} when categorical data is used. 
 #' @param data a dataframe or matrix where columns are string or factor type covariates
 #' @return \item{onehot_data}{a matrix of combined sample and population data with rows corresponding to units and columns one-hot encoded categorical covariates}
 #' @examples
-#' \donttest{XX Fill in XX }
+#' \donttest{
+#' #Ex 1. Make up some categorical demographic data
+#' dat = data.frame(pid = c(rep("Rep", 37), rep("Dem", 68), rep("Ind", 14)), 
+#' gender = c(rep("female", 78), rep("male", 37+68+14 - 78)))
+#' Convert to one-hot encoded data matrix:
+#' onehot_dat = one_hot(dat)}
+#' 
+#' #Ex 2. lalonde data
+#' data(lalonde)
+#' cat_vars=c("black","hisp","married","nodegr","u74","u75")
+#' onehot_lalonde = one_hot(lalonde[, cat_vars])
+#' @importFrom stats model.matrix
 #' @export
 one_hot <- function(data) {
-    onehot_data <- data.frame(apply(data,2, as.factor))
+    onehot_data <- data.frame(lapply(data, as.factor))
     
     onehot_data <- model.matrix(~ ., onehot_data,
                                 contrasts.arg = lapply(onehot_data[,,drop = F], 
@@ -414,19 +424,30 @@ one_hot <- function(data) {
 
 #' Maximum Variance of Gaussian Kernel Matrix
 #' @description Searches for the argmax of the variance of the Kernel matrix
-#' @param onehot_data a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.
-#' @param cat_data logical for whether kernel contains only categorical data
-#' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.
+#' @param data a matrix data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.
 #' @param useasebases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
+#' @param cat_data logical for whether kernel contains only categorical data or not
+#' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.
 #' @return \item{b_maxvar}{numeric \eqn{b} value, the denominator of the gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
 #' \item{var_K}{numeric maximum variance of \eqn{K} kernel matrix found with \eqn{b} as \code{b_maxvar}}
 #' @examples
-#' \donttest{XX Fill in XX }
+#' \donttest{
+#' #lalonde with only categorical data
+#' data(lalonde)
+#' colnames(lalonde)
+#' cat_vars=c("black","hisp","married","u74","u75")
+#' #Convert to one-hot encoded data matrix:
+#' onehot_lalonde = one_hot(lalonde[, cat_vars])
+#' colnames(onehot_lalonde)
+#' best_b <- b_maxvarK(data = onehot_lalonde, 
+#'                  useasbases = 1-lalonde$nsw) }
+#' @importFrom dplyr '%>%' pull group_by summarise n
+#' @importFrom stats optimize na.omit
 #' @export
 b_maxvarK <- function(data,
+                      useasbases,
                       cat_data = TRUE,
-                      maxsearch_b = 2000, 
-                      useasbases) {
+                      maxsearch_b = 2000) {
     
     #categorical kernel + b range:
     #get raw counts:
@@ -469,7 +490,6 @@ b_maxvarK <- function(data,
         res = optimize(var_K, data,
                        interval=c(0, maxsearch_b), maximum=TRUE)
     }
-    
     return(list(b_maxvar = res$maximum, 
                 var_K = res$objective))
 }
@@ -483,7 +503,15 @@ b_maxvarK <- function(data,
 #' @return \item{allx_noMC}{resulting data matrix of full rank after multicolliear columns have been dropped}
 #' \item{dropped_cols}{column names of those dropped}
 #' @examples
-#' \donttest{XX Fill in XX }
+#' \donttest{
+#' # make data with multicollinearity 
+#' data <- data.frame(x = rnorm(100), y = sample.int(100,100), z = runif(100, 3,6))
+#' test = data.frame(mc_1 = data$x,
+#'  mc_2 = data$x*2 + data$y - data$z)
+#'  dat = cbind(test, data)
+#'  #run
+#'  mc_check= drop_multicollin(dat)
+#'  mc_check$dropped_cols }
 #' @export
 drop_multicollin <- function(allx) {
     
@@ -536,7 +564,7 @@ drop_multicollin <- function(allx) {
 #'
 #' @references Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinica. https://doi.org/10.5705/ss.202017.0555
 #' 
-#' @param allx a data matrix containing all observations where rows are units and columns are covariates.
+#' @param allx a data matrix containing all observations where rows are units and columns are covariates. 
 #' @param useasbases optional binary vector to specify what observations are to be used in forming bases (columns) of the kernel matrix to get balance on.  If the number of observations is under 4000, the default is to use all observations. When the number of observations is over 4000, the default is to use the sampled (control) units only.
 #' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
@@ -686,6 +714,7 @@ kbal = function(allx,
                 cat_data = FALSE,
                 mixed_data = FALSE,
                 cat_columns = NULL,
+                cont_scale = NULL, 
                 scale_data = NULL,
                 drop_MC = NULL,
                 linkernel = FALSE,
@@ -725,14 +754,14 @@ kbal = function(allx,
     #cont data default = scaled 
     if(is.null(scale_data) & !cat_data & !mixed_data) { 
         scale_data = TRUE
-    } else if(is.null(scale_data)) { #if cat data, default = don't scale
+    } else if(is.null(scale_data)) { #if cat data at all, default = don't scale
         scale_data = FALSE
     } 
     if(is.null(drop_MC) & !cat_data & !mixed_data) { #cont data default = drop MC
         drop_MC = TRUE
-    } else if(is.null(drop_MC)) { #cat data default = dn drop MC
+    } else if(is.null(drop_MC)) { #cat data at all default = dn drop MC
         drop_MC = FALSE
-    } else if( drop_MC & (cat_data | mixed_data)) { #if user asks for drop and cat, tell them no
+    } else if(drop_MC & (cat_data | mixed_data)) { #if user asks for drop and cat, tell them no
         warning("\"drop_MC\" should be FALSE when using categorical data. Proceeding without dropping multicollinear columns. \n", 
                 immediate. = TRUE)
         drop_MC = FALSE
@@ -790,8 +819,8 @@ kbal = function(allx,
         sampledinpop=FALSE
     }
 
-    #5. checking for covariates with no variance:
-    if(!cat_data && 0 %in% apply(allx, 2, sd)) {
+    #5. checking for covariates with no variance
+    if(0 %in% apply(allx, 2, sd)) {
         stop("One or more column in \"allx\" has zero variance")
     }
     #6. error catch for NAs in data
@@ -886,19 +915,25 @@ kbal = function(allx,
     }
     maxvar_K_out = NULL
     onehot = NULL
+    #cont data only
     if(!cat_data & !mixed_data) {
-        if (is.null(b)){ b = 2*ncol(allx) }
+        #if no K supplied find bmaxvar b
+        if(is.null(K.svd) & is.null(K) & is.null(b)) {
+                res = b_maxvarK(data = allx, 
+                                cat_data = cat_data,
+                                useasbases = useasbases, 
+                                maxsearch_b = maxsearch_b)
+                b = res$b_maxvar
+                maxvar_K_out = res$var_K
+        }
     } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(K.svd) | !is.null(K)) {
-            warning("\"cat_data\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
-            #don't use this it's internal for a check for later if user passes in a b + k.svd
-            if (is.null(b)){ b = 2*ncol(allx) } 
+            warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            #for later internal checks of specified b + passed in K
+            if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
             allx = one_hot(allx)
             onehot = allx
-            if(0 %in% apply(allx, 2, sd)) {
-                stop("One or more column in \"allx\" has zero variance")
-            }
             #checks
             if(scale_data) {
                 warning("Note that \"scale_data\" should be FALSE when using categorical data. \n", 
@@ -920,7 +955,7 @@ kbal = function(allx,
             #go get best b
             if(is.null(b)) {
                 res = b_maxvarK(data = allx, 
-                                cat_data = FALSE,
+                                cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
                 b = res$b_maxvar
@@ -928,29 +963,35 @@ kbal = function(allx,
             }
         }
     } else { #mixed data: one hot encoded cat data, maxvarK
+       
         if(!is.null(K.svd) | !is.null(K)) {
-            warning("\"mixed_data\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            warning("\"mixed_data\" TRUE argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #don't use this it's internal for a check for later if user passes in a b + k.svd
-            if (is.null(b)){ b = 2*ncol(allx) } 
+            if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
             if(is.null(cat_columns)) {
                 stop("\"cat_columns\" argument must be specified when \"mixed_data\" is TRUE.")
             } else if(class(cat_columns) == "character" & sum(cat_columns %in% colnames(allx)) != length(cat_columns)) {
                 stop("One or more \"cat_columns\" elements does not match the column names in \"allx\".")
+            } else { #switch to numeric for ease
+                cat_columns = which(colnames(allx) %in% cat_columns)
             }
             allx_cat = one_hot(allx[,cat_columns, drop= F])
             onehot = allx_cat
-           
-            #sd = 2 
-            #allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/2)))
-            allx_cont <- scale(allx[, -cat_columns, drop = F])
-            allx <- cbind(allx_cat, allx_cont)
-            if(0 %in% apply(allx, 2, sd)) {
-                stop("One or more column in \"allx\" has zero variance")
+            if(is.null(cont_scale)) {
+                warning("When combining continuous and categorical data, scaling choices for continuous variables imply different relative variable importance in the kernel distance and affect the performance of kbal. A default scaling of sd=1 for all continuous variables will be used, but users are encouraged to carefully think about the most appropriate scaling.\n", .immediate = T) 
+                allx_cont <- scale(allx[, -cat_columns, drop = F])
+            } else {
+                if(!is.numeric(cont_scale) | !(length(cont_scale) == 1 | length(cont_scale) == ncol(allx[, -cat_columns, drop = F])) ) {
+                    stop("\"cont_scale\" must be a numeric vector of either length 1 or length equal to the number of continous columns in \"allx\".")
+                }
+                #user specified scaling
+                allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/cont_scale)))
             }
+            allx <- cbind(allx_cat, allx_cont)
             #checks
             if(scale_data) {
-                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continous data. \n", 
+                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continous data and \"scale_data\" =TRUE not used.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -970,7 +1011,7 @@ kbal = function(allx,
             #go get best b
             if(is.null(b)) {
                 res = b_maxvarK(data = allx, 
-                                cat_data = TRUE,
+                                cat_data = cat_data,
                                 useasbases = useasbases)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
@@ -1130,7 +1171,8 @@ kbal = function(allx,
           warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
       if(b != 2*ncol(allx)) {
-          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", 
+                  immediate. = TRUE)
       }
       #provided we pass all those checks get svd with RSpectra
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}

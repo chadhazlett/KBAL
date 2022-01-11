@@ -2,24 +2,22 @@
 % Please edit documentation in R/functions.R
 \name{b_maxvarK}
 \alias{b_maxvarK}
-\title{Maximum Variance of Kernel Matrix}
+\title{Maximum Variance of Gaussian Kernel Matrix}
 \usage{
-b_maxvarK(data, sampled, cat_data = TRUE, maxsearch_b = NULL, useasbases)
+b_maxvarK(data, cat_data = TRUE, maxsearch_b = 2000, useasbases)
 }
 \arguments{
-\item{sampled}{numeric vector indexing which rows off onehot_data are sample units. Of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
+\item{data}{a matrix data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.}
 
-\item{cat_data}{logical for if kernel only contains categorical data}
+\item{cat_data}{logical for whether kernel contains only categorical data or not}
 
-\item{maxsearch_b}{the maximum b searched during maximization. Default is 2000}
-
-\item{onehot_data}{a matrix of one-hot encoded categorical data where rows are all units and columns are one-hot encoded categorical covariates. Refer to \code{one_hot()} to produce.}
+\item{maxsearch_b}{the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.}
 
 \item{useasebases}{binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.}
 }
 \value{
-\item{b_maxvar}{numeric b value which produces the maximum variance of K}
-\item{var_K}{numeric maximum variance of K found with \code{b_maxvar}}
+\item{b_maxvar}{numeric \eqn{b} value, the denominator of the gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
+\item{var_K}{numeric maximum variance of \eqn{K} kernel matrix found with \eqn{b} as \code{b_maxvar}}
 }
 \description{
 Searches for the argmax of the variance of the Kernel matrix

@@ -4,7 +4,7 @@
 \alias{getw}
 \title{Find Weights using Entropy Balancing.}
 \usage{
-getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 350)
+getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 500)
 }
 \arguments{
 \item{target}{a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
@@ -13,10 +13,14 @@ getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 350)
 
 \item{svd.U}{a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.}
 
-\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is 1e-6}
+\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}}
+
+\item{ebal.maxit}{maximum number of iterations in optimiaztion search used by \code{ebalance_custom}}
 }
 \value{
 \item{w}{numeric vector of weights.}
+\item{converged}{boolean indicating if \code{ebalance_custom} converged}
+\item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 }
 \description{
 Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
@@ -34,8 +38,8 @@ K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
 #svd on this kernel and get matrix with left singular values
 U = svd(K)$u
-#usually we are getting weights using different number of columns of this matrix, the finding
-# the bias and looking for the minimum. For now let's just use the first 10
-U2=U[,1:10, drop=FALSE]
+#usually search over all columns of U to find which produces weights with 
+#the minimum bias bound; in this ex, search only first 10 dims
+U2=U[,1:10]
 getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
 }
