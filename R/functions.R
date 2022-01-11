@@ -585,7 +585,7 @@ drop_multicollin <- function(allx) {
 #' @param minnumdims numeric argument to specify the minimum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
 #' @param maxnumdims numeric argument to specify the maximum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimesions which minimize the bias. For a guassian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is the minimum between 500 and the number of columns in \code{allx}. 
 #' @param fullSVD logical argument for whether the full SVD should be conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of improving run time. When \code{FALSE}, the code computes only the SVD upto the either 80 percent of the columns of \code{K} or \code{maxnumdims} singular vectors, whichever is larger.
-#' @param incrementby numeric argument to specify the number of dimesions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
+#' @param incrementby numeric argument to specify the number of dimensions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
 #' #' @param ebal.maxit maximum number of iterations used by \code{ebalance_custom() in optimization in the search for weights \code{w}.
 #' @param ebal.tol tolerance level used by \code{ebalance_custom()}. 
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of \code{K} that minimize the biasbound. When contraints are appended to the left singular vectors of \code{K} via \code{meanfirst=TRUE} or \code{constraints}, forced to be \code{TRUE} and otherwise \code{FALSE}.
@@ -593,18 +593,24 @@ drop_multicollin <- function(allx) {
 #' @param printprogress logical argument to print updates throughout.
 #'
 #' @return \item{w}{a vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
-#' \item{biasbound.opt}{a numeric giving the minimal bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
-#'  \item{biasbound.orig}{a numeric giving the bias bound found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
-#'  \item{dist.record}{a matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
+#' \item{biasbound_opt}{a numeric giving the minimal bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
+#'  \item{biasbound_orig}{a numeric giving the bias bound found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
+#'  \item{biasbound_ratio}{a numeric giving the ratio of \code{biasbound_orig} to\code{biasbound_opt. Can be informative when comparing the performance of different \code{b} values.} 
+#'  \item{dist_record}{a matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
 #'  \item{numdims}{a numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
-#'  \item{L1.orig}{a numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
-#'  \item{L1.opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
+#'  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
+#'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
+#'  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of the kernel matrix}
+#'  \item{linkernel}{logical for whether linear kernel was used}
 #'  \item{svdK}{a list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
 #'  \item{b}{numeric scaling factor used in the the calculation of gaussian kernel  equivalent to the denominator \eqn{2\sigma^2} of the exponent.}
-#'  \item{bases}{vector of bases (rows in \code{allx}) used to construct kernel matrix}
-#'  \item{truncatedSVD.var}{when trucated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD.}
+#'  \item{maxvar_K}{returns the resulting variance of the kernel matrix when the \code{b} determined internally as the argmax of the variance \code{K}}
+#'  \item{bases}{numeric vector indicating what bases (rows in \code{allx}) were used to construct kernel matrix (columns of K)}
+#'  \item{truncatedSVD.var}{when truncated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the trucated SVD. When the kernel matrix is non-symmetric, this is a worst case approximation of the percent variance explained, assuming the remaining unknown singular values are the same magnitude as the last calculated in the truncated SVD.}
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
+#'  \item{meanfirst_dims}{when \code{meanfirst=TRUE} the optimal number of the singular vectors of \code{allx} selected and appended to the front of the left singular vectors of \code{K}}
+#'  \item{ebal_error}{when ebalance is unable to find convergent weights, the associated error message it reports}
 #' @examples
 #' #----------------------------------------------------------------
 #' # Example 1: Reweight a control group to a treated to estimate ATT. 
@@ -1607,8 +1613,8 @@ kbal = function(allx,
   R$linkernel = linkernel
   R$svdK = svd.out
   R$b = b_out
-  R$bases = useasbases_out
   R$maxvar_K = maxvar_K_out
+  R$bases = useasbases_out
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst_dims = meanfirst_dims
