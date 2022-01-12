@@ -18,7 +18,8 @@
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
-#' #running makeK with the sampled/observed units as the bases given the large size of the data
+#' #running makeK with the sampled/control units as the bases given 
+#' #the large size of the data
 #' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) }
 #' @useDynLib kbal
 #' @importFrom stats sd 
@@ -68,14 +69,14 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 ### Get bias bound, which will be the distance
 ### function to drive the optimization
 #' Worst-Case Bias Bound due to Incomplete Balance
-#' @description Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
+#' @description Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm}.
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
 #' @param target a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.
 #' @param svd.out the list object output from \code{svd()} performed on the kernel matrix. Requires a list object with left singular vectors in \code{svd.out$u} and singular values in \code{svd.out$d}
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
 #' @param hilbertnorm numeric value of the hilbertnorm.
-#' @return \item{biasbound} value of worst-case bias bound due to incomplete balance with inputted weights
+#' @return \item{biasbound}{value of worst-case bias bound due to incomplete balance with inputted weights}
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
@@ -92,9 +93,9 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' #let's use the original weights of 1/number of sampled units, and 1/number of target units
 #' #this is the default if we pass in w as all 1's
 #' biasbound(observed=(1-lalonde$nsw),
-#'  target=lalonde$nsw,
-#'  svd.out = svd_pass,
-#'  w = rep(1,nrow(lalonde)), hilbertnorm=1)}
+#'           target=lalonde$nsw,
+#'           svd.out = svd_pass,
+#'           w = rep(1,nrow(lalonde)), hilbertnorm=1)}
 #' @export
 biasbound=function(observed, target, svd.out, w, w.pop = NULL,
                    hilbertnorm=1){
@@ -109,10 +110,10 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
         if(length(w.pop) != length(observed)) {
             stop("\"w.pop\" must have the same length as the total number of units")
         }
-        #sampledinpop == TRUE, check that w.pop = 1 for all sampled/treated units
+        #sampledinpop == TRUE, check that w.pop = 1 for all sampled/control units
         if(sum(target) == length(target) && !(sum(w.pop[observed]) == sum(observed)
                                              & sd(w.pop[observed]) == 0)) {
-            stop("\"w.pop\" must the value 1 for all sampled/treated units")
+            stop("\"w.pop\" must the value 1 for all sampled/control units")
         }
         #check population weights sum to num of treated/population units
         if(round(sum(w.pop[target ==1 ])) != sum(target)) {
@@ -216,7 +217,9 @@ dimw = function(X,w,target){
 #' #usually search over all columns of U to find which produces weights with 
 #' #the minimum bias bound; in this ex, search only first 10 dims
 #' U2=U[,1:10]
-#' getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
+#' getw.out=getw(target=lalonde$nsw, 
+#'               observed=1-lalonde$nsw, 
+#'               svd.U=U2)}
 #' @export
 getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
     
@@ -335,7 +338,7 @@ getdist <- function(target, observed, K, w.pop = NULL,
             }
             if(!(sum(w.pop[observed==1]) == sum(observed) & 
                  (sum(observed) ==1 | sd(w.pop[observed==1]) == 0) ) ) {
-                stop("\"w.pop\" must the value 1 for all sampled/treated units")
+                stop("\"w.pop\" must the value 1 for all sampled units")
             }
             #check population weights sum to num of treated/population units
             if(round(sum(w.pop[target ==1 ])) != sum(target)) {
@@ -398,13 +401,17 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' @examples
 #' \donttest{
 #' #Ex 1. Make up some categorical demographic data
-#' dat = data.frame(pid = c(rep("Rep", 37), rep("Dem", 68), rep("Ind", 14)), 
-#' gender = c(rep("female", 78), rep("male", 37+68+14 - 78)))
-#' Convert to one-hot encoded data matrix:
+#' dat = data.frame(pid = c(rep("Rep", 20),
+#'                          rep("Dem", 20), 
+#'                          rep("Ind", 20)), 
+#'                  gender = c(rep("female", 35),
+#'                             rep("male", 25)))
+#' #Convert to one-hot encoded data matrix:
 #' onehot_dat = one_hot(dat)}
 #' 
 #' #Ex 2. lalonde data
 #' data(lalonde)
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
 #' @importFrom stats model.matrix
@@ -434,13 +441,13 @@ one_hot <- function(data) {
 #' \donttest{
 #' #lalonde with only categorical data
 #' data(lalonde)
-#' colnames(lalonde)
-#' cat_vars=c("black","hisp","married","u74","u75")
+#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
+#' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' #Convert to one-hot encoded data matrix:
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
 #' colnames(onehot_lalonde)
 #' best_b <- b_maxvarK(data = onehot_lalonde, 
-#'                  useasbases = 1-lalonde$nsw) }
+#'                     useasbases = 1-lalonde$nsw) }
 #' @importFrom dplyr '%>%' pull group_by summarise n
 #' @importFrom stats optimize na.omit
 #' @export
@@ -505,13 +512,15 @@ b_maxvarK <- function(data,
 #' @examples
 #' \donttest{
 #' # make data with multicollinearity 
-#' data <- data.frame(x = rnorm(100), y = sample.int(100,100), z = runif(100, 3,6))
+#' data <- data.frame(x = rnorm(100),
+#'                    y = sample.int(100,100), 
+#'                    z = runif(100, 3,6))
 #' test = data.frame(mc_1 = data$x,
-#'  mc_2 = data$x*2 + data$y - data$z)
-#'  dat = cbind(test, data)
-#'  #run
-#'  mc_check= drop_multicollin(dat)
-#'  mc_check$dropped_cols }
+#'                   mc_2 = data$x*2 + data$y - data$z)
+#' dat = cbind(test, data)
+#' #run
+#' mc_check= drop_multicollin(dat)
+#' mc_check$dropped_cols }
 #' @export
 drop_multicollin <- function(allx) {
     
@@ -564,7 +573,7 @@ drop_multicollin <- function(allx) {
 #'
 #' @references Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinica. https://doi.org/10.5705/ss.202017.0555
 #' 
-#' @param allx a data matrix containing all observations where rows are units and columns are covariates.
+#' @param allx a data matrix containing all observations where rows are units and columns are covariates. When using only continuous covariates (\code{cat_data = F} and \code{mixed_data = F}), all columns must be numeric. When using categorical data (either \code{cat_data = T} or \code{mixed_data = T}), categorical columns can be characters or numerics which will be treated as factors. Users should one-hot encoded categorical covariates as this transformation occurs internally.
 #' @param useasbases optional binary vector to specify what observations are to be used in forming bases (columns) of the kernel matrix to get balance on.  If the number of observations is under 4000, the default is to use all observations. When the number of observations is over 4000, the default is to use the sampled (control) units only.
 #' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is to search for the value which maximizes the variance of the kernel matrix.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
@@ -574,10 +583,11 @@ drop_multicollin <- function(allx) {
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound.
 #' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include three objects \code{K.svd$u}, a matrix of left-singular vectors, \code{K.svd$v}, a matrix of righ-singular vectors, and their corresponding singular values \code{K.svd$d}. 
 #' @param cat_data logical argument that when true indicates \code{allx} contains only categorical data. When true, the internal contruction of the kernel matrix uses a one-hot encoding of \code{allx} and the value of \code{b} which maximizes the variance of this kernel matrix. When true, \code{mixed_data}, \code{scale_data}, \code{linkernel}, and \code{drop_MC} should be \code{FALSE}.
-#' @param mixed_data logical argument that when true indicates \code{allx} contains a combination of both continuous and categorgical data. When true, the interal constructio of the kernel matrix uses a one-hot encoding of the categorical variables in \code{allx} as specified by \code{cat_columns} concatenated with the remaining continuous variables scaled to have default standard deviation of 1 or that specified in \code{cont_scale}. When both \code{cat_data} and \code{cat_data} are \code{FALSE}, the kernel matrix assumes all continous data, does not one-hot encode any part of \code{allx} but still uses the value of \code{b} which produces maximal variance in \code{K}.
+#' @param mixed_data logical argument that when true indicates \code{allx} contains a combination of both continuous and categorgical data. When true, the interal constructio of the kernel matrix uses a one-hot encoding of the categorical variables in \code{allx} as specified by \code{cat_columns} concatenated with the remaining continuous variables scaled to have default standard deviation of 1 or that specified in \code{cont_scale}. When both \code{cat_data} and \code{cat_data} are \code{FALSE}, the kernel matrix assumes all continuous data, does not one-hot encode any part of \code{allx} but still uses the value of \code{b} which produces maximal variance in \code{K}.
 #' @param cat_columns optional character argument that must be specified when \code{mixed_data} is \code{TRUE} and that indicates what columns of \code{allx} contain categorical variables. 
 #' @param cont_scale optional numeric argument used when \code{mixed_data} is \code{TRUE} which specifies how to scale the standard deviation of continuous variables in \code{allx}. Can be either a a single value or a vector with length equal to the number of continuous variables in \code{allx} (columns not specified in \code{cat_columns}) and ordered accordingly.
-#' @param scale_data logical when true scales the columns of \code{allx} (demeans and scales variance to 1) before building the kernel matrix internally. This is appropriate when \code{allx} contains only continuous variables with different scales, but is not recommended when \code{allx} contains any categorical data. Default is \code{TRUE} when both \code{cat_data} and \code{mixed_data} are \code{FALSE} and \code{FALSE} otherwise. 
+#' @param scale_data logical when true scales the columns of \code{allx} (demeans and scales variance to 1) before building the kernel matrix internally. This is appropriate when \code{allx} contains only continuous variables with different scales, but is not recommended when \code{allx} contains any categorical data. Default is \code{TRUE} when both \code{cat_data} and \code{mixed_data} are \code{FALSE} and \code{FALSE} otherwise.
+#' @param drop_MC logical for whether or not to drop multicollinear columns in \code{allx} before building \code{K}. When either \code{cat_data} or \code{mixed_data} is \code{TRUE}, forced to be \code{FALSE}. Otherwise, with continuous data only, default is \code{TRUE}.
 #' @param linkernel logical if true, uses the linear kernel \eqn{K=XX'} which achieves balance on the first moments of \eqn{X} (mean balance). Note that for comptuational ease, the code employs \eqn{K=X} and adjusts singular values accoringly.
 #' @param meanfirst logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}.
 #' @param constraint optional matrix argument of additional contraints which are appended to the front of the left singular vectors of \code{K}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of the left singular vectors of \code{K}. 
@@ -586,22 +596,22 @@ drop_multicollin <- function(allx) {
 #' @param maxnumdims numeric argument to specify the maximum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimesions which minimize the bias. For a guassian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is the minimum between 500 and the number of columns in \code{allx}. 
 #' @param fullSVD logical argument for whether the full SVD should be conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of improving run time. When \code{FALSE}, the code computes only the SVD upto the either 80 percent of the columns of \code{K} or \code{maxnumdims} singular vectors, whichever is larger.
 #' @param incrementby numeric argument to specify the number of dimensions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
-#' #' @param ebal.maxit maximum number of iterations used by \code{ebalance_custom() in optimization in the search for weights \code{w}.
+#' #' @param ebal.maxit maximum number of iterations used by \code{ebalance_custom()} in optimization in the search for weights \code{w}.
 #' @param ebal.tol tolerance level used by \code{ebalance_custom()}. 
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of \code{K} that minimize the biasbound. When contraints are appended to the left singular vectors of \code{K} via \code{meanfirst=TRUE} or \code{constraints}, forced to be \code{TRUE} and otherwise \code{FALSE}.
-#' @param maxsearch_b optional argument to specify the maximum b in search for maximum variance of \code{K} in \code{b_maxvarK()}. Default is 2000.
+#' @param maxsearch_b optional argument to specify the maximum b in search for maximum variance of \code{K} in \code{b_maxvarK()}.
 #' @param printprogress logical argument to print updates throughout.
 #'
 #' @return \item{w}{a vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
 #' \item{biasbound_opt}{a numeric giving the minimal bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
-#'  \item{biasbound_orig}{a numeric giving the bias bound found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
-#'  \item{biasbound_ratio}{a numeric giving the ratio of \code{biasbound_orig} to\code{biasbound_opt. Can be informative when comparing the performance of different \code{b} values.} 
+#'  \item{biasbound_orig}{a numeric giving the bias bound found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
+#'  \item{biasbound_ratio}{a numeric giving the ratio of \code{biasbound_orig} to\code{biasbound_opt}. Can be informative when comparing the performance of different \code{b} values.} 
 #'  \item{dist_record}{a matrix recording the bias bound corresponding to balance on increasing dimesions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
 #'  \item{numdims}{a numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
-#'  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled units have a weight equal to one over the number of sampled units and all target units have a weight equal to one over the number of target units.}
+#'  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
 #'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
-#'  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of the kernel matrix}
+#'  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of \code{K}. When mixed data is specified, returns concatenated one-hot encoded categorical data and scaled continuous data used to contruct \code{K}.}
 #'  \item{linkernel}{logical for whether linear kernel was used}
 #'  \item{svdK}{a list giving the SVD of the kernel matrix with left singular vectors \code{svdK$u}, right singular vectors \code{svdK$v}, and singular values \code{svdK$d}}
 #'  \item{b}{numeric scaling factor used in the the calculation of gaussian kernel  equivalent to the denominator \eqn{2\sigma^2} of the exponent.}
@@ -623,7 +633,8 @@ drop_multicollin <- function(allx) {
 #' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
 #' kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
 #'                useasbases=rep(1,nrow(lalonde)),
-#'                treatment=lalonde$nsw)
+#'                treatment=lalonde$nsw, 
+#'                fullSVD = TRUE)
 #' summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
 #'  }
 #' #----------------------------------------------------------------
@@ -711,7 +722,7 @@ drop_multicollin <- function(allx) {
 #'  
 #' # kbal correctly downweights white republicans and non-white non-republicans
 #' # and upweights the non-white republicans and white non-republicans
-#' unique(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]))
+#' unique(round(cbind(samp[,-3], k_bal_weight = kbalout$w[sampled==1]),6))
 #' @export
 kbal = function(allx, 
                 useasbases=NULL,
@@ -740,7 +751,7 @@ kbal = function(allx,
                 ebal.maxit = 500,
                 ebal.tol=1e-6,
                 ebal.convergence = NULL,
-                maxsearch_b = NULL, 
+                maxsearch_b = 2000, 
                 printprogress = TRUE) {
 
     N=nrow(allx)
@@ -781,6 +792,8 @@ kbal = function(allx,
         MC_out <- drop_multicollin(allx)
         dropped_cols <- MC_out$dropped_cols
         allx <- MC_out$allx_noMC
+    } else {
+        dropped_cols = NULL
     }
     
     
@@ -831,8 +844,12 @@ kbal = function(allx,
     }
 
     #5. checking for covariates with no variance
-    if(0 %in% apply(allx, 2, sd)) {
-        stop("One or more column in \"allx\" has zero variance")
+    if(!cat_data & !mixed_data) {
+        if(sum(apply(allx, 2, class) != "numeric") != 0) {
+            stop("One or more column in \"allx\" is non-numeric while \"cat_data\" and \"mixed_data\" are both FALSE. Expecting continuous numeric data.")
+        } else if( 0 %in% apply(allx, 2, sd) ) {
+            stop("One or more column in \"allx\" has zero variance")
+        }
     }
     #6. error catch for NAs in data
     if(sum(is.na(allx) != 0)) {
@@ -847,7 +864,7 @@ kbal = function(allx,
     } else if(!is.null(sampled)) { 
         observed = sampled
         target = rep(1,N)
-    } else{ #note that we checked above for both sampled/treated null, so this must be
+    } else{ #note that we checked above for both sampled null, so this must be
         #treated passed in case
         observed = 1-treatment
         target = treatment
@@ -930,7 +947,10 @@ kbal = function(allx,
     if(!cat_data & !mixed_data) {
         #if no K supplied find bmaxvar b
         if(is.null(K.svd) & is.null(K) & is.null(b)) {
-                res = b_maxvarK(data = allx, 
+            if(printprogress) {
+                cat("Searching for b value which maximizes the variance in K. \n")
+            }
+                res = b_maxvarK(data = as.matrix(allx), 
                                 cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
@@ -938,11 +958,18 @@ kbal = function(allx,
                 maxvar_K_out = res$var_K
         }
     } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
+        if(!is.null(cont_scale)) {
+            warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
+                    immediate. = TRUE)
+        }
         if(!is.null(K.svd) | !is.null(K)) {
             warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
+            if(sum(lapply(apply(kbal_data, 2, unique), length) ==1 ) != 0 ) {
+                stop("One or more column in \"allx\" has zero variance")
+            }
             allx = one_hot(allx)
             onehot = allx
             #checks
@@ -965,7 +992,10 @@ kbal = function(allx,
             }
             #go get best b
             if(is.null(b)) {
-                res = b_maxvarK(data = allx, 
+                if(printprogress) {
+                    cat("Searching for b value which maximizes the variance in K. \n")
+                }
+                res = b_maxvarK(data = as.matrix(allx), 
                                 cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
@@ -987,22 +1017,26 @@ kbal = function(allx,
             } else { #switch to numeric for ease
                 cat_columns = which(colnames(allx) %in% cat_columns)
             }
+            if(sum(lapply(apply(kbal_data, 2, unique), length) ==1 ) != 0 ) {
+                stop("One or more column in \"allx\" has zero variance")
+            }
             allx_cat = one_hot(allx[,cat_columns, drop= F])
-            onehot = allx_cat
+            
             if(is.null(cont_scale)) {
-                warning("When combining continuous and categorical data, scaling choices for continuous variables imply different relative variable importance in the kernel distance and affect the performance of kbal. A default scaling of sd=1 for all continuous variables will be used, but users are encouraged to carefully think about the most appropriate scaling.\n", .immediate = T) 
+                warning("When combining continuous and categorical data, scaling choices for continuous variables imply different relative variable importance in the kernel distance and affect the performance of kbal. A default scaling of sd=1 for all continuous variables will be used, but users are encouraged to carefully think about the most appropriate scaling.\n", immediate. = T) 
                 allx_cont <- scale(allx[, -cat_columns, drop = F])
             } else {
                 if(!is.numeric(cont_scale) | !(length(cont_scale) == 1 | length(cont_scale) == ncol(allx[, -cat_columns, drop = F])) ) {
-                    stop("\"cont_scale\" must be a numeric vector of either length 1 or length equal to the number of continous columns in \"allx\".")
+                    stop("\"cont_scale\" must be a numeric vector of either length 1 or length equal to the number of continuous columns in \"allx\".")
                 }
                 #user specified scaling
                 allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/cont_scale)))
             }
             allx <- cbind(allx_cat, allx_cont)
+            onehot = allx
             #checks
             if(scale_data) {
-                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continous data and \"scale_data\" =TRUE not used.\n", 
+                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE not used.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -1021,7 +1055,10 @@ kbal = function(allx,
             }
             #go get best b
             if(is.null(b)) {
-                res = b_maxvarK(data = allx, 
+                if(printprogress) {
+                    cat("Searching for b value which maximizes the variance in K. \n")
+                }
+                res = b_maxvarK(data = as.matrix(allx), 
                                 cat_data = cat_data,
                                 useasbases = useasbases)
                 b = res$b_maxvar

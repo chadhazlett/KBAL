@@ -18,13 +18,17 @@ Converts raw categorical string/factor data matrix into numeric one-hot encoded 
 \examples{
 \donttest{
 #Ex 1. Make up some categorical demographic data
-dat = data.frame(pid = c(rep("Rep", 37), rep("Dem", 68), rep("Ind", 14)), 
-gender = c(rep("female", 78), rep("male", 37+68+14 - 78)))
-Convert to one-hot encoded data matrix:
+dat = data.frame(pid = c(rep("Rep", 20),
+                         rep("Dem", 20), 
+                         rep("Ind", 20)), 
+                 gender = c(rep("female", 35),
+                            rep("male", 25)))
+#Convert to one-hot encoded data matrix:
 onehot_dat = one_hot(dat)}
 
 #Ex 2. lalonde data
 data(lalonde)
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
 cat_vars=c("black","hisp","married","nodegr","u74","u75")
 onehot_lalonde = one_hot(lalonde[, cat_vars])
 }

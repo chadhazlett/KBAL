@@ -41,5 +41,7 @@ U = svd(K)$u
 #usually search over all columns of U to find which produces weights with 
 #the minimum bias bound; in this ex, search only first 10 dims
 U2=U[,1:10]
-getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)}
+getw.out=getw(target=lalonde$nsw, 
+              observed=1-lalonde$nsw, 
+              svd.U=U2)}
 }

@@ -26,11 +26,11 @@ Searches for the argmax of the variance of the Kernel matrix
 \donttest{
 #lalonde with only categorical data
 data(lalonde)
-colnames(lalonde)
-cat_vars=c("black","hisp","married","u74","u75")
+lalonde$nodegr=as.numeric(lalonde$educ<=11)
+cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #Convert to one-hot encoded data matrix:
 onehot_lalonde = one_hot(lalonde[, cat_vars])
 colnames(onehot_lalonde)
 best_b <- b_maxvarK(data = onehot_lalonde, 
-                 useasbases = 1-lalonde$nsw) }
+                    useasbases = 1-lalonde$nsw) }
 }

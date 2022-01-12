@@ -19,11 +19,13 @@ Drops multicollienar columns in order of highest correlation
 \examples{
 \donttest{
 # make data with multicollinearity 
-data <- data.frame(x = rnorm(100), y = sample.int(100,100), z = runif(100, 3,6))
+data <- data.frame(x = rnorm(100),
+                   y = sample.int(100,100), 
+                   z = runif(100, 3,6))
 test = data.frame(mc_1 = data$x,
- mc_2 = data$x*2 + data$y - data$z)
- dat = cbind(test, data)
- #run
- mc_check= drop_multicollin(dat)
- mc_check$dropped_cols }
+                  mc_2 = data$x*2 + data$y - data$z)
+dat = cbind(test, data)
+#run
+mc_check= drop_multicollin(dat)
+mc_check$dropped_cols }
 }
