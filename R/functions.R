@@ -414,7 +414,7 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
-#' @importFrom stats model.matrix
+#' @importFrom stats model.matrix contrasts
 #' @export
 one_hot <- function(data) {
     onehot_data <- data.frame(lapply(data, as.factor))
@@ -432,7 +432,7 @@ one_hot <- function(data) {
 #' Maximum Variance of Gaussian Kernel Matrix
 #' @description Searches for the argmax of the variance of the Kernel matrix
 #' @param data a matrix data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.
-#' @param useasebases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
+#' @param useasbases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
 #' @param cat_data logical for whether kernel contains only categorical data or not
 #' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.
 #' @return \item{b_maxvar}{numeric \eqn{b} value, the denominator of the gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
@@ -591,12 +591,13 @@ drop_multicollin <- function(allx) {
 #' @param linkernel logical if true, uses the linear kernel \eqn{K=XX'} which achieves balance on the first moments of \eqn{X} (mean balance). Note that for comptuational ease, the code employs \eqn{K=X} and adjusts singular values accoringly.
 #' @param meanfirst logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}.
 #' @param constraint optional matrix argument of additional contraints which are appended to the front of the left singular vectors of \code{K}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of the left singular vectors of \code{K}. 
+#' @param scale_constraint logical for whether constraints in \code{constraint} should be scaled before they are appended to the svd of \code{K}.
 #' @param numdims optional numeric argument specifying the number of dimensions of the left singular vectors of the kernel matrix to find balance bypassing the optimization search for the number of dimensions which minimize the biasbound.
 #' @param minnumdims numeric argument to specify the minimum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimesions which minimize the bias. Default minimum is 1.
 #' @param maxnumdims numeric argument to specify the maximum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimesions which minimize the bias. For a guassian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is the minimum between 500 and the number of columns in \code{allx}. 
 #' @param fullSVD logical argument for whether the full SVD should be conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of improving run time. When \code{FALSE}, the code computes only the SVD upto the either 80 percent of the columns of \code{K} or \code{maxnumdims} singular vectors, whichever is larger.
 #' @param incrementby numeric argument to specify the number of dimensions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
-#' #' @param ebal.maxit maximum number of iterations used by \code{ebalance_custom()} in optimization in the search for weights \code{w}.
+#' @param ebal.maxit maximum number of iterations used by \code{ebalance_custom()} in optimization in the search for weights \code{w}.
 #' @param ebal.tol tolerance level used by \code{ebalance_custom()}. 
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of \code{K} that minimize the biasbound. When contraints are appended to the left singular vectors of \code{K} via \code{meanfirst=TRUE} or \code{constraints}, forced to be \code{TRUE} and otherwise \code{FALSE}.
 #' @param maxsearch_b optional argument to specify the maximum b in search for maximum variance of \code{K} in \code{b_maxvarK()}.
@@ -632,7 +633,6 @@ drop_multicollin <- function(allx) {
 #'  \donttest{
 #' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
 #' kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'                useasbases=rep(1,nrow(lalonde)),
 #'                treatment=lalonde$nsw, 
 #'                fullSVD = TRUE)
 #' summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
@@ -645,8 +645,7 @@ drop_multicollin <- function(allx) {
 #'
 #' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
 #'kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'               useasbases=rep(1,nrow(lalonde)),
-#'               treatment=lalonde$nsw, linkernel=TRUE)
+#'               treatment=lalonde$nsw, linkernel=TRUE, fullSVD=TRUE)
 #' 
 #' # Check balance with and without these weights:
 #'dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
@@ -967,7 +966,7 @@ kbal = function(allx,
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
-            if(sum(lapply(apply(kbal_data, 2, unique), length) ==1 ) != 0 ) {
+            if(sum(lapply(apply(allx, 2, unique), length) ==1 ) != 0 ) {
                 stop("One or more column in \"allx\" has zero variance")
             }
             allx = one_hot(allx)
@@ -1017,7 +1016,7 @@ kbal = function(allx,
             } else { #switch to numeric for ease
                 cat_columns = which(colnames(allx) %in% cat_columns)
             }
-            if(sum(lapply(apply(kbal_data, 2, unique), length) ==1 ) != 0 ) {
+            if(sum(lapply(apply(allx, 2, unique), length) ==1 ) != 0 ) {
                 stop("One or more column in \"allx\" has zero variance")
             }
             allx_cat = one_hot(allx[,cat_columns, drop= F])

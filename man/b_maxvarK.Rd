@@ -9,11 +9,11 @@ b_maxvarK(data, useasbases, cat_data = TRUE, maxsearch_b = 2000)
 \arguments{
 \item{data}{a matrix data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.}
 
+\item{useasbases}{binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.}
+
 \item{cat_data}{logical for whether kernel contains only categorical data or not}
 
 \item{maxsearch_b}{the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.}
-
-\item{useasebases}{binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.}
 }
 \value{
 \item{b_maxvar}{numeric \eqn{b} value, the denominator of the gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
