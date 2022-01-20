@@ -4,10 +4,12 @@
 \alias{drop_multicollin}
 \title{Drop Multicollinear Columns}
 \usage{
-drop_multicollin(allx)
+drop_multicollin(allx, printprogress = TRUE)
 }
 \arguments{
 \item{allx}{a matrix of data to check for multicollinearity}
+
+\item{printprogress}{logical to indicate if progress should be printed out to command line}
 }
 \value{
 \item{allx_noMC}{resulting data matrix of full rank after multicolliear columns have been dropped}

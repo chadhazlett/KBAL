@@ -417,8 +417,7 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' @importFrom stats model.matrix contrasts
 #' @export
 one_hot <- function(data) {
-    onehot_data <- data.frame(lapply(data, as.factor))
-    
+    onehot_data <- data.frame(lapply(data.frame(data),as.factor))
     onehot_data <- model.matrix(~ ., onehot_data,
                                 contrasts.arg = lapply(onehot_data[,,drop = F], 
                                                        contrasts, 
@@ -507,6 +506,7 @@ b_maxvarK <- function(data,
 #' Drop Multicollinear Columns
 #' @description Drops multicollienar columns in order of highest correlation
 #' @param allx a matrix of data to check for multicollinearity
+#' @param printprogress logical to indicate if progress should be printed out to command line
 #' @return \item{allx_noMC}{resulting data matrix of full rank after multicolliear columns have been dropped}
 #' \item{dropped_cols}{column names of those dropped}
 #' @examples
@@ -522,12 +522,15 @@ b_maxvarK <- function(data,
 #' mc_check= drop_multicollin(dat)
 #' mc_check$dropped_cols }
 #' @export
-drop_multicollin <- function(allx) {
+drop_multicollin <- function(allx, printprogress = TRUE) {
     
     qr_X = qr(allx)
     multicollin = FALSE
     if(qr_X$rank < ncol(allx)) {
         multicollin = TRUE
+    }
+    if(multicollin & printprogress) {
+        cat("Dropping detected multicollinear columns\n")
     }
     allx_update = allx
     dropped_cols = NULL
@@ -542,9 +545,16 @@ drop_multicollin <- function(allx) {
         drop = which(cor == all_cor[i], arr.ind = T)[1,1]
         
         if(qr(allx_update[,-drop])$rank == rank_target) {
-            dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
-                                                          arr.ind  =TRUE))[1])
-            allx_update <- allx_update[,-drop]
+            if(!is.null(rownames(which(cor == all_cor[i],
+                                       arr.ind  =TRUE)))) {
+                dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
+                                                              arr.ind  =TRUE))[1])
+            } else {
+                dropped_cols = c(dropped_cols, paste("column", (which(cor == all_cor[i],
+                                                              arr.ind  =TRUE))[1]))
+            }
+            
+            allx_update <- allx_update[,-drop, drop = F]
         }
         #cat(i, drop, ncol(allx_update),"\n")
         i = i + 1
@@ -568,7 +578,7 @@ drop_multicollin <- function(allx) {
 #' 
 #' To proceed in the causal effect setting, kbal assumes that the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. The approximation is one that minimizes the worst-case bias that could persist due to remaining imbalances. 
 #' 
-#' The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then returns these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison. Note that while kernel balancing goes far beyond simple mean balancing, it may not result in perfect mean balance. Users who wish to require mean balancing can specify \code{meanfirst = T} to require mean balance on as many dimensions of the data as optimally feasible. Alternatively, users can manually specify \code{constraint} to append additional vector constraints to the kernel matrix in the bias bound optimization, requiring mean balance on these columns.
+#' The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then returns these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison. Note that while kernel balancing goes far beyond simple mean balancing, it may not result in perfect mean balance. Users who wish to require mean balancing can specify \code{meanfirst = T} to require mean balance on as many dimensions of the data as optimally feasible. Alternatively, users can manually specify \code{constraint} to append additional vector constraints to the kernel matrix in the bias bound optimization, requiring mean balance on these columns. Note further that \code{kbal} supports three types of input data: fully categorical, fully continuous, or mixed. When data is only categorical, as is common with demographic variables for survey reweighting, users should use argument \code{cat_data = TRUE} and can input their data as factors, numerics, or characters and \code{kbal} will interally transform the data to a more appropriate one-hot encoding and search for the value of \code{b}, the denominator of the exponent in the gaussian, which maximizes the variance of the kernel matrix. When data is fully continuous, users should use default settings (\code{cat_data = FALSE} and \code{cont_data = FAlSE}, which will scale all columns and again conduct an itnernal search for the value of \code{b} which maximizes the variance of \code{K}. Note that with continuous data, this search may take considerably more computational time than the categorical case. When data is a mix of continuous and categorical data, users should use argument \code{mixed_data = TRUE}, specify by name what columns are categorical with \code{cat_columns}, and also set the scaling of the continuous variables with \code{cont_scale}. This will result in a one-hot encoding of categorical columns concatenated with the continous columns scaled in accordance with \code{cont_scale} and again an internal search for the value of \code{b} which maximzies the variance in the kernel matrix. Again note that compared to the categorical case, this search will take more computational time. 
 #' 
 #'
 #' @references Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinica. https://doi.org/10.5705/ss.202017.0555
@@ -788,7 +798,7 @@ kbal = function(allx,
         drop_MC = FALSE
     } 
     if(drop_MC) {
-        MC_out <- drop_multicollin(allx)
+        MC_out <- drop_multicollin(allx, printprogress = printprogress)
         dropped_cols <- MC_out$dropped_cols
         allx <- MC_out$allx_noMC
     } else {
@@ -944,8 +954,16 @@ kbal = function(allx,
     onehot = NULL
     #cont data only
     if(!cat_data & !mixed_data) {
+        #check not cat data: 
+        if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | sum(dim(apply(allx, 2, unique))[1] <= 10) != 0) {
+            warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)
+        }
         #if no K supplied find bmaxvar b
         if(is.null(K.svd) & is.null(K) & is.null(b)) {
+            if(N > 10000) {
+                warning("NB: with continuous data and high dimensional \"K\", internal search for b value which produces maximal variance may be time consuming. Consider atlernative choice of b=2*ncol(allx)", 
+                        immediate. = TRUE)
+            }
             if(printprogress) {
                 cat("Searching for b value which maximizes the variance in K. \n")
             }
@@ -966,9 +984,18 @@ kbal = function(allx,
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
-            if(sum(lapply(apply(allx, 2, unique), length) ==1 ) != 0 ) {
+            if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) != 0) | sum(dim(apply(allx, 2, unique))[1] == 1) != 0) {
                 stop("One or more column in \"allx\" has zero variance")
             }
+            if(!is.null(dim(apply(allx, 2, unique))) && 
+               dim(apply(allx, 2, unique))[1] == N) {
+                stop("\"cat_data\"=TRUE, but all columns of \"allx\" contain n=nrow(allx) unique values indicating continuous data.")
+            } 
+            if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) > 10) | sum(dim(apply(allx, 2, unique))[1] > 10) != 0) {
+                warning("One or more column in \"allx\" has more than 10 unique values while \"cat_data\"= TRUE. Ensure that all variables are categorical.",
+                        immediate. = TRUE)
+            }
+            
             allx = one_hot(allx)
             onehot = allx
             #checks
@@ -1016,10 +1043,22 @@ kbal = function(allx,
             } else { #switch to numeric for ease
                 cat_columns = which(colnames(allx) %in% cat_columns)
             }
-            if(sum(lapply(apply(allx, 2, unique), length) ==1 ) != 0 ) {
+            if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) != 0) | sum(dim(apply(allx, 2, unique))[1] == 1) != 0) {
                 stop("One or more column in \"allx\" has zero variance")
             }
+            if(!is.null(dim(apply(allx[,cat_columns, drop= F], 2, unique))) && 
+               dim(apply(allx[,cat_columns, drop= F], 2, unique))[1] == N) {
+                stop("\"mixed_data\"=TRUE, but one or more categorical columns of \"allx\" specified by \"cat_columns\" contain n=nrow(allx) unique values indicating continuous data.")
+            } 
+            if((is.null(dim(apply(allx[,cat_columns, drop= F], 2, unique))) && sum(lapply(apply(allx[,cat_columns, drop= F], 2, unique), length) >10 ) != 0) ) {
+                warning("\"mixed_data\"=TRUE, but one or more column in \"allx\" designated as categorcial by \"cat_columns\" has more than 10 unique values. Ensure that all variables are categorical.", immediate. = TRUE)
+            }
+           
             allx_cat = one_hot(allx[,cat_columns, drop= F])
+            
+            if((is.null(dim(apply(allx[, -cat_columns, drop = F], 2, unique))) && sum(lapply(apply(allx[, -cat_columns, drop = F], 2, unique), length) <= 10) != 0) | sum(dim(apply(allx[, -cat_columns, drop = F], 2, unique))[1] <= 10) != 0) {
+                warning(" \"mixed_data\"= TRUE, but one or more columns of \"allx\" designated as continuous by omission from \"cat_columns\" contain less than 10 unique values. Ensure all categorical variables are specified in \"cat_columns\"", immediate. = TRUE)
+            }
             
             if(is.null(cont_scale)) {
                 warning("When combining continuous and categorical data, scaling choices for continuous variables imply different relative variable importance in the kernel distance and affect the performance of kbal. A default scaling of sd=1 for all continuous variables will be used, but users are encouraged to carefully think about the most appropriate scaling.\n", immediate. = T) 
@@ -1035,7 +1074,7 @@ kbal = function(allx,
             onehot = allx
             #checks
             if(scale_data) {
-                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE not used.\n", 
+                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE is not used.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -1052,8 +1091,13 @@ kbal = function(allx,
                     useasbases = as.numeric(observed==1)
                 }
             }
+            
             #go get best b
             if(is.null(b)) {
+                if(N > 10000) {
+                    warning("NB: with continuous data and high dimensional \"K\", internal search for b value which produces maximal variance may be time consuming. Consider atlernative choice of b=2*ncol(allx)", 
+                            immediate. = TRUE)
+                }
                 if(printprogress) {
                     cat("Searching for b value which maximizes the variance in K. \n")
                 }
