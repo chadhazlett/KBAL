@@ -30,10 +30,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// kernel_parallel_old
+Rcpp::NumericMatrix kernel_parallel_old(Rcpp::NumericMatrix X, Rcpp::NumericMatrix Y, const double b);
+RcppExport SEXP _kbal_kernel_parallel_old(SEXP XSEXP, SEXP YSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(kernel_parallel_old(X, Y, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_kbal_kernel_parallel", (DL_FUNC) &_kbal_kernel_parallel, 2},
     {"_kbal_kernel_parallel_2", (DL_FUNC) &_kbal_kernel_parallel_2, 3},
+    {"_kbal_kernel_parallel_old", (DL_FUNC) &_kbal_kernel_parallel_old, 3},
     {NULL, NULL, 0}
 };
 

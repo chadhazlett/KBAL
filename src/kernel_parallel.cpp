@@ -83,21 +83,25 @@ struct Kernel_2 : public Worker
   
   // calculate the IBS kernel of the range of elements requested
   void operator()(std::size_t begin, std::size_t end) {
-    int p = X.ncol();
-    int m = Y.nrow();
-    for (std::size_t i = begin; i < end; i++) {
-      for (std::size_t j = 0; j < m; j++) {
-        double dist = 0;
-        for (int k = 0; k < p; k++) {
-          double xi = X(i, k), yj = Y(j, k);
-          if (both_non_NA(xi, yj)) {
-            double diff = xi - yj;
-            dist += diff*diff;
+      int p = X.ncol();
+      int m = Y.nrow();
+      for (std::size_t i = begin; i < end; i++) {
+          for (std::size_t j = 0; j < i & j < m; j++) {
+              double dist = 0;
+              for (int k = 0; k < p; k++) {
+                  double xi = X(i, k), yj = X(j, k);
+                  double diff = xi - yj;
+                  dist += diff*diff;
+              }
+              out(i, j) = exp(-dist / b);
+              if(i < m) {
+                  out(j, i) = out(i, j);
+              }
           }
-        }
-        out(i, j) = exp(-dist / b);
+          if(i < m) {
+              out(i,i) = 1;
+          }
       }
-    }
   }
 };
 
@@ -121,6 +125,62 @@ Rcpp::NumericMatrix kernel_parallel_2(Rcpp::NumericMatrix X,
 
 
 
+struct Kernel_old : public Worker
+{
+    // source matrix
+    const RMatrix<double> X;
+    const RMatrix<double> Y;
+    const double b;
+    
+    // destination matrix
+    RMatrix<double> out;
+    
+    // initialize with source and destination
+    Kernel_old(const Rcpp::NumericMatrix X,
+             const Rcpp::NumericMatrix Y,
+             const double b,
+             Rcpp::NumericMatrix out) 
+        : X(X), Y(Y), b(b), out(out) {}
+    
+    // calculate the IBS kernel of the range of elements requested
+    
+    void operator()(std::size_t begin, std::size_t end) {
+        int p = X.ncol();
+        int m = Y.nrow();
+        for (std::size_t i = begin; i < end; i++) {
+            for (std::size_t j = 0; j < m; j++) {
+                double dist = 0;
+                for (int k = 0; k < p; k++) {
+                    double xi = X(i, k), yj = Y(j, k);
+                    if (both_non_NA(xi, yj)) {
+                        double diff = xi - yj;
+                        dist += diff*diff;
+                    }
+                }
+                out(i, j) = exp(-dist / b);
+            }
+        }
+    }
+};
+
+
+// [[Rcpp::export]]
+Rcpp::NumericMatrix kernel_parallel_old(Rcpp::NumericMatrix X,
+                                      Rcpp::NumericMatrix Y,
+                                      const double b) {
+    
+    // allocate the output matrix
+    Rcpp::NumericMatrix out(X.nrow(), Y.nrow());
+    
+    // IBSKernel functor (pass input and output matrixes)
+    Kernel_old kernel_old(X, Y, b, out);
+    
+    // call parallelFor to do the work
+    parallelFor(0, X.nrow(), kernel_old);
+    
+    // return the output matrix
+    return out;
+}
 
 
 

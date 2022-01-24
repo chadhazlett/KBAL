@@ -4,9 +4,16 @@
 \alias{ebalance_custom}
 \title{Modified version of ebalance (originally from Jens Hainmueller)}
 \usage{
-ebalance_custom(Treatment, X, base.weight = NULL, norm.constant = NULL,
-  coefs = NULL, max.iterations = 200, constraint.tolerance = 0.001,
-  print.level = 0)
+ebalance_custom(
+  Treatment,
+  X,
+  base.weight = NULL,
+  norm.constant = NULL,
+  coefs = NULL,
+  max.iterations = 200,
+  constraint.tolerance = 0.001,
+  print.level = 0
+)
 }
 \arguments{
 \item{Treatment}{a numeric vector of length equal to the total number of units where treated (population) units take a value of 1 and control (sampled) units take a value of 0.}

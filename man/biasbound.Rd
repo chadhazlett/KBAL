@@ -17,10 +17,13 @@ biasbound(observed, target, svd.out, w, w.pop = NULL, hilbertnorm = 1)
 
 \item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
-\item{hilbertnorm}{numeric value of the hilbertnorm. Default value is 1.}
+\item{hilbertnorm}{numeric value of the hilbertnorm.}
+}
+\value{
+\item{biasbound}{value of worst-case bias bound due to incomplete balance with inputted weights}
 }
 \description{
-Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm.}
+Calculate the upper bound on the bias induced by approximate balance with a given \code{hilbertnorm}. Approximate balance is conducted in \code{kbal()} and uses only the first \code{numdims} dimensions of the singular value decomposition of the kernel matrix to generate weights \code{w} which produce mean balance between control or sampled units and treated or population units. The following function calculates the worse-case bias induced by this approximate balancing with weights \code{w} and a given \code{hilbertnorm}.
 }
 \examples{
 \donttest{
@@ -38,7 +41,7 @@ svd_pass = svd(K)
 #let's use the original weights of 1/number of sampled units, and 1/number of target units
 #this is the default if we pass in w as all 1's
 biasbound(observed=(1-lalonde$nsw),
- target=lalonde$nsw,
- svd.out = svd_pass,
- w = rep(1,nrow(lalonde)), hilbertnorm=1)}
+          target=lalonde$nsw,
+          svd.out = svd_pass,
+          w = rep(1,nrow(lalonde)), hilbertnorm=1)}
 }

@@ -4,16 +4,18 @@
 \alias{makeK}
 \title{Build the Gaussian Kernel Matrix}
 \usage{
-makeK(allx, useasbases = NULL, b = NULL, linkernel = FALSE)
+makeK(allx, useasbases = NULL, b = NULL, linkernel = FALSE, scale = TRUE)
 }
 \arguments{
 \item{allx}{A data matrix containing all observations where rows are units and columns are covariates.}
 
-\item{useasbases}{Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix and finding weights. If not specified, the default is to use all observations.}
+\item{useasbases}{Vector argument containing one's and zero's with length equal to the number of obervations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.}
 
 \item{b}{Scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.}
 
-\item{linkernel}{Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X} and achieves (approximate) mean balance on \eqn{X}.}
+\item{linkernel}{Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.}
+
+\item{scale}{boolean flag for whether or not to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix}
 }
 \value{
 \item{K}{The kernel matrix}
@@ -29,6 +31,7 @@ lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
-#running makeK with the sampled/observed units as the bases given the large size of the data
+#running makeK with the sampled/control units as the bases given 
+#the large size of the data
 K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) }
 }
