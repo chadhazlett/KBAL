@@ -493,6 +493,7 @@ b_maxvarK <- function(data,
             #old: memory issues with certain installations... R is messed up
             #var_k <- var(na.omit(as.vector(K)))
             #some benchmarking showed this seems to be the fastest method
+            n = nrow(K)*ncol(K) - sum(useasbases)
             var_k = (1/(n-1))*(sum(K^2, na.rm = T) - 2*(1/n)*sum(K, na.rm = T)^2 + (1/n)*sum(K, na.rm = T)^2)
             return(var_k)
         }
