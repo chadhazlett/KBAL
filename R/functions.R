@@ -430,7 +430,7 @@ one_hot <- function(data) {
 
 #' Maximum Variance of Gaussian Kernel Matrix
 #' @description Searches for the argmax of the variance of the Kernel matrix
-#' @param data a matrix data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.
+#' @param data a matrix of data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.
 #' @param useasbases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
 #' @param cat_data logical for whether kernel contains only categorical data or not
 #' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.
@@ -488,9 +488,12 @@ b_maxvarK <- function(data,
                        useasbases = useasbases,
                        linkernel = FALSE,
                        scale = FALSE)
-            #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION (this appears to be the fastest way w large matrices)
+            #REMOVING DIAGONAL 0 COUNTS FROM MAXIMIZATION CONSIDERATION 
             diag(K) <- NA
-            var_k <- var(na.omit(as.vector(K)))
+            #old: memory issues with certain installations... R is messed up
+            #var_k <- var(na.omit(as.vector(K)))
+            #some benchmarking showed this seems to be the fastest method
+            var_k = (1/(n-1))*(sum(K^2, na.rm = T) - 2*(1/n)*sum(K, na.rm = T)^2 + (1/n)*sum(K, na.rm = T)^2)
             return(var_k)
         }
         res = optimize(var_K, data,
@@ -764,6 +767,9 @@ kbal = function(allx,
                 printprogress = TRUE) {
 
     N=nrow(allx)
+    if(class(allx) == "data.frame") {
+        allx = as.matrix(allx)
+    }
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
       if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
@@ -967,7 +973,10 @@ kbal = function(allx,
             if(printprogress) {
                 cat("Searching for b value which maximizes the variance in K. \n")
             }
-                res = b_maxvarK(data = as.matrix(allx), 
+                if(scale_data) {
+                    allx = scale(allx)
+                }    
+                res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
@@ -1021,7 +1030,7 @@ kbal = function(allx,
                 if(printprogress) {
                     cat("Searching for b value which maximizes the variance in K. \n")
                 }
-                res = b_maxvarK(data = as.matrix(allx), 
+                res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
@@ -1101,7 +1110,7 @@ kbal = function(allx,
                 if(printprogress) {
                     cat("Searching for b value which maximizes the variance in K. \n")
                 }
-                res = b_maxvarK(data = as.matrix(allx), 
+                res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
                                 useasbases = useasbases)
                 b = res$b_maxvar
