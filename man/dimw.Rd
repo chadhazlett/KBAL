@@ -26,7 +26,6 @@ Calcuates the simple difference in means or weighted difference in means between
 #function with the lalonde data:
 #load and clean data a bit
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #get the kbal weights

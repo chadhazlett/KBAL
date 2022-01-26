@@ -27,7 +27,6 @@ Builds the Gaussian kernel matrix using Rcpp.
 #load and clean data a bit
 \donttest{
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw

@@ -128,16 +128,42 @@ The \code{kbal} function implements kernel balancing using a gaussian kernel to 
 # Example 1: Reweight a control group to a treated to estimate ATT. 
 # Benchmark using Lalonde et al.
 #----------------------------------------------------------------
+#1. Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
  \donttest{
-# Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
-kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
-               treatment=lalonde$nsw, 
-               fullSVD = TRUE)
+
+kbalout.full= kbal(allx=lalonde[,xvars],
+                   b=length(xvars),
+                   treatment=lalonde$nsw, 
+                   fullSVD = TRUE)
 summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
  }
+ 
+ #2. Lalonde with categorical data only: u74, u75, nodegree, race, married
+ cat_vars=c("race_ethnicity","married","nodegr","u74","u75")
+ \donttest{
+ kbalout_cat_only = kbal(allx=lalonde[,cat_vars],
+                         cat_data = TRUE,
+                         treatment=lalonde$nsw,
+                         fullSVD = TRUE)
+ kbalout_cat_only$b
+ summary(lm(re78~nsw,w=kbalout_cat_only$w, data = lalonde))
+ }
+
+ #3. Lalonde with mixed categorical and continuous data
+ cat_vars=c("race_ethnicity", "married")
+ all_vars= c("age","educ","re74","re75","married", "race_ethnicity")
+ \donttest{
+ kbalout_mixed = kbal(allx=lalonde[,all_vars],
+                      mixed_data = TRUE, 
+                      cat_columns = cat_vars,
+                      treatment=lalonde$nsw,
+                      fullSVD = TRUE)
+ kbalout_mixed$b
+ summary(lm(re78~nsw,w=kbalout_mixed$w, data = lalonde))
+ }
+ 
 #----------------------------------------------------------------
 # Example 1B: Reweight a control group to a treated to esimate ATT. 
 # Benchmark using Lalonde et al. -- but just mean balancing now 
@@ -145,8 +171,11 @@ summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))
 #----------------------------------------------------------------
 
 # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
-kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
-              treatment=lalonde$nsw, linkernel=TRUE, fullSVD=TRUE)
+kbalout.lin= kbal(allx=lalonde[,xvars],
+                 b=length(xvars),
+                 treatment=lalonde$nsw, 
+                 linkernel=TRUE,
+                 fullSVD=TRUE)
 
 # Check balance with and without these weights:
 dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)

@@ -28,7 +28,6 @@ onehot_dat = one_hot(dat)}
 
 #Ex 2. lalonde data
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 cat_vars=c("black","hisp","married","nodegr","u74","u75")
 onehot_lalonde = one_hot(lalonde[, cat_vars])
 }

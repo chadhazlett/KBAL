@@ -14,7 +14,6 @@
 #' #load and clean data a bit
 #' \donttest{
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
@@ -81,7 +80,6 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' \donttest{
 #' #load and clean data a bit
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need a kernel matrix to run SVD on and pass in so get that first with makeK
@@ -162,7 +160,6 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #' #function with the lalonde data:
 #' #load and clean data a bit
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #get the kbal weights
@@ -205,7 +202,6 @@ dimw = function(X,w,target){
 #' \donttest{
 #' #load and clean data a bit
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need a kernel matrix to run SVD on then find weights with so get that first with makeK
@@ -292,7 +288,6 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' \donttest{
 #' #loading and cleaning lalonde data
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need to first build gaussian kernel matrix
@@ -411,7 +406,6 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' 
 #' #Ex 2. lalonde data
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
 #' @importFrom stats model.matrix contrasts
@@ -440,7 +434,6 @@ one_hot <- function(data) {
 #' \donttest{
 #' #lalonde with only categorical data
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' #Convert to one-hot encoded data matrix:
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
@@ -641,16 +634,42 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' # Example 1: Reweight a control group to a treated to estimate ATT. 
 #' # Benchmark using Lalonde et al.
 #' #----------------------------------------------------------------
+#' #1. Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'  \donttest{
-#' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
-#' kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'                treatment=lalonde$nsw, 
-#'                fullSVD = TRUE)
+#' 
+#' kbalout.full= kbal(allx=lalonde[,xvars],
+#'                    b=length(xvars),
+#'                    treatment=lalonde$nsw, 
+#'                    fullSVD = TRUE)
 #' summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
 #'  }
+#'  
+#'  #2. Lalonde with categorical data only: u74, u75, nodegree, race, married
+#'  cat_vars=c("race_ethnicity","married","nodegr","u74","u75")
+#'  \donttest{
+#'  kbalout_cat_only = kbal(allx=lalonde[,cat_vars],
+#'                          cat_data = TRUE,
+#'                          treatment=lalonde$nsw,
+#'                          fullSVD = TRUE)
+#'  kbalout_cat_only$b
+#'  summary(lm(re78~nsw,w=kbalout_cat_only$w, data = lalonde))
+#'  }
+#'
+#'  #3. Lalonde with mixed categorical and continuous data
+#'  cat_vars=c("race_ethnicity", "married")
+#'  all_vars= c("age","educ","re74","re75","married", "race_ethnicity")
+#'  \donttest{
+#'  kbalout_mixed = kbal(allx=lalonde[,all_vars],
+#'                       mixed_data = TRUE, 
+#'                       cat_columns = cat_vars,
+#'                       treatment=lalonde$nsw,
+#'                       fullSVD = TRUE)
+#'  kbalout_mixed$b
+#'  summary(lm(re78~nsw,w=kbalout_mixed$w, data = lalonde))
+#'  }
+#'  
 #' #----------------------------------------------------------------
 #' # Example 1B: Reweight a control group to a treated to esimate ATT. 
 #' # Benchmark using Lalonde et al. -- but just mean balancing now 
@@ -658,8 +677,11 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' #----------------------------------------------------------------
 #'
 #' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
-#'kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'               treatment=lalonde$nsw, linkernel=TRUE, fullSVD=TRUE)
+#'kbalout.lin= kbal(allx=lalonde[,xvars],
+#'                  b=length(xvars),
+#'                  treatment=lalonde$nsw, 
+#'                  linkernel=TRUE,
+#'                  fullSVD=TRUE)
 #' 
 #' # Check balance with and without these weights:
 #'dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
@@ -768,9 +790,7 @@ kbal = function(allx,
                 printprogress = TRUE) {
 
     N=nrow(allx)
-    if(class(allx) == "data.frame") {
-        allx = as.matrix(allx)
-    }
+    
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
       if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
@@ -961,6 +981,10 @@ kbal = function(allx,
     onehot = NULL
     #cont data only
     if(!cat_data & !mixed_data) {
+        
+        if(class(allx) != "matrix") {
+            allx = as.matrix(allx)
+        }
         #check not cat data: 
         if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | sum(dim(apply(allx, 2, unique))[1] <= 10) != 0) {
             warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)

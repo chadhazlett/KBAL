@@ -29,7 +29,6 @@ Calculate the upper bound on the bias induced by approximate balance with a give
 \donttest{
 #load and clean data a bit
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #need a kernel matrix to run SVD on and pass in so get that first with makeK

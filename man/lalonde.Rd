@@ -5,20 +5,22 @@
 \alias{lalonde}
 \title{Data from National Supported Work program and Panel Study in Income Dynamics}
 \format{
-A data frame with 2675 rows and 12 columns.
+A data frame with 2675 rows and 14 columns.
 \describe{
   \item{nsw}{treatment indicator: participation in the National Supported Work program.}
   \item{re78}{real earnings in 1978 (outcome)}
-  \item{u78}{unemployed in 1978; actually an indicator for zero income in 1978.}
+  \item{u78}{unemployed in 1978; actually an indicator for zero income in 1978}
   \item{age}{age in years}
-  \item{black}{indicator for identifying as black.}
+  \item{black}{indicator for identifying as black}
   \item{hisp}{indicator for identifying as hispanic}
+  \item{race_ethnicity}{factor for self-identified race/ethnicity; same information as \code{black} and \code{hisp} in character form.}
   \item{married}{indicator for being married}
   \item{re74}{real income in 1974}
   \item{re75}{real income in 1975}
   \item{u74}{unemployment in 1974; actually an indicator for zero income in 1974}
   \item{u75}{unemployment in 1975; actually an indicator for zero income in 1975}
   \item{educ}{Years of education of the individual}
+  \item{nodegr}{indicator for no high school degree; actually an indicator for years of education less than 12}
 }
 }
 \usage{
