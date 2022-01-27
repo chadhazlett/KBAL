@@ -135,6 +135,9 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
    
     U=svd.out$u
     eigenvals=svd.out$d #singular values (A)
+    if(sum(sign(eigenvals) == -1) != 0) {
+        stop("Encountered negative eigenvalues. Cannot compute biasbound.")
+    }
     
     U1=U[target==1, , drop=FALSE]
     U0=U[observed==1, , drop=FALSE]
@@ -790,6 +793,9 @@ kbal = function(allx,
                 printprogress = TRUE) {
 
     N=nrow(allx)
+    if(is.null(N)) {
+        stop("Please ensure \"allx\" is a matrix or dataframe. If subsetting to a single column, may need to use argument \"drop = F\" ")
+    }
     
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
@@ -996,7 +1002,7 @@ kbal = function(allx,
                         immediate. = TRUE)
             }
             if(printprogress) {
-                cat("Searching for b value which maximizes the variance in K. \n")
+                cat("Searching for b value which maximizes the variance in K: ")
             }
                 if(scale_data) {
                     allx = scale(allx)
@@ -1007,6 +1013,10 @@ kbal = function(allx,
                                 maxsearch_b = maxsearch_b)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
+                
+                if(printprogress) {
+                    cat(round(b, 3) ,"selected \n")
+                }
         }
     } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(cont_scale)) {
@@ -1053,7 +1063,7 @@ kbal = function(allx,
             #go get best b
             if(is.null(b)) {
                 if(printprogress) {
-                    cat("Searching for b value which maximizes the variance in K. \n")
+                    cat("Searching for b value which maximizes the variance in K: ")
                 }
                 res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
@@ -1061,6 +1071,9 @@ kbal = function(allx,
                                 maxsearch_b = maxsearch_b)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
+                if(printprogress) {
+                    cat(round(b, 3) ,"selected \n")
+                }
             }
         }
     } else { #mixed data: one hot encoded cat data, maxvarK
@@ -1133,13 +1146,16 @@ kbal = function(allx,
                             immediate. = TRUE)
                 }
                 if(printprogress) {
-                    cat("Searching for b value which maximizes the variance in K. \n")
+                    cat("Searching for b value which maximizes the variance in K: ")
                 }
                 res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
                                 useasbases = useasbases)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
+                if(printprogress) {
+                    cat(round(b, 3) ,"selected \n")
+                }
             }
         }
     }
@@ -1308,10 +1324,12 @@ kbal = function(allx,
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
               rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
-              #add negative evals catch via bound at e-13 = 0
-              #for now just set values to be zero. can also decrease the size of U, for zero
-              #eigenvectors, but 
-              rspec.out$values[abs(rspec.out$values) <= 1e-13 ] = 0
+              #add negative evals catch via bound at e-12 = 0
+              #for now just set values to be zero
+              rspec.out$values[abs(rspec.out$values) <= 1e-12 ] = 0
+              if(sum(sign(rspec.out$values) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
               #tr(K) = sum eigenvalues
@@ -1328,6 +1346,9 @@ kbal = function(allx,
           } else { #use svds, suppressing warnings that it prints if uses full size svd
              
               svd.out= RSpectra::svds(K, trunc_svd_dims)
+              if(sum(sign(test$d) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
               #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
               max_rank = min(nrow(K), ncol(K))
               worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
@@ -1396,8 +1417,6 @@ kbal = function(allx,
           K = K.svd$u %*% d_diag  %*% t(K.svd$v)
       }
       
-      
-      
 #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
   } else { 
       if(printprogress == TRUE) {cat("Building kernel matrix\n")}
@@ -1417,7 +1436,10 @@ kbal = function(allx,
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
               rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
-              rspec.out$values[ abs(rspec.out$values) <= 1e-13 ] = 0
+              rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] = 0
+              if(sum(sign(rspec.out$values) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
               var_explained = round(sum(svd.out$d)/nrow(K),6)
@@ -1432,9 +1454,19 @@ kbal = function(allx,
                   }
           } else { #use truncated svd
               svd.out= RSpectra::svds(K, round(trunc_svd_dims))
-              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
-                      trunc_svd_dims," is unknown \n", immediate. = TRUE)
-              var_explained = NULL
+              if(sum(sign(test$d) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
+              #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
+              max_rank = min(nrow(K), ncol(K))
+              worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
+              var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
+              
+              if(printprogress) {
+                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", trunc_svd_dims,"first singular values is lower bounded (worst-case) to explain",
+                      round(100*var_explained, 2), "% of the variance of \"K\" \n")
+              }
+              
           }
           U=svd.out$u
           
