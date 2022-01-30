@@ -29,7 +29,6 @@ Uses entropy balancing to find and return the weights that produce mean balance 
 \donttest{
 #load and clean data a bit
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #need a kernel matrix to run SVD on then find weights with so get that first with makeK

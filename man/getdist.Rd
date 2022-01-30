@@ -49,7 +49,6 @@ Calculates the L1 distance between the treated or population units and the kerne
 \donttest{
 #loading and cleaning lalonde data
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #need to first build gaussian kernel matrix

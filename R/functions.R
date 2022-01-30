@@ -14,7 +14,6 @@
 #' #load and clean data a bit
 #' \donttest{
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
@@ -81,7 +80,6 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' \donttest{
 #' #load and clean data a bit
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need a kernel matrix to run SVD on and pass in so get that first with makeK
@@ -137,6 +135,9 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
    
     U=svd.out$u
     eigenvals=svd.out$d #singular values (A)
+    if(sum(sign(eigenvals) == -1) != 0) {
+        stop("Encountered negative eigenvalues. Cannot compute biasbound.")
+    }
     
     U1=U[target==1, , drop=FALSE]
     U0=U[observed==1, , drop=FALSE]
@@ -162,7 +163,6 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #' #function with the lalonde data:
 #' #load and clean data a bit
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #get the kbal weights
@@ -205,7 +205,6 @@ dimw = function(X,w,target){
 #' \donttest{
 #' #load and clean data a bit
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need a kernel matrix to run SVD on then find weights with so get that first with makeK
@@ -292,7 +291,6 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' \donttest{
 #' #loading and cleaning lalonde data
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need to first build gaussian kernel matrix
@@ -411,7 +409,6 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' 
 #' #Ex 2. lalonde data
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
 #' @importFrom stats model.matrix contrasts
@@ -440,7 +437,6 @@ one_hot <- function(data) {
 #' \donttest{
 #' #lalonde with only categorical data
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' #Convert to one-hot encoded data matrix:
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
@@ -641,16 +637,42 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' # Example 1: Reweight a control group to a treated to estimate ATT. 
 #' # Benchmark using Lalonde et al.
 #' #----------------------------------------------------------------
+#' #1. Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
 #' data(lalonde)
-#' lalonde$nodegr=as.numeric(lalonde$educ<=11)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'  \donttest{
-#' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
-#' kbalout.full= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'                treatment=lalonde$nsw, 
-#'                fullSVD = TRUE)
+#' 
+#' kbalout.full= kbal(allx=lalonde[,xvars],
+#'                    b=length(xvars),
+#'                    treatment=lalonde$nsw, 
+#'                    fullSVD = TRUE)
 #' summary(lm(re78~nsw,w=kbalout.full$w, data = lalonde))  
 #'  }
+#'  
+#'  #2. Lalonde with categorical data only: u74, u75, nodegree, race, married
+#'  cat_vars=c("race_ethnicity","married","nodegr","u74","u75")
+#'  \donttest{
+#'  kbalout_cat_only = kbal(allx=lalonde[,cat_vars],
+#'                          cat_data = TRUE,
+#'                          treatment=lalonde$nsw,
+#'                          fullSVD = TRUE)
+#'  kbalout_cat_only$b
+#'  summary(lm(re78~nsw,w=kbalout_cat_only$w, data = lalonde))
+#'  }
+#'
+#'  #3. Lalonde with mixed categorical and continuous data
+#'  cat_vars=c("race_ethnicity", "married")
+#'  all_vars= c("age","educ","re74","re75","married", "race_ethnicity")
+#'  \donttest{
+#'  kbalout_mixed = kbal(allx=lalonde[,all_vars],
+#'                       mixed_data = TRUE, 
+#'                       cat_columns = cat_vars,
+#'                       treatment=lalonde$nsw,
+#'                       fullSVD = TRUE)
+#'  kbalout_mixed$b
+#'  summary(lm(re78~nsw,w=kbalout_mixed$w, data = lalonde))
+#'  }
+#'  
 #' #----------------------------------------------------------------
 #' # Example 1B: Reweight a control group to a treated to esimate ATT. 
 #' # Benchmark using Lalonde et al. -- but just mean balancing now 
@@ -658,8 +680,11 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' #----------------------------------------------------------------
 #'
 #' # Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica paper:
-#'kbalout.lin= kbal(allx=lalonde[,xvars], b=length(xvars),
-#'               treatment=lalonde$nsw, linkernel=TRUE, fullSVD=TRUE)
+#'kbalout.lin= kbal(allx=lalonde[,xvars],
+#'                  b=length(xvars),
+#'                  treatment=lalonde$nsw, 
+#'                  linkernel=TRUE,
+#'                  fullSVD=TRUE)
 #' 
 #' # Check balance with and without these weights:
 #'dimw(X=lalonde[,xvars], w=kbalout.lin$w, target=lalonde$nsw)
@@ -768,9 +793,10 @@ kbal = function(allx,
                 printprogress = TRUE) {
 
     N=nrow(allx)
-    if(class(allx) == "data.frame") {
-        allx = as.matrix(allx)
+    if(is.null(N)) {
+        stop("Please ensure \"allx\" is a matrix or dataframe. If subsetting to a single column, may need to use argument \"drop = F\" ")
     }
+    
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)){
       if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
@@ -961,6 +987,10 @@ kbal = function(allx,
     onehot = NULL
     #cont data only
     if(!cat_data & !mixed_data) {
+        
+        if(class(allx) != "matrix") {
+            allx = as.matrix(allx)
+        }
         #check not cat data: 
         if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | sum(dim(apply(allx, 2, unique))[1] <= 10) != 0) {
             warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)
@@ -972,7 +1002,7 @@ kbal = function(allx,
                         immediate. = TRUE)
             }
             if(printprogress) {
-                cat("Searching for b value which maximizes the variance in K. \n")
+                cat("Searching for b value which maximizes the variance in K: ")
             }
                 if(scale_data) {
                     allx = scale(allx)
@@ -983,6 +1013,10 @@ kbal = function(allx,
                                 maxsearch_b = maxsearch_b)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
+                
+                if(printprogress) {
+                    cat(round(b, 3) ,"selected \n")
+                }
         }
     } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(cont_scale)) {
@@ -1029,7 +1063,7 @@ kbal = function(allx,
             #go get best b
             if(is.null(b)) {
                 if(printprogress) {
-                    cat("Searching for b value which maximizes the variance in K. \n")
+                    cat("Searching for b value which maximizes the variance in K: ")
                 }
                 res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
@@ -1037,6 +1071,9 @@ kbal = function(allx,
                                 maxsearch_b = maxsearch_b)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
+                if(printprogress) {
+                    cat(round(b, 3) ,"selected \n")
+                }
             }
         }
     } else { #mixed data: one hot encoded cat data, maxvarK
@@ -1109,13 +1146,16 @@ kbal = function(allx,
                             immediate. = TRUE)
                 }
                 if(printprogress) {
-                    cat("Searching for b value which maximizes the variance in K. \n")
+                    cat("Searching for b value which maximizes the variance in K: ")
                 }
                 res = b_maxvarK(data = allx, 
                                 cat_data = cat_data,
                                 useasbases = useasbases)
                 b = res$b_maxvar
                 maxvar_K_out = res$var_K
+                if(printprogress) {
+                    cat(round(b, 3) ,"selected \n")
+                }
             }
         }
     }
@@ -1284,10 +1324,12 @@ kbal = function(allx,
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
               rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
-              #add negative evals catch via bound at e-13 = 0
-              #for now just set values to be zero. can also decrease the size of U, for zero
-              #eigenvectors, but 
-              rspec.out$values[abs(rspec.out$values) <= 1e-13 ] = 0
+              #add negative evals catch via bound at e-12 = 0
+              #for now just set values to be zero
+              rspec.out$values[abs(rspec.out$values) <= 1e-12 ] = 0
+              if(sum(sign(rspec.out$values) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
               #tr(K) = sum eigenvalues
@@ -1304,6 +1346,9 @@ kbal = function(allx,
           } else { #use svds, suppressing warnings that it prints if uses full size svd
              
               svd.out= RSpectra::svds(K, trunc_svd_dims)
+              if(sum(sign(test$d) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
               #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
               max_rank = min(nrow(K), ncol(K))
               worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
@@ -1372,8 +1417,6 @@ kbal = function(allx,
           K = K.svd$u %*% d_diag  %*% t(K.svd$v)
       }
       
-      
-      
 #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
   } else { 
       if(printprogress == TRUE) {cat("Building kernel matrix\n")}
@@ -1393,7 +1436,10 @@ kbal = function(allx,
           #for a symmetric K just do eigs_sym as is:
           if(nrow(K) == ncol(K)) {
               rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
-              rspec.out$values[ abs(rspec.out$values) <= 1e-13 ] = 0
+              rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] = 0
+              if(sum(sign(rspec.out$values) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
               svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
                              v= rspec.out$vectors)
               var_explained = round(sum(svd.out$d)/nrow(K),6)
@@ -1408,9 +1454,19 @@ kbal = function(allx,
                   }
           } else { #use truncated svd
               svd.out= RSpectra::svds(K, round(trunc_svd_dims))
-              warning("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with ",
-                      trunc_svd_dims," is unknown \n", immediate. = TRUE)
-              var_explained = NULL
+              if(sum(sign(test$d) == -1) != 0) {
+                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+              }
+              #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
+              max_rank = min(nrow(K), ncol(K))
+              worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
+              var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
+              
+              if(printprogress) {
+                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", trunc_svd_dims,"first singular values is lower bounded (worst-case) to explain",
+                      round(100*var_explained, 2), "% of the variance of \"K\" \n")
+              }
+              
           }
           U=svd.out$u
           
