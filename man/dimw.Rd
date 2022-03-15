@@ -18,7 +18,7 @@ dimw(X, w, target)
 \item{dimw}{the weighted difference in means.}
 }
 \description{
-Calcuates the simple difference in means or weighted difference in means between the control or sample population and the treated or target popultion.
+Calculates the simple difference in means or weighted difference in means between the control or sample population and the treated or target population.
 }
 \examples{
 \donttest{

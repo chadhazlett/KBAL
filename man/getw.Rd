@@ -15,7 +15,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 500)
 
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}}
 
-\item{ebal.maxit}{maximum number of iterations in optimiaztion search used by \code{ebalance_custom}}
+\item{ebal.maxit}{maximum number of iterations in optimization search used by \code{ebalance_custom}}
 }
 \value{
 \item{w}{numeric vector of weights.}
@@ -23,7 +23,7 @@ getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 500)
 \item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 }
 \description{
-Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
+Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expanded features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
 }
 \examples{
 \donttest{
@@ -42,5 +42,6 @@ U = svd(K)$u
 U2=U[,1:10]
 getw.out=getw(target=lalonde$nsw, 
               observed=1-lalonde$nsw, 
-              svd.U=U2)}
+              svd.U=U2)
+ }
 }

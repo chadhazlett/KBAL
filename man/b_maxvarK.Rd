@@ -13,10 +13,10 @@ b_maxvarK(data, useasbases, cat_data = TRUE, maxsearch_b = 2000)
 
 \item{cat_data}{logical for whether kernel contains only categorical data or not}
 
-\item{maxsearch_b}{the maximum value of \eqn{b}, the denominator of the gaussian, in searched during maximization.}
+\item{maxsearch_b}{the maximum value of \eqn{b}, the denominator of the Gaussian, in searched during maximization.}
 }
 \value{
-\item{b_maxvar}{numeric \eqn{b} value, the denominator of the gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
+\item{b_maxvar}{numeric \eqn{b} value, the denominator of the Gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
 \item{var_K}{numeric maximum variance of \eqn{K} kernel matrix found with \eqn{b} as \code{b_maxvar}}
 }
 \description{
@@ -31,5 +31,6 @@ cat_vars=c("black","hisp","married","nodegr","u74","u75")
 onehot_lalonde = one_hot(lalonde[, cat_vars])
 colnames(onehot_lalonde)
 best_b <- b_maxvarK(data = onehot_lalonde, 
-                    useasbases = 1-lalonde$nsw) }
+                    useasbases = 1-lalonde$nsw) 
+ }
 }
