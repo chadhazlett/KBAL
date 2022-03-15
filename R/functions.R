@@ -1195,7 +1195,12 @@ kbal = function(allx,
         trunc_svd_dims = round(max(.8*sum(useasbases), maxnumdims))
         #in case that's bigger than the columns we have is checked below afer we have have K
     }
-    
+    #catch for if user passes in K with more rows than cols
+    if(!is.null(K) && trunc_svd_dims >= ncol(K)) {
+        warning("The number of columns of user-supplied \"K\" is less than 80% of the number of rows, indicating a full svd would not be overly time consuming. Conducting full svd.\n", 
+                immediate. = TRUE)
+        fullSVD = TRUE
+    }
 
     #9. now checking numdims if passed in
     if(!is.null(numdims) && numdims>maxnumdims) { #check not over max (mainly for truc SVD)
@@ -1311,10 +1316,11 @@ kbal = function(allx,
       if(!is.null(linkernel) && linkernel) {
           warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
-      if(b != 2*ncol(allx)) {
+      if(!is.null(b) && b != 2*ncol(allx) ) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", 
                   immediate. = TRUE)
       }
+      
       #provided we pass all those checks get svd with RSpectra
       if(printprogress == TRUE) {cat("Using user-supplied K \n")}
       #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
@@ -1346,7 +1352,7 @@ kbal = function(allx,
           } else { #use svds, suppressing warnings that it prints if uses full size svd
              
               svd.out= RSpectra::svds(K, trunc_svd_dims)
-              if(sum(sign(test$d) == -1) != 0) {
+              if(sum(sign(svd.out$d) == -1) != 0) {
                   stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
               }
               #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
@@ -1454,7 +1460,7 @@ kbal = function(allx,
                   }
           } else { #use truncated svd
               svd.out= RSpectra::svds(K, round(trunc_svd_dims))
-              if(sum(sign(test$d) == -1) != 0) {
+              if(sum(sign(svd.out$d) == -1) != 0) {
                   stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
               }
               #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
@@ -1520,12 +1526,13 @@ kbal = function(allx,
   L1_orig = getdist.orig$L1
 
   if(printprogress==TRUE) {
-      cat("Without balancing, biasbound (norm=1) is", round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
+      cat("Without balancing, biasbound (norm=1) is",
+          round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
   }
 
 ############# NUMDIMS GIVEN  ###################
   # If numdims given, just get the weights in one shot:
-  if(!is.null(numdims)){
+  if(!is.null(numdims)) {
     U2=U[,1:numdims, drop=FALSE]
     
     U2.w.pop <- w.pop*U2
@@ -1550,7 +1557,6 @@ kbal = function(allx,
         numdims = numdims - ncol(constraint)
         cat("With user-specified",numdims,"dimensions of K, biasbound (norm=1) of ",
             round(biasboundnow,5), " \n")
-        
     }
     
     #stuff to set so we can skip the entire if statement below and just printout
@@ -1565,7 +1571,7 @@ kbal = function(allx,
   
 ############# BIASBOUND OPTIMIZATION ###################
   # If numdims not given, we search to minimize biasbound:
-  if(is.null(numdims)){
+  if(is.null(numdims)) {
     thisnumdims=minnumdims
     dist.record=NULL
     convergence.record = NULL
@@ -1715,7 +1721,7 @@ kbal = function(allx,
         } else {
             dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
             numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
-            if (length(numdims)>1){
+            if (length(numdims)>1) {
                 warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
                         immediate. = TRUE)
                 numdims=min(numdims)
@@ -1724,7 +1730,8 @@ kbal = function(allx,
         }
         
         if(printprogress == TRUE) {
-            cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,", numdims, "\n")
+            cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,",
+                numdims, "\n")
         }
 
         getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
@@ -1737,10 +1744,11 @@ kbal = function(allx,
         L1_optim = getdist(target=target, observed = observed,
                            w = getw.out$w, w.pop = w.pop, K=K)$L1
     }
-}
+  }
+  
   if(!is.null(meanfirst) && meanfirst) {
       cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
-  }
+      }
 
 
   ebal_error = getw.out$ebal_error
