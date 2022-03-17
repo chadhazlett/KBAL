@@ -23,15 +23,15 @@ getdist(
 
 \item{K}{the kernel matrix}
 
-\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
+\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
-\item{w}{a optional numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}.}
+\item{w}{a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}.}
 
 \item{numdims}{an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.}
 
-\item{ebal.tol}{an optional numeric input speccifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified.}
+\item{ebal.tol}{an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified.}
 
-\item{ebal.maxit}{maximum number of iterations in optimiaztion search used by \code{ebalance_custom} when \code{w} is not specified.}
+\item{ebal.maxit}{maximum number of iterations in optimization search used by \code{ebalance_custom} when \code{w} is not specified.}
 
 \item{svd.U}{an optional matrix of left singular vectors from performing \code{svd()} on the kernel matrix in the case that \code{w} is unspecified. If unspecified when \code{w} also not specified, internally computes the svd of \code{K}.}
 }
@@ -40,7 +40,7 @@ getdist(
 \item{w}{numeric vector of weights used}
 \item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit. If population units are specified, this sum is weighted by \code{w.pop} accordingly.}
 \item{pX_D0}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every control or sampled unit.}
-\item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expaned features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
+\item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expanded features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
 }
 \description{
 Calculates the L1 distance between the treated or population units and the kernel balanced control or sampled units.
@@ -71,5 +71,6 @@ w_opt <- getw(target= lalonde$nsw,
 l1_lalonde2 <- getdist(target = lalonde$nsw,
                  observed = 1-lalonde$nsw,
                  K = K_pass,
-                 w = w_opt)}
+                 w = w_opt)
+}
 }

@@ -24,8 +24,8 @@ dat = data.frame(pid = c(rep("Rep", 20),
                  gender = c(rep("female", 35),
                             rep("male", 25)))
 #Convert to one-hot encoded data matrix:
-onehot_dat = one_hot(dat)}
-
+onehot_dat = one_hot(dat)
+}
 #Ex 2. lalonde data
 data(lalonde)
 cat_vars=c("black","hisp","married","nodegr","u74","u75")

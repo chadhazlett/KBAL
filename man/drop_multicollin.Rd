@@ -16,7 +16,7 @@ drop_multicollin(allx, printprogress = TRUE)
 \item{dropped_cols}{column names of those dropped}
 }
 \description{
-Drops multicollienar columns in order of highest correlation
+Drops multicollinear columns in order of highest correlation
 }
 \examples{
 \donttest{
@@ -29,5 +29,6 @@ test = data.frame(mc_1 = data$x,
 dat = cbind(test, data)
 #run
 mc_check= drop_multicollin(dat)
-mc_check$dropped_cols }
+mc_check$dropped_cols 
+}
 }

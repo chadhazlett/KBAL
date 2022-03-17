@@ -15,7 +15,7 @@ biasbound(observed, target, svd.out, w, w.pop = NULL, hilbertnorm = 1)
 
 \item{w}{numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.}
 
-\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units recieving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
+\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
 \item{hilbertnorm}{numeric value of the hilbertnorm.}
 }
@@ -42,5 +42,6 @@ svd_pass = svd(K)
 biasbound(observed=(1-lalonde$nsw),
           target=lalonde$nsw,
           svd.out = svd_pass,
-          w = rep(1,nrow(lalonde)), hilbertnorm=1)}
+          w = rep(1,nrow(lalonde)), hilbertnorm=1)
+ }
 }
