@@ -998,7 +998,9 @@ kbal = function(allx,
             allx = as.matrix(allx)
         }
         #check not cat data: 
-        if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | sum(dim(apply(allx, 2, unique))[1] <= 10) != 0) {
+        if(((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | 
+           sum(dim(apply(allx, 2, unique))[1] <= 10) != 0)
+           && (is.null(K) && is.null(K.svd))) {
             warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)
         }
         #if no K supplied find bmaxvar b
@@ -1075,7 +1077,7 @@ kbal = function(allx,
                                 cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
-                b = res$b_maxvar
+                b = res$b_maxvar*2
                 maxvar_K_out = res$var_K
                 if(printprogress) {
                     cat(round(b, 3) ,"selected \n")
