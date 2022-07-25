@@ -1025,6 +1025,9 @@ kbal = function(allx,
                 if(printprogress) {
                     cat(round(b, 3) ,"selected \n")
                 }
+        } else if(!is.null(K.svd) | !is.null(K) & is.null(b)) {
+            #for later internal checks, not used ofc bc K or svdK is passed in
+            b = 2*ncol(allx)
         }
     } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(cont_scale)) {
@@ -1263,7 +1266,11 @@ kbal = function(allx,
             warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.\n", immediate. = TRUE)
         }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
-        kbalout.mean = suppressWarnings(kbal(allx=allx, 
+        if(cat_data) {
+            allx_mf = one_hot(allx)
+        }
+        
+        kbalout.mean = suppressWarnings(kbal(allx=allx_mf, 
                            treatment=treatment,
                            sampled = sampled,
                            scale_data = TRUE, 
