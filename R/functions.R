@@ -994,7 +994,7 @@ kbal = function(allx,
     #cont data only
     if(!cat_data & !mixed_data) {
         
-        if(class(allx) != "matrix") {
+        if(class(allx)[1] != "matrix") {
             allx = as.matrix(allx)
         }
         #check not cat data: 
@@ -1034,7 +1034,7 @@ kbal = function(allx,
             warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
                     immediate. = TRUE)
         }
-        if(!is.null(K.svd) | !is.null(K)) {
+        if((!is.null(K.svd) | !is.null(K)) & !meanfirst) {
             warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
@@ -1089,7 +1089,7 @@ kbal = function(allx,
         }
     } else { #mixed data: one hot encoded cat data, maxvarK
        
-        if(!is.null(K.svd) | !is.null(K)) {
+        if((!is.null(K.svd) | !is.null(K)) & !meanfirst) {
             warning("\"mixed_data\" TRUE argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #don't use this it's internal for a check for later if user passes in a b + k.svd
             if(is.null(b)){ b = 2*ncol(allx) } 
