@@ -1058,7 +1058,7 @@ kbal = function(allx,
             onehot = allx/sqrt(0.5)
             #checks
             if(scale_data) {
-                warning("Note that \"scale_data\" should be FALSE when using categorical data. \n", 
+                warning("Note that \"scale_data\" should be FALSE when using categorical data. Ignoring. \n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -1135,7 +1135,7 @@ kbal = function(allx,
             onehot = cbind(allx_cat/sqrt(0.5), allx_cont)
             #checks
             if(scale_data) {
-                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE is not used.\n", 
+                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data in accordance with \"cont_scale\" and \"scale_data\"=TRUE is not used.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
