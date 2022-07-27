@@ -459,7 +459,7 @@ b_maxvarK <- function(data,
     #categorical kernel + b range:
     #get raw counts:
     if(cat_data) {
-        K <- makeK(data, b=2,
+        K <- makeK(data, b=1,
                useasbases = useasbases,
                linkernel = FALSE, scale = FALSE)
         raw_counts <- -log(K)
@@ -1050,9 +1050,10 @@ kbal = function(allx,
                 warning("One or more column in \"allx\" has more than 10 unique values while \"cat_data\"= TRUE. Ensure that all variables are categorical.",
                         immediate. = TRUE)
             }
-            
-            allx = one_hot(allx)
-            onehot = allx
+            #for consistency with mixed data, undoing double counts direcly by * by sqrt(0.5)
+            allx = sqrt(0.5)*one_hot(allx)
+            #still passout the regular one hot data 
+            onehot = allx/sqrt(0.5)
             #checks
             if(scale_data) {
                 warning("Note that \"scale_data\" should be FALSE when using categorical data. \n", 
@@ -1080,14 +1081,14 @@ kbal = function(allx,
                                 cat_data = cat_data,
                                 useasbases = useasbases, 
                                 maxsearch_b = maxsearch_b)
-                b = res$b_maxvar*2
+                b = res$b_maxvar
                 maxvar_K_out = res$var_K
                 if(printprogress) {
                     cat(round(b, 3) ,"selected \n")
                 }
             }
         }
-    } else { #mixed data: one hot encoded cat data, maxvarK
+    } else { #mixed data: one hot encoded cat data and adjust for double counting, maxvarK
        
         if((!is.null(K.svd) | !is.null(K)) & !meanfirst) {
             warning("\"mixed_data\" TRUE argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
@@ -1111,11 +1112,11 @@ kbal = function(allx,
             if((is.null(dim(apply(allx[,cat_columns, drop= F], 2, unique))) && sum(lapply(apply(allx[,cat_columns, drop= F], 2, unique), length) >10 ) != 0) ) {
                 warning("\"mixed_data\"=TRUE, but one or more column in \"allx\" designated as categorcial by \"cat_columns\" has more than 10 unique values. Ensure that all variables are categorical.", immediate. = TRUE)
             }
-           
-            allx_cat = one_hot(allx[,cat_columns, drop= F])
+            #factor of sqrt(0.5) to adjust for double counting s.t. cont and cat contribute equally in kernel dist
+            allx_cat = sqrt(0.5)*one_hot(allx[,cat_columns, drop= F])
             
             if((is.null(dim(apply(allx[, -cat_columns, drop = F], 2, unique))) && sum(lapply(apply(allx[, -cat_columns, drop = F], 2, unique), length) <= 10) != 0) | sum(dim(apply(allx[, -cat_columns, drop = F], 2, unique))[1] <= 10) != 0) {
-                warning(" \"mixed_data\"= TRUE, but one or more columns of \"allx\" designated as continuous by omission from \"cat_columns\" contain less than 10 unique values. Ensure all categorical variables are specified in \"cat_columns\"", immediate. = TRUE)
+                warning(" \"mixed_data\"= TRUE, but one or more columns of \"allx\" designated as continuous by omission from \"cat_columns\" contain less than 10 unique values. Are you sure  all categorical variables are specified in \"cat_columns\"?", immediate. = TRUE)
             }
             
             if(is.null(cont_scale)) {
@@ -1129,7 +1130,7 @@ kbal = function(allx,
                 allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/cont_scale)))
             }
             allx <- cbind(allx_cat, allx_cont)
-            onehot = allx
+            onehot = allx/sqrt(0.5)
             #checks
             if(scale_data) {
                 warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE is not used.\n", 
