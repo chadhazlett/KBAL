@@ -495,7 +495,9 @@ b_maxvarK <- function(data,
             #var_k <- var(na.omit(as.vector(K)))
             #some benchmarking showed this seems to be the fastest method
             n = nrow(K)*ncol(K) - sum(useasbases)
-            var_k = (1/(n-1))*(sum(K^2, na.rm = T) - (1/n)*sum(K, na.rm = T)^2)
+            #to match R's var calc 1st denom here needs to be n-1 but to match above var calc
+            #using 1/n
+            var_k = (1/(n))*(sum(K^2, na.rm = T) - (1/n)*sum(K, na.rm = T)^2)
             return(var_k)
         }
         res = optimize(var_K, data,
