@@ -1132,7 +1132,7 @@ kbal = function(allx,
                 allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/cont_scale)))
             }
             allx <- cbind(allx_cat, allx_cont)
-            onehot = allx/sqrt(0.5)
+            onehot = cbind(allx_cat/sqrt(0.5), allx_cont)
             #checks
             if(scale_data) {
                 warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE is not used.\n", 
