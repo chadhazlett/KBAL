@@ -863,8 +863,8 @@ kbal = function(allx,
       #now check sampledinpop
       if(is.null(sampledinpop)) { 
           #if pass in sampled and dn specify sampledinpop set default and give warning
-          warning("using default parameter \"sampledinpop\" = TRUE \n", immediate. = TRUE)
-          sampledinpop = TRUE
+          warning("using default parameter \"sampledinpop\" = FALSE \n", immediate. = TRUE)
+          sampledinpop = FALSE
       } else if(!(sampledinpop %in% c(0,1))) { #if pass in sampledinpop check its binary
           stop("\"sampledinpop\" is not binary" )
       }
@@ -1036,7 +1036,7 @@ kbal = function(allx,
             warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
                     immediate. = TRUE)
         }
-        if((!is.null(K.svd) | !is.null(K)) & !meanfirst) {
+        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
             warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
@@ -1092,7 +1092,7 @@ kbal = function(allx,
         }
     } else { #mixed data: one hot encoded cat data and adjust for double counting, maxvarK
        
-        if((!is.null(K.svd) | !is.null(K)) & !meanfirst) {
+        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
             warning("\"mixed_data\" TRUE argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #don't use this it's internal for a check for later if user passes in a b + k.svd
             if(is.null(b)){ b = 2*ncol(allx) } 
