@@ -1101,7 +1101,7 @@ kbal = function(allx,
                 stop("\"cat_columns\" argument must be specified when \"mixed_data\" is TRUE.")
             } else if(class(cat_columns) == "character" & sum(cat_columns %in% colnames(allx)) != length(cat_columns)) {
                 stop("One or more \"cat_columns\" elements does not match the column names in \"allx\".")
-            } else { #switch to numeric for ease
+            } else if(class(cat_columns) == "character") { #switch to numeric for ease if input is colnames
                 cat_columns = which(colnames(allx) %in% cat_columns)
             }
             if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) != 0) | sum(dim(apply(allx, 2, unique))[1] == 1) != 0) {
