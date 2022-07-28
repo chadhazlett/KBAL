@@ -11,38 +11,27 @@ dimw(X, w, target)
 
 \item{w}{numeric vector of weights for each observation.}
 
-\item{target}{numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
-
-\item{X}{a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.}
-
-\item{w}{numeric vector of weights for every obervation. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.}
-
-\item{target}{vector taking values of 0 or 1's indicating which observations (which rows  of X and w) are in the control or sample population and which are in the treated or target population.}
+\item{target}{numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
 }
 \value{
 \item{dim}{the simple, unweighted difference in means.}
 \item{dimw}{the weighted difference in means.}
 }
 \description{
-Calcuates the simple difference in means or weighted difference in means between the control or sample population and the treated or target popultion.
+Calculates the simple difference in means or weighted difference in means between the control or sample population and the treated or target population.
 }
 \examples{
-#let's say we want to get the unweighted DIM and the weighted DIM using weights from the kpop
+\donttest{
+#let's say we want to get the unweighted DIM and the weighted DIM using weights from the kbal
 #function with the lalonde data:
 #load and clean data a bit
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
-#get the kpop weights
-kpopout= kpop(allx=lalonde[,xvars],
-               useasbases=NULL, b=NULL,
-               sampled=NULL, sampledinpop=FALSE,
-               treatment=lalonde$nsw,
-               ebal.tol=1e-6, numdims=NULL,
-               minnumdims=NULL, maxnumdims=NULL,
-               incrementby=1,
-               printprogress =TRUE)
+#get the kbal weights
+kbalout= kbal(allx=lalonde[,xvars],
+               sampledinpop=FALSE,
+               treatment=lalonde$nsw)
  #now use dimw to get the DIMs
- dimw(X = lalonde[,xvars], w = kpopout$w, target = lalonde$nsw)
+ dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)}
 }

@@ -5,26 +5,53 @@
 
 using namespace Rcpp;
 
-// new_gauss_kern
-NumericMatrix new_gauss_kern(const NumericMatrix newx, const NumericMatrix oldx, const double b);
-RcppExport SEXP _KBAL_new_gauss_kern(SEXP newxSEXP, SEXP oldxSEXP, SEXP bSEXP) {
+// kernel_parallel
+Rcpp::NumericMatrix kernel_parallel(Rcpp::NumericMatrix X, const double b);
+RcppExport SEXP _kbal_kernel_parallel(SEXP XSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix >::type newx(newxSEXP);
-    Rcpp::traits::input_parameter< const NumericMatrix >::type oldx(oldxSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< const double >::type b(bSEXP);
-    rcpp_result_gen = Rcpp::wrap(new_gauss_kern(newx, oldx, b));
+    rcpp_result_gen = Rcpp::wrap(kernel_parallel(X, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// kernel_parallel_2
+Rcpp::NumericMatrix kernel_parallel_2(Rcpp::NumericMatrix X, Rcpp::NumericMatrix Y, const double b);
+RcppExport SEXP _kbal_kernel_parallel_2(SEXP XSEXP, SEXP YSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(kernel_parallel_2(X, Y, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// kernel_parallel_old
+Rcpp::NumericMatrix kernel_parallel_old(Rcpp::NumericMatrix X, Rcpp::NumericMatrix Y, const double b);
+RcppExport SEXP _kbal_kernel_parallel_old(SEXP XSEXP, SEXP YSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(kernel_parallel_old(X, Y, b));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_KBAL_new_gauss_kern", (DL_FUNC) &_KBAL_new_gauss_kern, 3},
+    {"_kbal_kernel_parallel", (DL_FUNC) &_kbal_kernel_parallel, 2},
+    {"_kbal_kernel_parallel_2", (DL_FUNC) &_kbal_kernel_parallel_2, 3},
+    {"_kbal_kernel_parallel_old", (DL_FUNC) &_kbal_kernel_parallel_old, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_KBAL(DllInfo *dll) {
+RcppExport void R_init_kbal(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

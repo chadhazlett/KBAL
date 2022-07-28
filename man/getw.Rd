@@ -4,39 +4,44 @@
 \alias{getw}
 \title{Find Weights using Entropy Balancing.}
 \usage{
-getw(target, observed, svd.U, ebal.tol = 1e-06)
+getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 500)
 }
 \arguments{
-\item{target}{a numeric vector of length equal to the total number of units where population units take a value of 1 and sample units take a value of 0.}
+\item{target}{a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
 
-\item{observed}{a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.}
+\item{observed}{a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 
-\item{svd.U}{Matrix whose columns contain the left singular vectors of the kernel matrix.}
+\item{svd.U}{a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.}
 
-\item{ebal.tol}{tolerance level used by \code{ebal::ebalance}.}
+\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}}
+
+\item{ebal.maxit}{maximum number of iterations in optimization search used by \code{ebalance_custom}}
 }
 \value{
 \item{w}{numeric vector of weights.}
+\item{converged}{boolean indicating if \code{ebalance_custom} converged}
+\item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 }
 \description{
-Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expaned features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
+Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expanded features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
 }
 \examples{
+\donttest{
 #load and clean data a bit
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #need a kernel matrix to run SVD on then find weights with so get that first with makeK
 #running makeK with the sampled units as the bases
-K = makeK(allx = lalonde[,xvars],
-useasbases = as.numeric(1-lalonde$nsw),
-b = 2*ncol(lalonde[,xvars]))
+K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
 #svd on this kernel and get matrix with left singular values
 U = svd(K)$u
-#usually we are getting weights using different number of columns of this matrix, the finding
-# the bias and looking for the minimum. For now let's just use the first 10
-U2=U[,1:10, drop=FALSE]
-getw.out=getw(target=lalonde$nsw, observed=1-lalonde$nsw, svd.U=U2)
+#usually search over all columns of U to find which produces weights with 
+#the minimum bias bound; in this ex, search only first 10 dims
+U2=U[,1:10]
+getw.out=getw(target=lalonde$nsw, 
+              observed=1-lalonde$nsw, 
+              svd.U=U2)
+ }
 }

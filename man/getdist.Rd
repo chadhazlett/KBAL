@@ -4,65 +4,73 @@
 \alias{getdist}
 \title{L1 Distance}
 \usage{
-getdist(target, observed, K, linkernel, X, svd.out, w = NULL,
-  numdims = NULL, ebal.tol = NULL)
+getdist(
+  target,
+  observed,
+  K,
+  w.pop = NULL,
+  w = NULL,
+  numdims = NULL,
+  ebal.tol = 1e-06,
+  ebal.maxit = 500,
+  svd.U = NULL
+)
 }
 \arguments{
-\item{target}{a numeric vector of length equal to the total number of units where population or treated units take a value of 1 and sample or control units take a value of 0.}
+\item{target}{a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.}
+
+\item{observed}{a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.}
 
 \item{K}{the kernel matrix}
 
-\item{linkernel}{a logical which ?????}
+\item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
-\item{X}{a matrix containing data for both treated or population units and control or target population data. Rows are observations, columns are covariates.
-#' @param svd.out the list object output from performing \code{svd()} on the kernel matrix.}
+\item{w}{a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}.}
 
-\item{w}{a numeric vector of weights for every obervation. If unspecified, these are found using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.out$u} with \code{ebal::ebalance()}. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights dervied from kernel balancing with mean 1 which is consistent with the ouput of \code{getw()}.}
+\item{numdims}{an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.}
 
-\item{numdims}{a numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights in the case that \code{w} is not specified.}
+\item{ebal.tol}{an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified.}
 
-\item{ebal.tol}{an optional numeric input speccifying the tolerance level used by \code{ebal::ebalance} in the case that \code{w} is not specified. When not specified, the default is 1e-6/}
+\item{ebal.maxit}{maximum number of iterations in optimization search used by \code{ebalance_custom} when \code{w} is not specified.}
+
+\item{svd.U}{an optional matrix of left singular vectors from performing \code{svd()} on the kernel matrix in the case that \code{w} is unspecified. If unspecified when \code{w} also not specified, internally computes the svd of \code{K}.}
 }
 \value{
-\item{w}{numeric vector of weights used}
 \item{L1}{a numeric giving the L1 distance, the absolute difference between \code{pX_D1} and \code{pX_D0w}}
-\item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit.}
+\item{w}{numeric vector of weights used}
+\item{pX_D1}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every treated or population unit. If population units are specified, this sum is weighted by \code{w.pop} accordingly.}
 \item{pX_D0}{a numeric vector of length equal to the total number of observations where the nth entry is the sum of the kernel distances from the nth unit to every control or sampled unit.}
-\item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expaned features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
+\item{pX_D0w}{a numeric vector of length equal to the total number of observations where the nth entry is the weighted sum of the kernel distances from the nth unit to every control or sampled unit. The weights are given by entropy balancing and produce mean balance on \eqn{\phi(X)}, the expanded features of \eqn{X} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.}
 }
 \description{
 Calculates the L1 distance between the treated or population units and the kernel balanced control or sampled units.
 }
 \examples{
+\donttest{
 #loading and cleaning lalonde data
 data(lalonde)
-lalonde$nodegr=as.numeric(lalonde$educ<=11)
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #need to first build gaussian kernel matrix
 K_pass <- makeK(allx = lalonde[,xvars])
 #also need the SVD of this matrix
-svd.U_pass <- svd(K_pass)
+svd_pass <- svd(K_pass)
 
 #running without passing weights in directly, using numdims=33
 l1_lalonde <- getdist(target = lalonde$nsw,
                       observed = 1-lalonde$nsw,
                       K = K_pass,
-                      linkernel = FALSE,
-                      X = lalonde[,xvars],
-                      svd.out = svd.U_pass,
+                      svd.U = svd_pass$u,
                       numdims = 33)
 
  #alternatively, we can get the weights ourselves and pass them in directly
- w_opt <- getw(target= lalonde$nsw,
-               observed = 1-lalonde$nsw,
-               svd.U = svd.U_pass$u[,1:33, drop=FALSE],
-               ebal.tol=1e-6)
- l1_lalonde2 <- getdist(target = lalonde$nsw,
-                  observed = 1-lalonde$nsw,
-                  K = K_pass,
-                  linkernel = FALSE,
-                  X = lalonde[,xvars],
-                  svd.out = svd.U_pass,
-                  w = w_now)
+ #using the first 33 dims of svd_pass$u to match the above
+w_opt <- getw(target= lalonde$nsw,
+              observed = 1-lalonde$nsw,
+              svd.U = svd_pass$u[,1:33])$w
+l1_lalonde2 <- getdist(target = lalonde$nsw,
+                 observed = 1-lalonde$nsw,
+                 K = K_pass,
+                 w = w_opt)
+}
 }

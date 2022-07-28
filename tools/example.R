@@ -12,23 +12,13 @@ mean(re78[nsw==1])-mean(re78[nsw==0])
 #OLS with covariates:
 summary(lm(re78~nsw+., data=lalonde[,xvars]))
 
-#Kbal at defaults: $1806
-kbalout=kbal(D=nsw,X=lalonde[,xvars], method="ebal")
-summary(lm(re78~nsw,w=kbalout$w))
-kbalout$biasbound_orig*sd(re78)*sqrt(55)
-kbalout$biasbound_kbal*sd(re78)*sqrt(55)
-#note that using KRLS, c'Kc for the related regression is 55.37
-plot(x=seq(1:59),kbalout$dist.record[1:59],ylab="biasbound", xlab="Num. dims of K balanced")
+#Kbal at new defaults:
+kbalout= kbal(allx=lalonde[,xvars],treatment=lalonde$nsw,
+                ebal.tol=1e-6, printprogress =TRUE)
+summary(lm(re78~nsw,w=kbalout$w, data = lalonde))
 
-
-
-
-#Kbal with mean balance ensured first, at defaults
-kbalout_mean=kbal_meanfirst(D=nsw,X=lalonde[,xvars], sigma=5)
-summary(lm(re78~nsw,w=kbalout_mean$w))
-
-#Plot both:
-plot(kbalout$dist.record[1:40], pch=16,
-     ylab="L1 imbalance", xlab="Num. dims of K balanced")
-points(kbalout_mean$dist.record[1:40], col=2, pch=16)
-legend("topright", col=c(1,2), pch=16, legend=c("full kbal","kbal after mean"))
+# Examine bias bound due to remaining imbalances; 
+#note that using KRLS, gamma = c'Kc for the related regression is approximately 55
+kbalout$biasbound.orig*sd(re78)*sqrt(55)
+kbalout$biasbound.opt*sd(re78)*sqrt(55)
+plot(x=kbalout$dist.record[1,],y=sd(re78)*sqrt(55)*kbalout$dist.record[2,],ylab="biasbound", xlab="Num. dims of K balanced", pch=16)
