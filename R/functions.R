@@ -459,7 +459,7 @@ b_maxvarK <- function(data,
     #categorical kernel + b range:
     #get raw counts:
     if(cat_data) {
-        K <- makeK(data, b=2,
+        K <- makeK(data, b=1,
                useasbases = useasbases,
                linkernel = FALSE, scale = FALSE)
         raw_counts <- -log(K)
@@ -495,7 +495,9 @@ b_maxvarK <- function(data,
             #var_k <- var(na.omit(as.vector(K)))
             #some benchmarking showed this seems to be the fastest method
             n = nrow(K)*ncol(K) - sum(useasbases)
-            var_k = (1/(n-1))*(sum(K^2, na.rm = T) - (1/n)*sum(K, na.rm = T)^2)
+            #to match R's var calc 1st denom here needs to be n-1 but to match above var calc
+            #using 1/n
+            var_k = (1/(n))*(sum(K^2, na.rm = T) - (1/n)*sum(K, na.rm = T)^2)
             return(var_k)
         }
         res = optimize(var_K, data,
@@ -584,7 +586,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' 
 #' To proceed in the causal effect setting, kbal assumes that the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. The approximation is one that minimizes the worst-case bias that could persist due to remaining imbalances. 
 #' 
-#' The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then returns these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison. Note that while kernel balancing goes far beyond simple mean balancing, it may not result in perfect mean balance. Users who wish to require mean balancing can specify \code{meanfirst = T} to require mean balance on as many dimensions of the data as optimally feasible. Alternatively, users can manually specify \code{constraint} to append additional vector constraints to the kernel matrix in the bias bound optimization, requiring mean balance on these columns. Note further that \code{kbal} supports three types of input data: fully categorical, fully continuous, or mixed. When data is only categorical, as is common with demographic variables for survey reweighting, users should use argument \code{cat_data = TRUE} and can input their data as factors, numerics, or characters and \code{kbal} will interally transform the data to a more appropriate one-hot encoding and search for the value of \code{b}, the denominator of the exponent in the gaussian, which maximizes the variance of the kernel matrix. When data is fully continuous, users should use default settings (\code{cat_data = FALSE} and \code{cont_data = FAlSE}, which will scale all columns and again conduct an itnernal search for the value of \code{b} which maximizes the variance of \code{K}. Note that with continuous data, this search may take considerably more computational time than the categorical case. When data is a mix of continuous and categorical data, users should use argument \code{mixed_data = TRUE}, specify by name what columns are categorical with \code{cat_columns}, and also set the scaling of the continuous variables with \code{cont_scale}. This will result in a one-hot encoding of categorical columns concatenated with the continous columns scaled in accordance with \code{cont_scale} and again an internal search for the value of \code{b} which maximzies the variance in the kernel matrix. Again note that compared to the categorical case, this search will take more computational time. 
+#' The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then returns these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison. Note that while kernel balancing goes far beyond simple mean balancing, it may not result in perfect mean balance. Users who wish to require mean balancing can specify \code{meanfirst = T} to require mean balance on as many dimensions of the data as optimally feasible. Alternatively, users can manually specify \code{constraint} to append additional vector constraints to the kernel matrix in the bias bound optimization, requiring mean balance on these columns. Note further that \code{kbal} supports three types of input data: fully categorical, fully continuous, or mixed. When data is only categorical, as is common with demographic variables for survey reweighting, users should use argument \code{cat_data = TRUE} and can input their data as factors, numeric, or characters and \code{kbal} will internally transform the data to a more appropriate one-hot encoding and search for the value of \code{b}, the denominator of the exponent in the Gaussian, which maximizes the variance of the kernel matrix. When data is fully continuous, users should use default settings (\code{cat_data = FALSE} and \code{cont_data = FAlSE}, which will scale all columns and again conduct an internal search for the value of \code{b} which maximizes the variance of \code{K}. Note that with continuous data, this search may take considerably more computational time than the categorical case. When data is a mix of continuous and categorical data, users should use argument \code{mixed_data = TRUE}, specify by name what columns are categorical with \code{cat_columns}, and also set the scaling of the continuous variables with \code{cont_scale}. This will result in a one-hot encoding of categorical columns concatenated with the continous columns scaled in accordance with \code{cont_scale} and again an internal search for the value of \code{b} which maximizes the variance in the kernel matrix. Again note that compared to the categorical case, this search will take more computational time. 
 #' 
 #'
 #' @references Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinica. https://doi.org/10.5705/ss.202017.0555
@@ -598,8 +600,8 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' @param population.w optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound.
 #' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include three objects \code{K.svd$u}, a matrix of left-singular vectors, \code{K.svd$v}, a matrix of right-singular vectors, and their corresponding singular values \code{K.svd$d}. 
-#' @param cat_data logical argument that when true indicates \code{allx} contains only categorical data. When true, the internal construction of the kernel matrix uses a one-hot encoding of \code{allx} and the value of \code{b} which maximizes the variance of this kernel matrix. When true, \code{mixed_data}, \code{scale_data}, \code{linkernel}, and \code{drop_MC} should be \code{FALSE}.
-#' @param mixed_data logical argument that when true indicates \code{allx} contains a combination of both continuous and categorical data. When true, the internal construction of the kernel matrix uses a one-hot encoding of the categorical variables in \code{allx} as specified by \code{cat_columns} concatenated with the remaining continuous variables scaled to have default standard deviation of 1 or that specified in \code{cont_scale}. When both \code{cat_data} and \code{cat_data} are \code{FALSE}, the kernel matrix assumes all continuous data, does not one-hot encode any part of \code{allx} but still uses the value of \code{b} which produces maximal variance in \code{K}.
+#' @param cat_data logical argument that when true indicates \code{allx} contains only categorical data. When true, the internal construction of the kernel matrix uses a one-hot encoding of \code{allx} (multiplied by a factor of \eqn{\sqrt{0.5}} to compensate for double counting) and the value of \code{b} which maximizes the variance of this kernel matrix. When true, \code{mixed_data}, \code{scale_data}, \code{linkernel}, and \code{drop_MC} should be \code{FALSE}.
+#' @param mixed_data logical argument that when true indicates \code{allx} contains a combination of both continuous and categorical data. When true, the internal construction of the kernel matrix uses a one-hot encoding of the categorical variables in \code{allx} as specified by \code{cat_columns} (multiplied by a factor of \eqn{\sqrt{0.5}} to compensate for double counting) concatenated with the remaining continuous variables scaled to have default standard deviation of 1 or that specified in \code{cont_scale}. When both \code{cat_data} and \code{cat_data} are \code{FALSE}, the kernel matrix assumes all continuous data, does not one-hot encode any part of \code{allx} but still uses the value of \code{b} which produces maximal variance in \code{K}.
 #' @param cat_columns optional character argument that must be specified when \code{mixed_data} is \code{TRUE} and that indicates what columns of \code{allx} contain categorical variables. 
 #' @param cont_scale optional numeric argument used when \code{mixed_data} is \code{TRUE} which specifies how to scale the standard deviation of continuous variables in \code{allx}. Can be either a a single value or a vector with length equal to the number of continuous variables in \code{allx} (columns not specified in \code{cat_columns}) and ordered accordingly.
 #' @param scale_data logical when true scales the columns of \code{allx} (demeans and scales variance to 1) before building the kernel matrix internally. This is appropriate when \code{allx} contains only continuous variables with different scales, but is not recommended when \code{allx} contains any categorical data. Default is \code{TRUE} when both \code{cat_data} and \code{mixed_data} are \code{FALSE} and \code{FALSE} otherwise.
@@ -861,8 +863,8 @@ kbal = function(allx,
       #now check sampledinpop
       if(is.null(sampledinpop)) { 
           #if pass in sampled and dn specify sampledinpop set default and give warning
-          warning("using default parameter \"sampledinpop\" = TRUE \n", immediate. = TRUE)
-          sampledinpop = TRUE
+          warning("using default parameter \"sampledinpop\" = FALSE \n", immediate. = TRUE)
+          sampledinpop = FALSE
       } else if(!(sampledinpop %in% c(0,1))) { #if pass in sampledinpop check its binary
           stop("\"sampledinpop\" is not binary" )
       }
@@ -998,7 +1000,9 @@ kbal = function(allx,
             allx = as.matrix(allx)
         }
         #check not cat data: 
-        if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | sum(dim(apply(allx, 2, unique))[1] <= 10) != 0) {
+        if(((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) <= 10) != 0) | 
+           sum(dim(apply(allx, 2, unique))[1] <= 10) != 0)
+           && (is.null(K) && is.null(K.svd))) {
             warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)
         }
         #if no K supplied find bmaxvar b
@@ -1023,13 +1027,16 @@ kbal = function(allx,
                 if(printprogress) {
                     cat(round(b, 3) ,"selected \n")
                 }
+        } else if(!is.null(K.svd) | !is.null(K) & is.null(b)) {
+            #for later internal checks, not used ofc bc K or svdK is passed in
+            b = 2*ncol(allx)
         }
     } else if(cat_data) { #cat_data = TRUE, onehot encode data and find maxvar b
         if(!is.null(cont_scale)) {
             warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
                     immediate. = TRUE)
         }
-        if(!is.null(K.svd) | !is.null(K)) {
+        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
             warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
@@ -1045,12 +1052,13 @@ kbal = function(allx,
                 warning("One or more column in \"allx\" has more than 10 unique values while \"cat_data\"= TRUE. Ensure that all variables are categorical.",
                         immediate. = TRUE)
             }
-            
-            allx = one_hot(allx)
-            onehot = allx
+            #for consistency with mixed data, undoing double counts direcly by * by sqrt(0.5)
+            allx = sqrt(0.5)*one_hot(allx)
+            #still passout the regular one hot data 
+            onehot = allx/sqrt(0.5)
             #checks
             if(scale_data) {
-                warning("Note that \"scale_data\" should be FALSE when using categorical data. \n", 
+                warning("Note that \"scale_data\" should be FALSE when using categorical data. Ignoring. \n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -1082,9 +1090,9 @@ kbal = function(allx,
                 }
             }
         }
-    } else { #mixed data: one hot encoded cat data, maxvarK
+    } else { #mixed data: one hot encoded cat data and adjust for double counting, maxvarK
        
-        if(!is.null(K.svd) | !is.null(K)) {
+        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
             warning("\"mixed_data\" TRUE argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
             #don't use this it's internal for a check for later if user passes in a b + k.svd
             if(is.null(b)){ b = 2*ncol(allx) } 
@@ -1093,7 +1101,7 @@ kbal = function(allx,
                 stop("\"cat_columns\" argument must be specified when \"mixed_data\" is TRUE.")
             } else if(class(cat_columns) == "character" & sum(cat_columns %in% colnames(allx)) != length(cat_columns)) {
                 stop("One or more \"cat_columns\" elements does not match the column names in \"allx\".")
-            } else { #switch to numeric for ease
+            } else if(class(cat_columns) == "character") { #switch to numeric for ease if input is colnames
                 cat_columns = which(colnames(allx) %in% cat_columns)
             }
             if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) != 0) | sum(dim(apply(allx, 2, unique))[1] == 1) != 0) {
@@ -1106,11 +1114,11 @@ kbal = function(allx,
             if((is.null(dim(apply(allx[,cat_columns, drop= F], 2, unique))) && sum(lapply(apply(allx[,cat_columns, drop= F], 2, unique), length) >10 ) != 0) ) {
                 warning("\"mixed_data\"=TRUE, but one or more column in \"allx\" designated as categorcial by \"cat_columns\" has more than 10 unique values. Ensure that all variables are categorical.", immediate. = TRUE)
             }
-           
-            allx_cat = one_hot(allx[,cat_columns, drop= F])
+            #factor of sqrt(0.5) to adjust for double counting s.t. cont and cat contribute equally in kernel dist
+            allx_cat = sqrt(0.5)*one_hot(allx[,cat_columns, drop= F])
             
             if((is.null(dim(apply(allx[, -cat_columns, drop = F], 2, unique))) && sum(lapply(apply(allx[, -cat_columns, drop = F], 2, unique), length) <= 10) != 0) | sum(dim(apply(allx[, -cat_columns, drop = F], 2, unique))[1] <= 10) != 0) {
-                warning(" \"mixed_data\"= TRUE, but one or more columns of \"allx\" designated as continuous by omission from \"cat_columns\" contain less than 10 unique values. Ensure all categorical variables are specified in \"cat_columns\"", immediate. = TRUE)
+                warning(" \"mixed_data\"= TRUE, but one or more columns of \"allx\" designated as continuous by omission from \"cat_columns\" contain less than 10 unique values. Are you sure  all categorical variables are specified in \"cat_columns\"?", immediate. = TRUE)
             }
             
             if(is.null(cont_scale)) {
@@ -1124,10 +1132,10 @@ kbal = function(allx,
                 allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/cont_scale)))
             }
             allx <- cbind(allx_cat, allx_cont)
-            onehot = allx
+            onehot = cbind(allx_cat/sqrt(0.5), allx_cont)
             #checks
             if(scale_data) {
-                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data and \"scale_data\" =TRUE is not used.\n", 
+                warning("Note that when \"mixed_data\" is TRUE, scaling is only performed on the continuous data in accordance with \"cont_scale\" and \"scale_data\"=TRUE is not used.\n", 
                         immediate. = TRUE)
             }
             if(linkernel) {
@@ -1261,7 +1269,11 @@ kbal = function(allx,
             warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.\n", immediate. = TRUE)
         }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
-        kbalout.mean = suppressWarnings(kbal(allx=allx, 
+        if(cat_data) {
+            allx_mf = one_hot(allx)
+        }
+        
+        kbalout.mean = suppressWarnings(kbal(allx=allx_mf, 
                            treatment=treatment,
                            sampled = sampled,
                            scale_data = TRUE, 
