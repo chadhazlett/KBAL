@@ -28,5 +28,5 @@ Imports:
     RSpectra
 LinkingTo: Rcpp, RcppParallel
 Maintainer: Chad Hazlett <chazlett@ucla.edu>
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Encoding: UTF-8
