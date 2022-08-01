@@ -1036,8 +1036,10 @@ kbal = function(allx,
             warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
                     immediate. = TRUE)
         }
-        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
-            warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+        if((!is.null(K.svd) | !is.null(K))) {
+            if(is.null(meanfirst) || !meanfirst) {
+                warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            }
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
