@@ -639,6 +639,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #'  \item{truncatedSVD.var}{when truncated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the truncated SVD. When the kernel matrix is non-symmetric, this is a worst case approximation of the percent variance explained, assuming the remaining unknown singular values are the same magnitude as the last calculated in the truncated SVD.}
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #'  \item{meanfirst_dims}{when \code{meanfirst=TRUE} the optimal number of the singular vectors of \code{allx} selected and appended to the front of the left singular vectors of \code{K}}
+#'  \item{meanfirst_cols}{when \code{meanfirst=TRUE} \code{meanfirst_dims} first left singular vectors of \code{allx} selected that are appended to the front of the left singular vectors of \code{K} and balanced on}
 #'  \item{ebal_error}{when ebalance is unable to find convergent weights, the associated error message it reports}
 #' @examples
 #' #----------------------------------------------------------------
@@ -1266,6 +1267,7 @@ kbal = function(allx,
 ################## MEAN FIRST #################
     
     meanfirst_dims = NULL
+    mf_constraint = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
             warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.\n", immediate. = TRUE)
@@ -1300,6 +1302,8 @@ kbal = function(allx,
         meanfirst_dims = kbalout.mean$numdims
         #for now this allows the manual constraint method and this svd way
         constraint = constraint_svd_keep
+        #to pass out
+        mf_constraint = constraint_svd_keep
     }
     
     
@@ -1792,6 +1796,7 @@ kbal = function(allx,
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst_dims = meanfirst_dims
+  R$meanfirst_cols = mf_constraint
   R$ebal_error = ebal_error
   return(R)
 } # end kbal main function
