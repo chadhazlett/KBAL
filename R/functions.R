@@ -628,7 +628,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #'  \item{dist_record}{a matrix recording the bias bound corresponding to balance on increasing dimensions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
 #'  \item{numdims}{a numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
 #'  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
-#'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
+#'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimensions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
 #'  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of \code{K}. When mixed data is specified, returns concatenated one-hot encoded categorical data and scaled continuous data used to construct \code{K}.}
 #'  \item{linkernel}{logical for whether linear kernel was used}
@@ -1006,8 +1006,8 @@ kbal = function(allx,
            && (is.null(K) && is.null(K.svd))) {
             warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)
         }
-        #if no K supplied find bmaxvar b
-        if(is.null(K.svd) & is.null(K) & is.null(b)) {
+        #if no K and NOT linkern supplied find bmaxvar b
+        if(!linkernel & (is.null(K.svd) & is.null(K) & is.null(b))) {
             if(N > 10000) {
                 warning("NB: with continuous data and high dimensional \"K\", internal search for b value which produces maximal variance may be time consuming. Consider atlernative choice of b=2*ncol(allx)", 
                         immediate. = TRUE)
