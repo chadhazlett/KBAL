@@ -895,7 +895,7 @@ kbal = function(allx,
     }
 
     #5. checking for covariates with no variance
-    if(!cat_data & !mixed_data) {
+    if(!cat_data & !mixed_data & is.null(K.svd) & is.null(K)) {
         if(sum(apply(allx, 2, class) != "numeric") != 0) {
             stop("One or more column in \"allx\" is non-numeric while \"cat_data\" and \"mixed_data\" are both FALSE. Expecting continuous numeric data.")
         } else if( 0 %in% apply(allx, 2, sd) ) {
