@@ -114,6 +114,7 @@ kbal(
  \item{truncatedSVD.var}{when truncated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the truncated SVD. When the kernel matrix is non-symmetric, this is a worst case approximation of the percent variance explained, assuming the remaining unknown singular values are the same magnitude as the last calculated in the truncated SVD.}
  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
  \item{meanfirst_dims}{when \code{meanfirst=TRUE} the optimal number of the singular vectors of \code{allx} selected and appended to the front of the left singular vectors of \code{K}}
+ \item{meanfirst_cols}{when \code{meanfirst=TRUE} \code{meanfirst_dims} first left singular vectors of \code{allx} selected that are appended to the front of the left singular vectors of \code{K} and balanced on}
  \item{ebal_error}{when ebalance is unable to find convergent weights, the associated error message it reports}
 }
 \description{

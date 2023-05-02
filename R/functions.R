@@ -628,7 +628,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #'  \item{dist_record}{a matrix recording the bias bound corresponding to balance on increasing dimensions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
 #'  \item{numdims}{a numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
 #'  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
-#'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
+#'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimensions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
 #'  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of \code{K}. When mixed data is specified, returns concatenated one-hot encoded categorical data and scaled continuous data used to construct \code{K}.}
 #'  \item{linkernel}{logical for whether linear kernel was used}
@@ -639,6 +639,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #'  \item{truncatedSVD.var}{when truncated SVD methods are used on symmetric kernel matrices, a numeric which gives the proportion of the total variance of \code{K} captured by the first \code{maxnumdims} singular values found by the truncated SVD. When the kernel matrix is non-symmetric, this is a worst case approximation of the percent variance explained, assuming the remaining unknown singular values are the same magnitude as the last calculated in the truncated SVD.}
 #'  \item{dropped_covariates}{provides a vector of character column names for covariates dropped due to multicollinearity.}
 #'  \item{meanfirst_dims}{when \code{meanfirst=TRUE} the optimal number of the singular vectors of \code{allx} selected and appended to the front of the left singular vectors of \code{K}}
+#'  \item{meanfirst_cols}{when \code{meanfirst=TRUE} \code{meanfirst_dims} first left singular vectors of \code{allx} selected that are appended to the front of the left singular vectors of \code{K} and balanced on}
 #'  \item{ebal_error}{when ebalance is unable to find convergent weights, the associated error message it reports}
 #' @examples
 #' #----------------------------------------------------------------
@@ -894,7 +895,7 @@ kbal = function(allx,
     }
 
     #5. checking for covariates with no variance
-    if(!cat_data & !mixed_data) {
+    if(!cat_data & !mixed_data & is.null(K.svd) & is.null(K)) {
         if(sum(apply(allx, 2, class) != "numeric") != 0) {
             stop("One or more column in \"allx\" is non-numeric while \"cat_data\" and \"mixed_data\" are both FALSE. Expecting continuous numeric data.")
         } else if( 0 %in% apply(allx, 2, sd) ) {
@@ -1005,8 +1006,8 @@ kbal = function(allx,
            && (is.null(K) && is.null(K.svd))) {
             warning("One or more columns of \"allx\" contain less than 10 unique values, but \"cat_data\" and \"mixed_data\" are set to FALSE. Are you sure \"allx\" contains only continuous data?", immediate. = TRUE)
         }
-        #if no K supplied find bmaxvar b
-        if(is.null(K.svd) & is.null(K) & is.null(b)) {
+        #if no K and NOT linkern supplied find bmaxvar b
+        if(!linkernel & (is.null(K.svd) & is.null(K) & is.null(b))) {
             if(N > 10000) {
                 warning("NB: with continuous data and high dimensional \"K\", internal search for b value which produces maximal variance may be time consuming. Consider atlernative choice of b=2*ncol(allx)", 
                         immediate. = TRUE)
@@ -1036,8 +1037,10 @@ kbal = function(allx,
             warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
                     immediate. = TRUE)
         }
-        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
-            warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+        if((!is.null(K.svd) | !is.null(K))) {
+            if(is.null(meanfirst) || !meanfirst) {
+                warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            }
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
@@ -1424,7 +1427,7 @@ kbal = function(allx,
       if(b != 2*ncol(allx)) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
       }
-      if(!(length(ls(K.svd)) >= 2 && (c("d", "u") %in% ls(K.svd)))) {
+      if(sum(c(length(ls(K.svd)) >= 2, c("d", "u") %in% ls(K.svd))) != 3 ) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
       } else if(ncol(K.svd$u) != length(K.svd$d)) {
           stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of \"u\" do not match dimensions of \"d\".")
@@ -1790,6 +1793,7 @@ kbal = function(allx,
   R$truncatedSVD.var = var_explained
   R$dropped_covariates = dropped_cols
   R$meanfirst_dims = meanfirst_dims
+  R$appended_constraint_cols = constraint
   R$ebal_error = ebal_error
   return(R)
 } # end kbal main function
