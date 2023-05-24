@@ -807,10 +807,10 @@ kbal = function(allx,
     }
     
     # Set ebal.convergence default according to whether there are constraints or not:
-    if(is.null(ebal.convergence)){
-      if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE) ){
+    if(is.null(ebal.convergence)) {
+      if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE)) {
           ebal.convergence=FALSE
-          }  else {
+          } else {
               ebal.convergence=TRUE
           }
     }
@@ -851,43 +851,44 @@ kbal = function(allx,
 ############### ERROR CHECKS ##################    
     
   #1. checking sampled and sampledinpop
-  if(!is.null(sampled)) { 
-      if(!(all(sampled %in% c(0,1)))) { #note this is still ok for logicals
+    if(!is.null(sampled)) {
+        if(!(all(sampled %in% c(0,1)))) { #note this is still ok for logicals
           stop("\"sampled\" contains non-binary elements")
-      }
-      if(sd(sampled) == 0) { 
-          stop("\"sampled\" has zero variance")
-      }
-      if(length(sampled) != N) {
-          stop("Dimensions of \"sampled\" do not match data \"allx\"")
-      }
+        }
+        if(sd(sampled) == 0) { 
+            stop("\"sampled\" has zero variance")
+        } 
+        if(length(sampled) != N) {
+            stop("Dimensions of \"sampled\" do not match data \"allx\"") 
+        }
       #now check sampledinpop
-      if(is.null(sampledinpop)) { 
+        if(is.null(sampledinpop)) { 
           #if pass in sampled and dn specify sampledinpop set default and give warning
-          warning("using default parameter \"sampledinpop\" = FALSE \n", immediate. = TRUE)
-          sampledinpop = FALSE
-      } else if(!(sampledinpop %in% c(0,1))) { #if pass in sampledinpop check its binary
+            warning("using default parameter \"sampledinpop\" = FALSE \n", immediate. = TRUE)
+            sampledinpop = FALSE
+        } else if(!(sampledinpop %in% c(0,1))) { #if pass in sampledinpop check its binary
           stop("\"sampledinpop\" is not binary" )
-      }
-    #2. now checking treatment if dn pass in sampled 
-  } else if(!is.null(treatment)) { 
-      if(!(all(treatment %in% c(0,1)))) { 
+        }
+   #2. now checking treatment if dn pass in sampled 
+   } else if(!is.null(treatment)) {  
+        if(!(all(treatment %in% c(0,1)))) { 
           stop("\"treated\" contains non-binary elements")
-      }
-      if(sd(treatment) == 0) {
-          stop("\"treated\" has zero variance")
-      }
-      if(length(treatment) != N) {
+        }
+        if(sd(treatment) == 0) {
+            stop("\"treated\" has zero variance")
+            }
+        if(length(treatment) != N) {
           stop("Dimensions of \"treatment\" do not match data \"allx\"")
-      }
-  } else { #only get here if both sampled and treated are null
-      stop("Either \"sampled\" or \"treatment\" must be specified")
-  } #end of sampled/treated if else check
+        }
+    } else { #only get here if both sampled and treated are null
+        stop("Either \"sampled\" or \"treatment\" must be specified")
+    } #end of sampled/treated if else check
     
     #3. checking if user tried to pass in both
     if(!is.null(sampled) & !is.null(treatment)) {
         stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
     }
+    
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
     if(!is.null(treatment) & (is.null(sampledinpop) || sampledinpop == TRUE)) {
         if(!is.null(sampledinpop) && sampledinpop == TRUE) {warning("Targeting ATT, which implies sampledinpop=FALSE.\n", immediate. = TRUE)}
@@ -1015,19 +1016,19 @@ kbal = function(allx,
             if(printprogress) {
                 cat("Searching for b value which maximizes the variance in K: ")
             }
-                if(scale_data) {
-                    allx = scale(allx)
-                }    
-                res = b_maxvarK(data = allx, 
-                                cat_data = cat_data,
-                                useasbases = useasbases, 
-                                maxsearch_b = maxsearch_b)
-                b = res$b_maxvar
-                maxvar_K_out = res$var_K
+            if(scale_data) {
+                allx = scale(allx)
+            }    
+            res = b_maxvarK(data = allx, 
+                            cat_data = cat_data,
+                            useasbases = useasbases, 
+                            maxsearch_b = maxsearch_b)
+            b = res$b_maxvar
+            maxvar_K_out = res$var_K
                 
-                if(printprogress) {
-                    cat(round(b, 3) ,"selected \n")
-                }
+            if(printprogress) {
+                cat(round(b, 3) ,"selected \n")
+            }
         } else if(!is.null(K.svd) | !is.null(K) & is.null(b)) {
             #for later internal checks, not used ofc bc K or svdK is passed in
             b = 2*ncol(allx)
@@ -1205,7 +1206,6 @@ kbal = function(allx,
             maxnumdims= min(500, sum(useasbases))  
             if(!is.null(K)) {maxnumdims = ncol(K)}
             if(!is.null(K.svd)) {maxnumdims = ncol(K.svd$u)}
-            
         } else { maxnumdims = min(ncol(allx), 500) } 
         trunc_svd_dims = round(.8*sum(useasbases))
     } else{#2021: if pass max, want to still get svd out more dims so that bb is correct
@@ -1229,7 +1229,7 @@ kbal = function(allx,
     }
     
     #10. incrementby not null and geq 1
-    if(is.null(incrementby) || incrementby < 1){
+    if(is.null(incrementby) || incrementby < 1) {
         warning(" \"incrementby\" must be greater than or equal to 1. Setting \"incrementby\" to be 1.\n", immediate. = TRUE)
         incrementby = 1
     }
@@ -1243,9 +1243,7 @@ kbal = function(allx,
         fullSVD = TRUE
     } 
 
-    
-        
-############ Direct CONSTRAINT #############
+    ############ Direct CONSTRAINT #############
     #if user passes in constraint to append, ensure it's scaled and dn have mc issues
     if(!is.null(constraint)) {
         if(scale_constraint) {
@@ -1262,10 +1260,7 @@ kbal = function(allx,
         }
     }
     
-    
-    
-################## MEAN FIRST #################
-    
+    ################## MEAN FIRST #################
     meanfirst_dims = NULL
     if(!is.null(meanfirst) && meanfirst == TRUE) {
         if(!is.null(constraint)) {
@@ -1274,6 +1269,8 @@ kbal = function(allx,
         #note that b and useasbases are irrelevant here since we're using a linear kernel
         if(cat_data) {
             allx_mf = one_hot(allx)
+        } else {
+            allx_mf = allx
         }
         
         kbalout.mean = suppressWarnings(kbal(allx=allx_mf, 
@@ -1304,7 +1301,7 @@ kbal = function(allx,
     }
     
     
-########### BUILDING K ################
+    ########### BUILDING K ################
     #pass out b and bases used if kernel built internally and gaussian  
     b_out = ifelse((linkernel | !is.null(K.svd) | !is.null(K)), NA, b)
     if(is.na(b_out)){ b_out = NULL}
@@ -1313,43 +1310,43 @@ kbal = function(allx,
     } else{ useasbases_out = useasbases}
     
     
-#Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
+    #Setting Up K: Make the kernel or take in user K or user K.svd and check those work with dims
    #first check didn't pass both
-#CASE 1: if user pases K without svd, always conduct SVD upto maxnumdims or numdims
-  if(!is.null(K) & is.null(K.svd)) { 
-      #error checks:
-      #check maxnumdims
-      if(maxnumdims > ncol(K) ) {
+    #CASE 1: if user pases K without svd, always conduct SVD upto maxnumdims or numdims
+    if(!is.null(K) & is.null(K.svd)) { 
+        #error checks:
+        #check maxnumdims
+        if(maxnumdims > ncol(K) ) {
           warning("\"maxnumdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.\n", immediate. = TRUE)
           maxnumdims = ncol(K)
-      }
-      #check numdims
-      if(!is.null(numdims) && numdims > ncol(K) ) {
+        }
+        #check numdims
+        if(!is.null(numdims) && numdims > ncol(K) ) {
           warning("\"numdims\" cannot exceed number of columns of \"K\". Reducing to maximum allowed.\n", immediate. = TRUE)
           numdims = ncol(K)
-      }
-      #check minnumdims 
-      if(minnumdims > maxnumdims) {
+        }
+        #check minnumdims 
+        if(minnumdims > maxnumdims) {
           warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.\n", immediate. = TRUE)
           minnumdims = 1
-      }
-      #warning that linkernel meaningless
-      if(!is.null(linkernel) && linkernel) {
+         }
+        #warning that linkernel meaningless
+        if(!is.null(linkernel) && linkernel) {
           warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
-      }
-      if(!is.null(b) && b != 2*ncol(allx) ) {
+        }
+        if(!is.null(b) && b != 2*ncol(allx) ) {
           warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", 
                   immediate. = TRUE)
-      }
-      
-      #provided we pass all those checks get svd with RSpectra
-      if(printprogress == TRUE) {cat("Using user-supplied K \n")}
-      #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
-      if(!fullSVD) { 
-          if(printprogress) {cat("Running trucated SVD on kernel matrix up to",
-                                 trunc_svd_dims, "dimensions \n")}
-          #for a symmetric K just do eigs_sym as is:
-          if(nrow(K) == ncol(K)) {
+        }
+        #provided we pass all those checks get svd with RSpectra
+        if(printprogress == TRUE) {cat("Using user-supplied K \n")}
+        #if user does not ask for fullsvd, and does not give numdims, get svd upto maxnumdims
+        if(!fullSVD) { 
+            if(printprogress) {
+              cat("Running trucated SVD on kernel matrix up to",trunc_svd_dims, "dimensions \n")
+            }
+            #for a symmetric K just do eigs_sym as is:
+            if(nrow(K) == ncol(K)) {
               rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
               #add negative evals catch via bound at e-12 = 0
               #for now just set values to be zero
@@ -1361,10 +1358,13 @@ kbal = function(allx,
                              v= rspec.out$vectors)
               #tr(K) = sum eigenvalues
               var_explained <- round(sum(svd.out$d)/nrow(K),6)
-              if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
-                                     "first singular values accounts for", 
-                                     round(100*var_explained, 2),
-                                     "% of the variance of \"K\" \n")}
+              if(printprogress) {
+                  cat("Truncated SVD with", 
+                      trunc_svd_dims,
+                      "first singular values accounts for", 
+                      round(100*var_explained, 2),
+                      "% of the variance of \"K\" \n")
+              }
               if(var_explained < .999) {
                   warning("Truncated SVD with only ", trunc_svd_dims,
                           " first singular values only accounts for ", round(100*var_explained, 2) ,
@@ -1382,135 +1382,137 @@ kbal = function(allx,
               var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
               
               if(printprogress) {
-                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", trunc_svd_dims,"first singular values is lower bounded (worst-case) to explain",
+                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", 
+                      trunc_svd_dims,
+                      "first singular values is lower bounded (worst-case) to explain",
                       round(100*var_explained, 2), "% of the variance of \"K\" \n")
               }
               if(var_explained < .999) {
                   warning("Truncated SVD with only ", trunc_svd_dims,
-                          " first singular values accounts for, worst-case, approximately only ", round(100*var_explained, 2) ,
-                          "% of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the total varince of \"K\".\n", immediate. = TRUE)
+                          " first singular values accounts for, worst-case, approximately only ",
+                          round(100*var_explained, 2),
+                          "% of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the total varince of \"K\".\n", 
+                          immediate. = TRUE)
               }
     
           }
-          
-          U=svd.out$u
-     #if user asked for full SVD, get it
-      } else { 
+            
+            U=svd.out$u
+            #if user asked for full SVD, get it
+        } else { 
           if(printprogress) {cat("Running full SVD on kernel matrix \n")}
           svd.out = svd(K)
           U = svd.out$u
           var_explained = NULL
-      }
-#CASE 2: if user pases in K.svd (with or without K) dn conduct SVD   
-  } else if(!is.null(K.svd)) {
-      
-      #NB: we require K.svd to have $u and $d $v just as a real svd would
-      #error catches
-      #check maxnumdims
-      if(maxnumdims > ncol(K.svd$u) ) {
-          warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.\n", immediate. = TRUE)
-          maxnumdims = ncol(K.svd$u)
-      }
-      #check numdims
-      if(!is.null(numdims) && numdims > ncol(K.svd$u) ) {
-          warning("\"numdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.\n", immediate. = TRUE)
-          numdims = ncol(K)
-      }
-      #check minnumdims 
-      if(minnumdims > maxnumdims) {
-          warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.\n", immediate. = TRUE)
-          minnumdims = 1
-      }
-      if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
-          warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
-      }
-      if(b != 2*ncol(allx)) {
-          warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
-      }
-      if(sum(c(length(ls(K.svd)) >= 2, c("d", "u") %in% ls(K.svd))) != 3 ) {
-          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
-      } else if(ncol(K.svd$u) != length(K.svd$d)) {
-          stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of \"u\" do not match dimensions of \"d\".")
-      }
-      svd.out = K.svd
-      U = K.svd$u
-      var_explained = NULL
-      if(!is.null(K)) {
-          warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input\n")
-      } else {
-          #reconstruct K for the L1 distance
-          d_diag <- matrix(0, nrow = ncol(K.svd$u), ncol = ncol(K.svd$v))
-          diag(d_diag) <- K.svd$d
-          K = K.svd$u %*% d_diag  %*% t(K.svd$v)
-      }
-      
-#CASE 3: if user does not specify either K or K.svd, build K and get svd of K
-  } else { 
-      if(printprogress == TRUE) {cat("Building kernel matrix\n")}
-      if(linkernel == FALSE) {
-          K = makeK(allx = allx, useasbases = useasbases, b=b, 
-                    scale = scale_data)
-      } else {
-          K = makeK(allx = allx,
-                    scale = scale_data,
-                    useasbases = useasbases,  #unnecc/bases not used for lin kernel
-                    linkernel = TRUE)
-      }
-     #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
-      if(!fullSVD) {
-          if(printprogress) {cat("Running truncated SVD on kernel matrix up to",
+        }
+    #CASE 2: if user pases in K.svd (with or without K) dn conduct SVD   
+    } else if(!is.null(K.svd)) {
+        #NB: we require K.svd to have $u and $d $v just as a real svd would
+        #error catches
+        #check maxnumdims
+        if(maxnumdims > ncol(K.svd$u) ) {
+            warning("\"maxnumdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.\n", immediate. = TRUE)
+            maxnumdims = ncol(K.svd$u)
+        }
+        #check numdims
+        if(!is.null(numdims) && numdims > ncol(K.svd$u) ) {
+            warning("\"numdims\" cannot exceed number of columns of \"K.svd\". Reducing to maximum allowed.\n", immediate. = TRUE)
+            numdims = ncol(K)
+         }
+        #check minnumdims 
+        if(minnumdims > maxnumdims) {
+            warning("\"minnumdims\" cannot exceed \"maxnumdims\". Reducing \"minnumdims\" to 1.\n", immediate. = TRUE)
+            minnumdims = 1
+        }
+        if(!is.null(linkernel) && linkernel) { #only if linkernel = TRUE
+            warning("\"linkernel\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+        }
+        if(b != 2*ncol(allx)) {
+            warning("\"b\" argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+        }
+        if(sum(c(length(ls(K.svd)) >= 2, c("d", "u") %in% ls(K.svd))) != 3 ) {
+            stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values.")
+        } else if(ncol(K.svd$u) != length(K.svd$d)) {
+            stop("\"K.svd\" must be a list object containing \"u\" the left singular vectors and \"d\" the singular values. Dimensions of \"u\" do not match dimensions of \"d\".")
+        }
+        svd.out = K.svd
+        U = K.svd$u
+        var_explained = NULL
+        if(!is.null(K)) {
+            warning("\"K\" only used for calculating L1 distance. All balancing and weight construction only relies on \"K.svd\" input\n")
+        } else {
+            #reconstruct K for the L1 distance
+            d_diag <- matrix(0, nrow = ncol(K.svd$u), ncol = ncol(K.svd$v))
+            diag(d_diag) <- K.svd$d
+            K = K.svd$u %*% d_diag  %*% t(K.svd$v)
+        }
+    #CASE 3: if user does not specify either K or K.svd, build K and get svd of K
+    } else { 
+        if(printprogress == TRUE) {cat("Building kernel matrix\n")}
+        if(linkernel == FALSE) {
+            K = makeK(allx = allx, useasbases = useasbases, b=b, 
+                      scale = scale_data)
+        } else {
+            K = makeK(allx = allx,
+                      scale = scale_data,
+                      useasbases = useasbases,  #unnecc/bases not used for lin kernel
+                      linkernel = TRUE)
+        }
+        #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
+        if(!fullSVD) {
+            if(printprogress) {cat("Running truncated SVD on kernel matrix up to",
                                  trunc_svd_dims, "dimensions \n")}
-          #for a symmetric K just do eigs_sym as is:
-          if(nrow(K) == ncol(K)) {
-              rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
-              rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] = 0
-              if(sum(sign(rspec.out$values) == -1) != 0) {
-                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
-              }
-              svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
-                             v= rspec.out$vectors)
-              var_explained = round(sum(svd.out$d)/nrow(K),6)
-              if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
+            #for a symmetric K just do eigs_sym as is:
+            if(nrow(K) == ncol(K)) {
+                rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
+                rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] = 0
+                if(sum(sign(rspec.out$values) == -1) != 0) {
+                    stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+                }
+                svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+                               v= rspec.out$vectors)
+                var_explained = round(sum(svd.out$d)/nrow(K),6)
+                if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
                                      "first singular values accounts for", var_explained,
                                      "of the variance of \"K\" \n")}
               
-              if(var_explained < .999) {
-                  warning("Truncated SVD with ", trunc_svd_dims,
+                if(var_explained < .999) {
+                    warning("Truncated SVD with ", trunc_svd_dims,
                           " first singular values only accounts for ", var_explained,
                           " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
-                  }
-          } else { #use truncated svd
-              svd.out= RSpectra::svds(K, round(trunc_svd_dims))
-              if(sum(sign(svd.out$d) == -1) != 0) {
-                  stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
-              }
-              #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
-              max_rank = min(nrow(K), ncol(K))
-              worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
-              var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
-              
-              if(printprogress) {
-                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", trunc_svd_dims,"first singular values is lower bounded (worst-case) to explain",
-                      round(100*var_explained, 2), "% of the variance of \"K\" \n")
-              }
-              
-          }
-          U=svd.out$u
-          
-    #if user askes for full svd, go get it
-      } else {
-          if(printprogress) {cat("Running full SVD on kernel matrix \n")}
-          svd.out = svd(K)
-          U = svd.out$u
-          var_explained = NULL
-      }
-  }
+                }
+            } else { #use truncated svd
+                svd.out= RSpectra::svds(K, round(trunc_svd_dims))
+                if(sum(sign(svd.out$d) == -1) != 0) {
+                    stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+                }
+                #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
+                max_rank = min(nrow(K), ncol(K))
+                worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
+                var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
+
+                if(printprogress) {
+                    cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only",
+                        trunc_svd_dims,
+                        "first singular values is lower bounded (worst-case) to explain",
+                        round(100*var_explained, 2), "% of the variance of \"K\" \n")
+                }
+            }
+            U=svd.out$u
+        #if user askes for full svd, go get it
+        } else {
+            if(printprogress) {cat("Running full SVD on kernel matrix \n")}
+            svd.out = svd(K)
+            U = svd.out$u
+            var_explained = NULL
+        }
+    }
     #adjust singular values for linear kernel since we just do svd(X) instead of svd(XX')
-   if(linkernel == TRUE) {
+    if(linkernel == TRUE) {
         svd.out$d = svd.out$d^2
     }
     
-####### Adding Constraint to minimization: paste constraint vector to front of U
+    ####### Adding Constraint to minimization: paste constraint vector to front of U
     if(!is.null(constraint)) {
         #check dims of constraint
         #this will cause problems if pass in one constraint as a vector, it needs to be a 1 column matrix
@@ -1534,189 +1536,146 @@ kbal = function(allx,
         }
     }
     
-################### BASELINE ##############################
-  # Get biasbound with no improvement in balance:
-  #recall: w.pop is flat weights for sampled, user specified weights for population
-  biasbound_orig=biasbound(w = rep(1,N),
-                           w.pop = w.pop, 
-                           observed=observed, target = target,
-                           svd.out = svd.out, hilbertnorm = 1)
-#NB: not well defined when pass in K.svd not K (added warning above)
-  getdist.orig = getdist(target=target, observed = observed,
-                         w = rep(1,N), w.pop = w.pop, K=K)
-  L1_orig = getdist.orig$L1
-
-  if(printprogress==TRUE) {
-      cat("Without balancing, biasbound (norm=1) is",
-          round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
-  }
-
-############# NUMDIMS GIVEN  ###################
-  # If numdims given, just get the weights in one shot:
-  if(!is.null(numdims)) {
-    U2=U[,1:numdims, drop=FALSE]
-    
-    U2.w.pop <- w.pop*U2
-    getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop, 
-                   ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
-    converged = getw.out$converged
-    biasboundnow=biasbound( w = getw.out$w,
-                            observed=observed,  target = target,
-                            svd.out = svd.out, 
-                            w.pop = w.pop, 
-                            hilbertnorm = 1)
-    if(!converged) {
-        numpass = numdims
-        if(!is.null(constraint)) {numpass = numdims - ncol(constraint)}
-        warning("With user-specified ", numpass," dimensions ebalance did not converge within tolerance. Disregarding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.\n")
-        
-    }
-    if(printprogress == TRUE & is.null(constraint)) {
-        cat("With user-specified", numdims,"dimensions, biasbound (norm=1) of ",
-                 round(biasboundnow,5), " \n")
-    } else if(printprogress) {
-        numdims = numdims - ncol(constraint)
-        cat("With user-specified",numdims,"dimensions of K, biasbound (norm=1) of ",
-            round(biasboundnow,5), " \n")
-    }
-    
-    #stuff to set so we can skip the entire if statement below and just printout
-    dist.record = biasboundnow
-    dist_pass = rbind(numdims, dist.record, converged)
-    biasbound_opt = biasboundnow
-    dist.orig= biasbound_orig
-    L1_optim = getdist(target=target, observed = observed,
-                       w = getw.out$w, w.pop = w.pop, K=K)$L1
-  }
- 
-  
-############# BIASBOUND OPTIMIZATION ###################
-  # If numdims not given, we search to minimize biasbound:
-  if(is.null(numdims)) {
-    thisnumdims=minnumdims
-    dist.record=NULL
-    convergence.record = NULL
-    keepgoing=TRUE
-    wayover=FALSE
-    mindistsofar=998
-    
-    while(keepgoing==TRUE){
-      U_try=U[,1:thisnumdims, drop=FALSE]
-      U_try.w.pop <- w.pop*U_try
-      getw.out= suppressWarnings(getw(target = target,
-                                      observed=observed, svd.U = U_try.w.pop, 
-                                      ebal.tol = ebal.tol, ebal.maxit = ebal.maxit))
-      
-      convergence.record = c(convergence.record, getw.out$converged)
-    
-      biasboundnow=biasbound(w = getw.out$w,
-                             observed=observed,  target = target,
-                             svd.out = svd.out, 
+    ################### BASELINE ##############################
+    # Get biasbound with no improvement in balance:
+    #recall: w.pop is flat weights for sampled, user specified weights for population
+    biasbound_orig=biasbound(w = rep(1,N),
                              w.pop = w.pop, 
-                             hilbertnorm = 1)
-      if(printprogress == TRUE & is.null(constraint)) {
-          cat("With",thisnumdims,"dimensions of K, ebalance convergence is", getw.out$converged ,"yielding biasbound (norm=1) of",
-                       round(biasboundnow,5), " \n")
-      } else if(printprogress == TRUE) {
-          cat("With",thisnumdims - ncol(constraint),"dimensions of K, ebalance convergence is",getw.out$converged, "yielding biasbound (norm=1) of",
-               round(biasboundnow,5), " \n")
-      }
-      
-      dist.record=c(dist.record,biasboundnow)
-      
-      dist.now=biasboundnow # To make more generic, distance could be any measure.
-      dist.orig=biasbound_orig
+                             observed=observed, 
+                             target = target,
+                             svd.out = svd.out, hilbertnorm = 1)
+    #NB: not well defined when pass in K.svd not K (added warning above)
+    getdist.orig = getdist(target=target, observed = observed,
+                           w = rep(1,N), w.pop = w.pop, K=K)
+    L1_orig = getdist.orig$L1
+    if(printprogress==TRUE) {
+        cat("Without balancing, biasbound (norm=1) is",
+            round(biasbound_orig,5), "and the L1 discrepancy is", round(L1_orig,3), "\n")
+        }
 
-      thisnumdims=thisnumdims+incrementby
-
-      if(!is.na(dist.now)) {
-         if(dist.now<mindistsofar){mindistsofar=dist.now} 
-         wayover=(dist.now/mindistsofar)>1.25
-         keepgoing=(thisnumdims<=maxnumdims) & (wayover==FALSE) #& (dist.now<dist.orig)
-         #& dist.now!="error"
-         # (dist.now>mindistsofar)  # XXX this was in there, but needed?
-         # Need to work on "keepgoing" for case where ebal fails.
-      }
-
-      
-    } # End of while loop for "keepgoing"
-
-    if(is.null(constraint)) {
-        dimseq=seq(minnumdims,maxnumdims,incrementby)
-    } else {
-        dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
-    }
-    #building record of search
-    dist_pass = rbind(dimseq[1:length(dist.record)], dist.record, convergence.record)
-    rownames(dist_pass) <- c("Dims", "BiasBound", "Ebal Convergence")
-    
-    ########### CHECKING CONVERGENCE #############
-    #user requires ebal convergence and we did have some convergence
-    if(ebal.convergence & sum(convergence.record) != 0) {
-        min_converged = min(dist.record[convergence.record], na.rm=TRUE)
-        numdims=dimseq[which(dist.record==min_converged)]
-        
-        # If nothing improved balance, there will be multiple minima.
-        # Throw warning, and choose the fewest numdims.
-        if (length(numdims)>1){
-            warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
-                    immediate. = TRUE)
-            numdims=min(numdims)
+    ############# NUMDIMS GIVEN  ###################
+    # If numdims given, just get the weights in one shot:
+    if(!is.null(numdims)) {
+        U2=U[,1:numdims, drop=FALSE]
+        U2.w.pop <- w.pop*U2
+        getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop, 
+                       ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
+        converged = getw.out$converged
+        biasboundnow=biasbound( w = getw.out$w,
+                                observed=observed,  target = target,
+                                svd.out = svd.out, 
+                                w.pop = w.pop, 
+                                hilbertnorm = 1)
+        if(!converged) {
+            numpass = numdims
+            if(!is.null(constraint)) {numpass = numdims - ncol(constraint)}
+            warning("With user-specified ", 
+                    numpass,
+                    " dimensions ebalance did not converge within tolerance. Disregarding ebalance convergence and returining weights, biasbound, and L1 distance for requested dimensions.\n")
+            }
+        if(printprogress == TRUE & is.null(constraint)) {
+            cat("With user-specified", numdims,"dimensions, biasbound (norm=1) of ",
+                round(biasboundnow,5), " \n")
+        } else if(printprogress) {
+            numdims = numdims - ncol(constraint)
+            cat("With user-specified",numdims,"dimensions of K, biasbound (norm=1) of ",
+                round(biasboundnow,5), " \n")
         }
         
-        # Finally, we didn't save weights each time, so go back and re-run
-        # at optimal  number of dimensions
-        if(printprogress == TRUE) {
-            cat("Re-running at optimal choice of numdims,", numdims, "\n")
-        }
-        if(is.null(constraint)) {
-            U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-        } else {
-            U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
-        }
-        
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                        ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
-        biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
-                                 svd.out = svd.out, 
-                                 w.pop = w.pop,
-                                 hilbertnorm = 1)
-        #NB: not well defined iF K.svd passed in
+        #stuff to set so we can skip the entire if statement below and just printout
+        dist.record = biasboundnow
+        dist_pass = rbind(numdims, dist.record, converged)
+        biasbound_opt = biasboundnow
+        dist.orig= biasbound_orig
         L1_optim = getdist(target=target, observed = observed,
                            w = getw.out$w, w.pop = w.pop, K=K)$L1
-    
-    #asked for convergence, but NO CONVERGED DIMS  
-    } else if(ebal.convergence) {
+    }
+ 
+  
+    ############# BIASBOUND OPTIMIZATION ###################
+    # If numdims not given, we search to minimize biasbound:
+    if(is.null(numdims)) {
+        thisnumdims=minnumdims
+        dist.record=NULL
+        convergence.record = NULL
+        keepgoing=TRUE
+        wayover=FALSE
+        mindistsofar=998
         
-        #if we sent in constraints let's return weights just on these 
-        if(!is.null(constraint)){
-            U_constraint=U[,1:(minnumdims-1), drop=FALSE]
-            U_c.w.pop <- w.pop*U_constraint
-            getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop, 
-                           ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
-            convergence.record = getw.out$converged
-            warning("Ebalance did not converge within tolerance for any ",
-                    dist_pass[1,1],"-",
-                    dist_pass[1,ncol(dist_pass)],
-                    " searched dimensions of K.\nNo optimal numdims to return. Returning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",convergence.record)
+        while(keepgoing==TRUE) {
+            U_try=U[,1:thisnumdims, drop=FALSE]
+            U_try.w.pop <- w.pop*U_try
+            getw.out= suppressWarnings(getw(target = target,
+                                            observed=observed, svd.U = U_try.w.pop, 
+                                            ebal.tol = ebal.tol, ebal.maxit = ebal.maxit))
+            convergence.record = c(convergence.record, getw.out$converged)
             
-            biasbound_opt=biasbound(w = getw.out$w,
-                                    observed=observed, 
-                                    target = target,
-                                    svd.out = svd.out, 
-                                    w.pop = w.pop, 
-                                    hilbertnorm = 1)
-            L1_optim = getdist(target=target, observed = observed,
-                               w = getw.out$w, w.pop = w.pop, K=K)$L1
-            numdims = NULL
-        } else { #no constraint and no convergence
-            warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
-                    dist_pass[1,ncol(dist_pass)],
-                    " searched dimensions of K.\nDisregarding ebalance convergence and returning biasbound, L1 distance, and weights that yeild the minimum biasbound.")
-            #disregard convergence and pick minnumdims
-            numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
-            U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-            getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
+            biasboundnow=biasbound(w = getw.out$w,
+                                   observed=observed,  target = target,
+                                   svd.out = svd.out, 
+                                   w.pop = w.pop, 
+                                   hilbertnorm = 1)
+            if(printprogress == TRUE & is.null(constraint)) {
+                cat("With",thisnumdims,"dimensions of K, ebalance convergence is", 
+                    getw.out$converged ,"yielding biasbound (norm=1) of",
+                    round(biasboundnow,5), " \n")
+            } else if(printprogress == TRUE) {
+                cat("With",thisnumdims - ncol(constraint),"dimensions of K, ebalance convergence is",
+                    getw.out$converged, "yielding biasbound (norm=1) of",
+                    round(biasboundnow,5), " \n")
+            }
+            
+            dist.record=c(dist.record,biasboundnow)
+            dist.now=biasboundnow # To make more generic, distance could be any measure.
+            dist.orig=biasbound_orig
+            
+            thisnumdims=thisnumdims+incrementby
+            
+            if(!is.na(dist.now)) {
+                if(dist.now<mindistsofar){mindistsofar=dist.now} 
+                wayover=(dist.now/mindistsofar)>1.25
+                keepgoing=(thisnumdims<=maxnumdims) & (wayover==FALSE) #& (dist.now<dist.orig)
+                #& dist.now!="error"
+                # (dist.now>mindistsofar)  # XXX this was in there, but needed?
+                # Need to work on "keepgoing" for case where ebal fails.
+            }
+        } # End of while loop for "keepgoing"
+    
+        if(is.null(constraint)) {
+            dimseq=seq(minnumdims,maxnumdims,incrementby)
+        } else {
+            dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
+        }
+        #building record of search
+        dist_pass = rbind(dimseq[1:length(dist.record)], dist.record, convergence.record)
+        rownames(dist_pass) <- c("Dims", "BiasBound", "Ebal Convergence")
+        
+
+        ########### CHECKING CONVERGENCE #############
+        #1) user requires ebal convergence and we did have some convergence
+        if(ebal.convergence & sum(convergence.record) != 0) {
+            min_converged = min(dist.record[convergence.record], na.rm=TRUE)
+            numdims=dimseq[which(dist.record==min_converged)]
+            
+            # If nothing improved balance, there will be multiple minima.
+            # Throw warning, and choose the fewest numdims.
+            if(length(numdims)>1) {
+                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
+                            immediate. = TRUE)
+                numdims=min(numdims)
+            }
+            # Finally, we didn't save weights each time, so go back and re-run
+            # at optimal  number of dimensions
+            if(printprogress == TRUE) {
+                cat("Re-running at optimal choice of numdims,", numdims, "\n")
+            }
+            if(is.null(constraint)) {
+                U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+            } else {
+                U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
+            }
+            getw.out = getw(target= target, observed=observed, 
+                            svd.U=U_final.w.pop, 
                             ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
@@ -1725,76 +1684,116 @@ kbal = function(allx,
             #NB: not well defined iF K.svd passed in
             L1_optim = getdist(target=target, observed = observed,
                                w = getw.out$w, w.pop = w.pop, K=K)$L1
+        #2) user asked for convergence, but NO CONVERGED DIMS  
+        } else if(ebal.convergence) {
+            #if we sent in constraints let's return weights just on these 
+            if(!is.null(constraint)) {
+                U_constraint=U[,1:(minnumdims-1), drop=FALSE]
+                U_c.w.pop <- w.pop*U_constraint
+                getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop, 
+                               ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
+                convergence.record = getw.out$converged
+                warning("Ebalance did not converge within tolerance for any ",
+                        dist_pass[1,1],"-",
+                        dist_pass[1,ncol(dist_pass)],
+                        " searched dimensions of K.\nNo optimal numdims to return. Returning biasbound, L1 distance, and weights from balance on constraints only with ebalance convergence,",
+                        convergence.record)
+                
+                biasbound_opt=biasbound(w = getw.out$w,
+                                        observed=observed, 
+                                        target = target,
+                                        svd.out = svd.out, 
+                                        w.pop = w.pop, 
+                                        hilbertnorm = 1)
+                L1_optim = getdist(target=target, observed = observed,
+                                   w = getw.out$w, w.pop = w.pop, K=K)$L1
+                numdims = NULL
+            } else { #no constraint and no convergence
+                warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
+                        dist_pass[1,ncol(dist_pass)],
+                        " searched dimensions of K.\nDisregarding ebalance convergence and returning biasbound, L1 distance, and weights that yeild the minimum biasbound.")
+                #disregard convergence and pick minnumdims
+                numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+                U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+                getw.out = getw(target= target, observed=observed,
+                                svd.U=U_final.w.pop, 
+                                ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
+                biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
+                                         svd.out = svd.out, 
+                                         w.pop = w.pop,
+                                         hilbertnorm = 1)
+                #NB: not well defined iF K.svd passed in
+                L1_optim = getdist(target=target, observed = observed,
+                                   w = getw.out$w, w.pop = w.pop, K=K)$L1
+            }   
+        #3) User did not ask for convergence
+        } else { #we don't for convergence at all, we just find min biasbound
+            if(is.null(constraint)) {
+                dimseq=seq(minnumdims,maxnumdims,incrementby)
+                numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+                if (length(numdims)>1) {
+                    warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
+                            immediate. = TRUE)
+                    numdims=min(numdims)
+                }
+                U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
+            } else {
+                dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
+                numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
+                if (length(numdims)>1) {
+                    warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
+                            immediate. = TRUE)
+                    numdims=min(numdims)
+                }
+                U_final.w.pop <- w.pop*U[,1:(numdims + ncol(constraint)), drop = FALSE]
+            }
             
-        }
-    #User did not ask for convergence
-    } else { #we don't for convergence at all, we just find min biasbound
-        
-        if(is.null(constraint)) {
-            dimseq=seq(minnumdims,maxnumdims,incrementby)
-            numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
-            if (length(numdims)>1){
-                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
-                        immediate. = TRUE)
-                numdims=min(numdims)
+            if(printprogress == TRUE) {
+                cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,",
+                    numdims, "\n")
             }
-            U_final.w.pop <- w.pop*U[,1:numdims, drop = FALSE]
-        } else {
-            dimseq=seq(minnumdims-ncol(constraint),maxnumdims,incrementby)
-            numdims=dimseq[which(dist.record==min(dist.record,na.rm=TRUE))]
-            if (length(numdims)>1) {
-                warning("Lack of improvement in balance; choosing fewest dimensions to balance on among those with the same (lack of) improvement. But beware that balance is likely poor.\n",
-                        immediate. = TRUE)
-                numdims=min(numdims)
-            }
-            U_final.w.pop <- w.pop*U[,1:(numdims + ncol(constraint)), drop = FALSE]
+            
+            getw.out = getw(target= target, observed=observed, 
+                            svd.U=U_final.w.pop, 
+                            ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
+            biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
+                                     svd.out = svd.out, 
+                                     w.pop = w.pop,
+                                     hilbertnorm = 1)
+            #NB: not well defined iF K.svd passed in
+            L1_optim = getdist(target=target, observed = observed,
+                               w = getw.out$w, w.pop = w.pop, K=K)$L1
+    
         }
-        
-        if(printprogress == TRUE) {
-            cat("Disregarding ebalance convergence and re-running at optimal choice of numdims,",
-                numdims, "\n")
-        }
-
-        getw.out = getw(target= target, observed=observed, svd.U=U_final.w.pop, 
-                        ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
-        biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
-                                 svd.out = svd.out, 
-                                 w.pop = w.pop,
-                                 hilbertnorm = 1)
-        #NB: not well defined iF K.svd passed in
-        L1_optim = getdist(target=target, observed = observed,
-                           w = getw.out$w, w.pop = w.pop, K=K)$L1
     }
-  }
-  
-  if(!is.null(meanfirst) && meanfirst) {
-      cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional", numdims, "dimensions of \"K\" from kernel balancing.\n")
-      }
-
-
-  ebal_error = getw.out$ebal_error
-      
-  R=list()
-  R$w= getw.out$w
-  R$biasbound_opt=biasbound_opt
-  R$biasbound_orig=dist.orig
-  R$biasbound_ratio= dist.orig/biasbound_opt
-  R$dist_record= dist_pass
-  R$numdims=numdims
-  R$L1_orig = L1_orig
-  R$L1_opt = L1_optim
-  R$K = K
-  R$onehot_data = onehot
-  R$linkernel = linkernel
-  R$svdK = svd.out
-  R$b = b_out
-  R$maxvar_K = maxvar_K_out
-  R$bases = useasbases_out
-  R$truncatedSVD.var = var_explained
-  R$dropped_covariates = dropped_cols
-  R$meanfirst_dims = meanfirst_dims
-  R$appended_constraint_cols = constraint
-  R$ebal_error = ebal_error
+    if(!is.null(meanfirst) && meanfirst) {
+        cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional",
+            numdims, "dimensions of \"K\" from kernel balancing.\n") 
+    }
+    
+    ebal_error = getw.out$ebal_error
+        
+    R=list()
+    R$w= getw.out$w
+    R$biasbound_opt=biasbound_opt
+    R$biasbound_orig=dist.orig
+    R$biasbound_ratio= dist.orig/biasbound_opt
+    R$dist_record= dist_pass
+    R$numdims=numdims
+    R$L1_orig = L1_orig
+    R$L1_opt = L1_optim
+    R$K = K
+    R$onehot_data = onehot
+    R$linkernel = linkernel
+    R$svdK = svd.out
+    R$b = b_out
+    R$maxvar_K = maxvar_K_out
+    R$bases = useasbases_out
+    R$truncatedSVD.var = var_explained
+    R$dropped_covariates = dropped_cols
+    R$meanfirst_dims = meanfirst_dims
+    R$appended_constraint_cols = constraint
+    R$ebal_error = ebal_error
   return(R)
 } # end kbal main function
 
