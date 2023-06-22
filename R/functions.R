@@ -1268,7 +1268,7 @@ kbal = function(allx,
         }
         #note that b and useasbases are irrelevant here since we're using a linear kernel
         if(cat_data) {
-            allx_mf = one_hot(allx)
+            allx_mf = onehot
         } else {
             allx_mf = allx
         }
