@@ -1057,10 +1057,29 @@ kbal = function(allx,
             warning("\"cont_scale\" only used with mixed data. Ignoring.\n",
                     immediate. = TRUE)
         }
-        if((!is.null(K.svd) | !is.null(K))) {
-            if(is.null(meanfirst) || !meanfirst) {
-                warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+        
+        #mf cols:
+        if(meanfirst == T & !is.null(mf_columns)) {
+            
+            if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
+               (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
+                stop("One or more \"mf_columns\" elements does not match the column names in \"allx\" or exceeds the number of columns in \"allx\" ")
             }
+            #colnames conversion for mf_columns
+            if(class(mf_columns) == "character") { #switch to numeric for ease if input is colnames
+                mf_columns = which(colnames(allx) %in% mf_columns)
+            }
+            allx_mf = one_hot(allx[, mf_columns])
+            
+        } else if(!is.null(mf_columns)) {
+            warning(" \"mf_columns\" are specified when \"meanfirst\" is FALSE. ignoring input.", immediate. = T)
+        }
+        
+        if(!is.null(K.svd) | !is.null(K)) {
+            #not needed now moving to aMF w cols i think
+            # if(is.null(meanfirst) || !meanfirst) {
+            #     warning("\"cat_data\" TRUE only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
+            # }
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
         } else {
@@ -1079,24 +1098,7 @@ kbal = function(allx,
             allx = sqrt(0.5)*one_hot(allx)
             #still passout the regular one hot data 
             onehot = allx/sqrt(0.5)
-            
-            #mf cols:
-            if(meanfirst == T & !is.null(mf_columns)) {
-                
-                if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
-                   (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
-                    stop("One or more \"mf_columns\" elements does not match the column names in \"allx\" or exceeds the number of columns in \"allx\" ")
-                }
-                #colnames conversion for mf_columns
-                if(class(mf_columns) == "character") { #switch to numeric for ease if input is colnames
-                    mf_columns = which(colnames(allx) %in% mf_columns)
-                }
-                allx_mf = one_hot(allx[, mf_columns])
-                
-            } else if(!is.null(mf_columns)) {
-                warning(" \"mf_columns\" are specified when \"meanfirst\" is FALSE. ignoring input.", immediate. = T)
-            }
-            
+        
             #checks
             if(scale_data) {
                 warning("Note that \"scale_data\" should be FALSE when using categorical data. Ignoring. \n", 
@@ -1189,7 +1191,7 @@ kbal = function(allx,
                 if(sum(mf_columns %in% cat_columns) > 0) {
                     allx_mf_cat = one_hot(allx[, mf_columns[which(mf_columns %in% cat_columns)], drop = F ]) 
                     allx_mf_cont = allx_cont[, mf_columns[-which(mf_columns %in% cat_columns)], drop = F]
-                    #scaling? XXXX
+                    #scaling? is just inhereited
                     allx_mf = cbind(allx_mf_cont, allx_mf_cat)
                 } else {
                     allx_mf = allx_cont[, mf_columns, drop = F]
@@ -1197,7 +1199,6 @@ kbal = function(allx,
             } else if(!is.null(mf_columns)) {
                 warning(" \"mf_columns\" are specified when \"meanfirst\" is FALSE. ignoring input.", immediate. = T)
             }
-            
             #now we can combine safely
             allx <- cbind(allx_cat, allx_cont)
             onehot = cbind(allx_cat/sqrt(0.5), allx_cont)
@@ -1346,7 +1347,6 @@ kbal = function(allx,
                 allx_mf = allx
             }
         }
-        
         kbalout.mean = suppressWarnings(kbal(allx=allx_mf, 
                            treatment=treatment,
                            sampled = sampled,
