@@ -22,6 +22,7 @@ kbal(
   drop_MC = NULL,
   linkernel = FALSE,
   meanfirst = NULL,
+  mf_columns = NULL,
   constraint = NULL,
   scale_constraint = TRUE,
   numdims = NULL,
@@ -71,6 +72,8 @@ kbal(
 
 \item{meanfirst}{logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}.}
 
+\item{mf_columns}{either character or numeric vector to specify what columns of \code{allx} to perform meanfirst with. If left unspecified, all columns will be used. Note that any scaling specified on \code{allx} will be also be applied in the meanfirst routine.}
+
 \item{constraint}{optional matrix argument of additional constraints which are appended to the front of the left singular vectors of \code{K}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of the left singular vectors of \code{K}.}
 
 \item{scale_constraint}{logical for whether constraints in \code{constraint} should be scaled before they are appended to the svd of \code{K}.}
@@ -103,7 +106,7 @@ kbal(
  \item{dist_record}{a matrix recording the bias bound corresponding to balance on increasing dimensions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
  \item{numdims}{a numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
- \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
+ \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimensions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
  \item{K}{the kernel matrix}
  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of \code{K}. When mixed data is specified, returns concatenated one-hot encoded categorical data and scaled continuous data used to construct \code{K}.}
  \item{linkernel}{logical for whether linear kernel was used}
