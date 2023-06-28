@@ -1077,7 +1077,7 @@ kbal = function(allx,
         
         if(!is.null(K.svd) | !is.null(K)) {
             #if meanfirst is true we'll need this
-            onehot = onehot(allx)
+            onehot = one_hot(allx)
             
             #for later internal checks of specified b + passed in K
             if(is.null(b)){ b = 2*ncol(allx) } 
