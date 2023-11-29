@@ -70,9 +70,9 @@ kbal(
 
 \item{linkernel}{logical if true, uses the linear kernel \eqn{K=XX'} which achieves balance on the first moments of \eqn{X} (mean balance). Note that for computational ease, the code employs \eqn{K=X} and adjusts singular values accordingly.}
 
-\item{meanfirst}{logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}.}
+\item{meanfirst}{logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}. Note that any scaling specified on \code{allx} will be also be applied in the meanfirst routine.}
 
-\item{mf_columns}{either character or numeric vector to specify what columns of \code{allx} to perform meanfirst with. If left unspecified, all columns will be used. Note that any scaling specified on \code{allx} will be also be applied in the meanfirst routine.}
+\item{mf_columns}{either character or numeric vector to specify what columns of \code{allx} to perform meanfirst with. If left unspecified, all columns will be used.}
 
 \item{constraint}{optional matrix argument of additional constraints which are appended to the front of the left singular vectors of \code{K}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of the left singular vectors of \code{K}.}
 

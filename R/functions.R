@@ -607,8 +607,8 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' @param scale_data logical when true scales the columns of \code{allx} (demeans and scales variance to 1) before building the kernel matrix internally. This is appropriate when \code{allx} contains only continuous variables with different scales, but is not recommended when \code{allx} contains any categorical data. Default is \code{TRUE} when both \code{cat_data} and \code{mixed_data} are \code{FALSE} and \code{FALSE} otherwise.
 #' @param drop_MC logical for whether or not to drop multicollinear columns in \code{allx} before building \code{K}. When either \code{cat_data} or \code{mixed_data} is \code{TRUE}, forced to be \code{FALSE}. Otherwise, with continuous data only, default is \code{TRUE}.
 #' @param linkernel logical if true, uses the linear kernel \eqn{K=XX'} which achieves balance on the first moments of \eqn{X} (mean balance). Note that for computational ease, the code employs \eqn{K=X} and adjusts singular values accordingly.
-#' @param meanfirst logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}.
-#' @param mf_columns either character or numeric vector to specify what columns of \code{allx} to perform meanfirst with. If left unspecified, all columns will be used. Note that any scaling specified on \code{allx} will be also be applied in the meanfirst routine.
+#' @param meanfirst logical if true, internally searches for the optimal number of dimensions of the svd of \code{allx} to append to \code{K} as additional constraints. This will produce mean balance on as many dimensions of \code{allx} as optimally feasible with specified ebalance convergence and a minimal bias bound on the remaining unbalances columns of the left singular vectors of \code{K}. Note that any scaling specified on \code{allx} will be also be applied in the meanfirst routine.
+#' @param mf_columns either character or numeric vector to specify what columns of \code{allx} to perform meanfirst with. If left unspecified, all columns will be used. 
 #' @param constraint optional matrix argument of additional constraints which are appended to the front of the left singular vectors of \code{K}. When specified, the code conducts a constrained optimization requiring mean balance on the columns of this matrix throughout the search for the minimum bias bound over the dimensions of the left singular vectors of \code{K}. 
 #' @param scale_constraint logical for whether constraints in \code{constraint} should be scaled before they are appended to the svd of \code{K}.
 #' @param numdims optional numeric argument specifying the number of dimensions of the left singular vectors of the kernel matrix to find balance bypassing the optimization search for the number of dimensions which minimize the biasbound.
@@ -788,7 +788,7 @@ kbal = function(allx,
                 scale_data = NULL,
                 drop_MC = NULL,
                 linkernel = FALSE,
-                meanfirst = NULL,
+                meanfirst = FALSE,
                 mf_columns = NULL,
                 constraint = NULL,
                 scale_constraint = TRUE,
@@ -810,7 +810,7 @@ kbal = function(allx,
     
     # Set ebal.convergence default according to whether there are constraints or not:
     if(is.null(ebal.convergence)) {
-      if(is.null(constraint) & (is.null(meanfirst) || meanfirst == FALSE)) {
+      if(is.null(constraint) & meanfirst == FALSE) {
           ebal.convergence=FALSE
           } else {
               ebal.convergence=TRUE
@@ -909,7 +909,6 @@ kbal = function(allx,
     if(sum(is.na(allx) != 0)) {
         stop("\"allx\" contains missing values")
     }
-    
     
     ##### Setting up data: build observed and target from inputs  #####
     if(!is.null(sampled) & sampledinpop==FALSE) {
@@ -1036,8 +1035,8 @@ kbal = function(allx,
             b = 2*ncol(allx)
         }
         
-        if(meanfirst == T & !is.null(mf_columns)) {
-            #note these will be scaled if allx is also scaled (happens above
+        if(meanfirst == TRUE & !is.null(mf_columns)) {
+            #note these will be scaled if allx is also scaled (happens above)
             #colnames conversion for mf_columns
             if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
                (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
@@ -1059,7 +1058,7 @@ kbal = function(allx,
         }
         
         #mf cols:
-        if(meanfirst == T & !is.null(mf_columns)) {
+        if(meanfirst == TRUE & !is.null(mf_columns)) {
             
             if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
                (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
@@ -1134,7 +1133,7 @@ kbal = function(allx,
         }
     } else { #mixed data: one hot encoded cat data and adjust for double counting, maxvarK
        
-        if((!is.null(K.svd) | !is.null(K)) & (is.null(meanfirst) || !meanfirst)) {
+        if((!is.null(K.svd) | !is.null(K)) & !meanfirst) {
             #we only end up here if they pass in a K and dont want mf so we dont need to do all the scaling
             #not relevant now w aMF and specified cols
             # warning("\"mixed_data\" TRUE argument only used in the construction of the kernel matrix \"K\" and is not used when \"K\" or \"K.svd\" is already user-supplied.\n", immediate. = TRUE)
@@ -1176,13 +1175,13 @@ kbal = function(allx,
                 allx_cont <- t(t(allx[, -cat_columns, drop = F])/(apply(allx[, -cat_columns, drop = F], 2, sd)*(1/cont_scale)))
             }
             
-            #get mf cols before combinign all these columns together
+            #get mf cols before combining all these columns together
             #mf cols
             if(meanfirst == T & !is.null(mf_columns)) {
                 if(class(cat_columns) != class(mf_columns)) {
                     stop("please ensure \"mf_columns\" and \"cat_columns\" are of the same type, either character or numeric")
                 }
-                #this inherets the scaling decisions about all x
+                #this inherits the scaling decisions about all x
                 #colnames conversion for mf_columns
                 if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
                    (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
@@ -1329,7 +1328,7 @@ kbal = function(allx,
     
     ################## MEAN FIRST #################
     meanfirst_dims = NULL
-    if(!is.null(meanfirst) && meanfirst == TRUE) {
+    if(meanfirst == TRUE) {
         if(!is.null(constraint)) {
             warning("\"constraint\" argument is not used when \"meanfirst\" is TRUE.\n", immediate. = TRUE)
         }
@@ -1841,7 +1840,7 @@ kbal = function(allx,
     
         }
     }
-    if(!is.null(meanfirst) && meanfirst) {
+    if(meanfirst) {
         cat("Used", meanfirst_dims, "dimensions of \"allx\" for mean balancing, and an additional",
             numdims, "dimensions of \"K\" from kernel balancing.\n") 
     }
