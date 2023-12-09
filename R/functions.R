@@ -1364,7 +1364,7 @@ kbal = function(allx,
                            linkernel = TRUE,
                            printprogress = FALSE))
         
-        constraint_svd_keep = kbalout.mean$svdK$u[, 1:kbalout.mean$numdims]
+        constraint_svd_keep = kbalout.mean$svdK$u[, 1:kbalout.mean$numdims,drop = F]
         if(printprogress) {
             cat("Selected", kbalout.mean$numdims,
                 "dimensions of \"allx\" to use as mean balance constraints. \n")
