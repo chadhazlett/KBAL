@@ -51,4 +51,16 @@ And the development version from [GitHub](https://github.com/) with:
 devtools::install_github("chadhazlett/KBAL")
 ```
 
-Details and examples forthcoming.
+## OS-X speed optimization
+
+Mac users can see a significant speed up (5-10x) by using Apple’s native
+Accelerate BLAS library (vecLib). Upgrade to the latest version of R and
+RStudio, then follow the steps outlined
+[here](https://cran.r-project.org/bin/macosx/RMacOSX-FAQ.html#Which-BLAS-is-used-and-how-can-it-be-changed_003f):
+
+``` bash
+cd /Library/Frameworks/R.framework/Resources/lib
+
+# for vecLib use
+ln -sf libRblas.vecLib.dylib libRblas.dylib
+```
