@@ -64,3 +64,5 @@ cd /Library/Frameworks/R.framework/Resources/lib
 # for vecLib use
 ln -sf libRblas.vecLib.dylib libRblas.dylib
 ```
+
+Details and examples forthcoming.
