@@ -620,6 +620,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' @param ebal.tol tolerance level used by \code{ebalance_custom()}. 
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of \code{K} that minimize the biasbound. When constraints are appended to the left singular vectors of \code{K} via \code{meanfirst=TRUE} or \code{constraints}, forced to be \code{TRUE} and otherwise \code{FALSE}.
 #' @param maxsearch_b optional argument to specify the maximum b in search for maximum variance of \code{K} in \code{b_maxvarK()}.
+#' @param early.stopping logical argument indicating whether bias balance optimization should stop twenty rounds aftering finding a minimum
 #' @param printprogress logical argument to print updates throughout.
 #'
 #' @return \item{w}{a vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
@@ -801,6 +802,7 @@ kbal = function(allx,
                 ebal.tol=1e-6,
                 ebal.convergence = NULL,
                 maxsearch_b = 2000, 
+                early.stopping = TRUE,
                 printprogress = TRUE) {
 
     N=nrow(allx)
@@ -1675,6 +1677,8 @@ kbal = function(allx,
         keepgoing=TRUE
         wayover=FALSE
         mindistsofar=998
+        # keep track of how many iterations have increased distance or diverged as stopping criteria
+        dist.incr.rounds = 0
         
         while(keepgoing==TRUE) {
             U_try=U[,1:thisnumdims, drop=FALSE]
@@ -1707,8 +1711,17 @@ kbal = function(allx,
             
             if(!is.na(dist.now)) {
                 if(dist.now<mindistsofar){mindistsofar=dist.now} 
+
+                # check if optimization rounds are increasing the bias bound
+                if (dist.now > mindistsofar) {
+                  dist.incr.rounds = dist.incr.rounds  + 1
+                } else {
+                  dist.incr.rounds = 0
+                }
+
                 wayover=(dist.now/mindistsofar)>1.25
-                keepgoing=(thisnumdims<=maxnumdims) & (wayover==FALSE) #& (dist.now<dist.orig)
+                # if early stopping is enabled, we break the loop if the distance has been increasing for 20 rounds
+                keepgoing=(thisnumdims<=maxnumdims) & (wayover==FALSE) & (early.stopping == FALSE | dist.incr.rounds <= 20) #& (dist.now<dist.orig)
                 #& dist.now!="error"
                 # (dist.now>mindistsofar)  # XXX this was in there, but needed?
                 # Need to work on "keepgoing" for case where ebal fails.
