@@ -37,14 +37,8 @@ See www.chadhazlett.com for details and paper.
 
 ## Installation
 
-You can install the released version of KBAL from
-[CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("kbal")
-```
-
-And the development version from [GitHub](https://github.com/) with:
+We will update the CRAN version shortly.  In the meantime, we recommend 
+installing the development version, from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
