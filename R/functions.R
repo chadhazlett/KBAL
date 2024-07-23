@@ -4,22 +4,22 @@
 #' Build the Gaussian Kernel Matrix
 #'
 #' @description Builds the Gaussian kernel matrix using Rcpp.
-#' @param allx A data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases Vector argument containing one's and zero's with length equal to the number of observations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.
+#' @param allx a data matrix containing all observations where rows are units and columns are covariates.
+#' @param useasbases a binary vector with length equal to the number of observations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of Gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
-#' @param linkernel Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.  
-#' @param scale boolean flag for whether or not to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix 
+#' @param linkernel a logical value indicating whether to use a linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.  
+#' @param scale a logical value indicating whether to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix 
 #' @return \item{K}{The kernel matrix}
 #' @examples
 #' #load and clean data a bit
 #' \donttest{
 #' data(lalonde)
-#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' xvars <- c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
 #' #running makeK with the sampled/control units as the bases given 
 #' #the large size of the data
-#' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) 
+#' K <- makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) 
 #' }
 #' @useDynLib kbal
 #' @importFrom stats sd 
@@ -28,6 +28,16 @@
 #' @importFrom dplyr filter '%>%' group_by summarise n
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
+
+  # Error handling
+  if (!is.matrix(allx)) stop("`allx` must be a matrix.")
+  if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx))) {
+    stop("`useasbases` must be a binary vector with the same length as the number of rows in `allx`.")
+  }
+  if (!is.null(b) && (!is.numeric(b) || length(b) != 1)) stop("`b` must be a single numeric value.")
+  if (!is.logical(linkernel)) stop("`linkernel` must be a logical value.")
+  if (!is.logical(scale)) stop("`scale` must be a logical value.")
+  
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
   if(is.null(useasbases)) {useasbases = rep(1, N)}
