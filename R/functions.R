@@ -4,22 +4,22 @@
 #' Build the Gaussian Kernel Matrix
 #'
 #' @description Builds the Gaussian kernel matrix using Rcpp.
-#' @param allx A data matrix containing all observations where rows are units and columns are covariates.
-#' @param useasbases Vector argument containing one's and zero's with length equal to the number of observations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.
+#' @param allx a data matrix containing all observations where rows are units and columns are covariates.
+#' @param useasbases a binary vector with length equal to the number of observations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.
 #' @param b Scaling factor in the calculation of Gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.
-#' @param linkernel Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.  
-#' @param scale boolean flag for whether or not to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix 
+#' @param linkernel a logical value indicating whether to use a linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.  
+#' @param scale a logical value indicating whether to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix 
 #' @return \item{K}{The kernel matrix}
 #' @examples
 #' #load and clean data a bit
 #' \donttest{
 #' data(lalonde)
-#' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+#' xvars <- c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
 #' #running makeK with the sampled/control units as the bases given 
 #' #the large size of the data
-#' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) 
+#' K <- makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) 
 #' }
 #' @useDynLib kbal
 #' @importFrom stats sd 
@@ -28,6 +28,16 @@
 #' @importFrom dplyr filter '%>%' group_by summarise n
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
+
+  # Error handling
+  if (!is.matrix(allx)) stop("`allx` must be a matrix.")
+  if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx))) {
+    stop("`useasbases` must be a binary vector with the same length as the number of rows in `allx`.")
+  }
+  if (!is.null(b) && (!is.numeric(b) || length(b) != 1)) stop("`b` must be a single numeric value.")
+  if (!is.logical(linkernel)) stop("`linkernel` must be a logical value.")
+  if (!is.logical(scale)) stop("`scale` must be a logical value.")
+  
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
   if(is.null(useasbases)) {useasbases = rep(1, N)}
@@ -431,17 +441,17 @@ one_hot <- function(data) {
 
 #' Maximum Variance of Gaussian Kernel Matrix
 #' @description Searches for the argmax of the variance of the Kernel matrix
-#' @param data a matrix of data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.
+#' @param data a matrix of data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{\link{one_hot}} to produce) with \code{cat_data} argument true.
 #' @param useasbases binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.
 #' @param cat_data logical for whether kernel contains only categorical data or not
-#' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the Gaussian, in searched during maximization.
+#' @param maxsearch_b the maximum value of \eqn{b}, the denominator of the Gaussian, searched during maximization.
 #' @return \item{b_maxvar}{numeric \eqn{b} value, the denominator of the Gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
 #' \item{var_K}{numeric maximum variance of \eqn{K} kernel matrix found with \eqn{b} as \code{b_maxvar}}
 #' @examples
 #' \donttest{
 #' #lalonde with only categorical data
 #' data(lalonde)
-#' cat_vars=c("black","hisp","married","nodegr","u74","u75")
+#' cat_vars <- c("black","hisp","married","nodegr","u74","u75")
 #' #Convert to one-hot encoded data matrix:
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
 #' colnames(onehot_lalonde)
@@ -455,6 +465,12 @@ b_maxvarK <- function(data,
                       useasbases,
                       cat_data = TRUE,
                       maxsearch_b = 2000) {
+
+    # Error handling
+    if (!is.matrix(data)) stop("`data` must be a matrix.")
+    if (!is.numeric(useasbases) || length(useasbases) != nrow(data)) stop("`useasbases` must be a binary vector with the same length as the number of rows in `data`.")
+    if (!is.logical(cat_data)) stop("`cat_data` must be a logical value.")
+    if (!is.numeric(maxsearch_b) || length(maxsearch_b) != 1) stop("`maxsearch_b` must be a single numeric value.")
     
     #categorical kernel + b range:
     #get raw counts:
