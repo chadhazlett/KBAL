@@ -36,3 +36,13 @@ test_that("b_maxvarK handles invalid maxsearch_b input", {
   useasbases <- sample(c(0, 1), n, replace = TRUE)
   expect_error(b_maxvarK(data = data, useasbases = useasbases, maxsearch_b = "high"), "`maxsearch_b` must be a single numeric value.")
 })
+
+test_that("b_maxvarK handles edge cases", {
+    n <- 20
+    data <- matrix(rnorm(n*5), ncol = 5)
+    useasbases <- rep(integer(0),n)
+    
+    result <- b_maxvarK(data, useasbases)
+    
+    expect_true(result$var_K==0)
+})
