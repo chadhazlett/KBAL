@@ -6,7 +6,8 @@ Date: 2020-02-14
 Authors@R: c(person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cre")),
             person("Ciara", "Sterbenz", email = "cster@g.ucla.edu", role = "aut"),
             person("Erin", "Hartman", email = "ekhartman@ucla.edu", role = "ctb"),
-            person("Alex", "Kravetz", email = "alexdkravetz@gmail.com", role = "ctb"))
+            person("Alex", "Kravetz", email = "alexdkravetz@gmail.com", role = "ctb"),
+            person("Borna", "Bateni", email = "borna@ucla.com", role = "ctb"))
 Description: A weighting approach the employs kernels to make one group
     have a similar distribution to another group on covariates
     not only in terms of means or marginal distributions, but also on higher order transformations implied
