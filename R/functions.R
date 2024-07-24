@@ -37,6 +37,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
   if (!is.null(b) && (!is.numeric(b) || length(b) != 1)) stop("`b` must be a single numeric value.")
   if (!is.logical(linkernel)) stop("`linkernel` must be a logical value.")
   if (!is.logical(scale)) stop("`scale` must be a logical value.")
+  if (!is.null(useasbases) && (sum(useasbases) == 0)) stop("`useasbases` must have at least one element set to 1.")
   
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
