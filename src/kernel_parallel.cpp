@@ -86,23 +86,17 @@ struct Kernel_2 : public Worker
       int p = X.ncol();
       int m = Y.nrow();
       for (std::size_t i = begin; i < end; i++) {
-          for (std::size_t j = 0; j < i & j < m; j++) {
+          for (std::size_t j = 0; j < m; j++) {
               double dist = 0;
               for (int k = 0; k < p; k++) {
-                  double xi = X(i, k), yj = X(j, k);
+                  double xi = X(i, k), yj = Y(j, k);
                   double diff = xi - yj;
                   dist += diff*diff;
               }
               out(i, j) = exp(-dist / b);
-              if(i < m) {
-                  out(j, i) = out(i, j);
-              }
-          }
-          if(i < m) {
-              out(i,i) = 1;
-          }
-      }
-  }
+            }
+    }
+}
 };
 
 // [[Rcpp::export]]
@@ -180,8 +174,5 @@ Rcpp::NumericMatrix kernel_parallel_old(Rcpp::NumericMatrix X,
     
     // return the output matrix
     return out;
-}
-
-
-
+};
 
