@@ -31,7 +31,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 
   # Error handling
   if (!is.matrix(allx)) stop("`allx` must be a matrix.")
-  if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx))) {
+  if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx) || any(!useasbases %in% c(0, 1)))) {
     stop("`useasbases` must be a binary vector with the same length as the number of rows in `allx`.")
   }
   if (!is.null(b) && (!is.numeric(b) || length(b) != 1)) stop("`b` must be a single numeric value.")
@@ -42,6 +42,15 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
   if(is.null(useasbases)) {useasbases = rep(1, N)}
+
+  single.base = ( sum(useasbases)==1 )
+  if(single.base) {
+    base.is.one = ( which(useasbases==1)==1 )
+    if(base.is.one){
+      useasbases[2] = 1
+      }else{
+      useasbases[1] = 1
+      }}
   
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
@@ -69,6 +78,13 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
           #updated to build only triangle and mirror (4x faster)
           K = kernel_parallel_2(X = allx, Y = bases, b = b)
           #K = kernel_parallel_old(X = allx, Y = bases, b = b)
+
+          if(single.base) {
+            if(base.is.one){
+              K = as.matrix(K[,1])
+            }else{
+              K = as.matrix(K[,-1])
+            }}
           
       }
             #old non parallel
