@@ -3,10 +3,10 @@ library(kbal)
 
 # Create example data
 set.seed(123)
-data <- matrix(rnorm(100), ncol = 5)
+data <- matrix(rnorm(1000), ncol = 5)
 K <- makeK(allx = data)
-svd.U <- svd(K)$u
-target <- sample(c(0, 1), 20, replace = TRUE)
+svd.U <- svd(K)$u[,1:10]
+target <- sample(c(0, 1), 200, replace = TRUE)
 observed <- 1 - target
 
 # Basic functionality tests
