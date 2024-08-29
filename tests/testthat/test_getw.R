@@ -1,5 +1,5 @@
 library(testthat)
-library(KBAL)
+library(kbal)
 
 # Create example data
 set.seed(123)
