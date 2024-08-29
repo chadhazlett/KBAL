@@ -1,5 +1,5 @@
 library(testthat)
-library(KBAL)
+library(kbal)
 
 # Basic functionality tests
 test_that("makeK works correctly with valid input", {
