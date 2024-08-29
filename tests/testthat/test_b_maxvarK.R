@@ -1,5 +1,5 @@
 library(testthat)
-library(KBAL)
+library(kbal)
 
 test_that("b_maxvarK works correctly with valid input", {
   n <- 20
