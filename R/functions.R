@@ -204,6 +204,15 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #'  dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)}
 #' @export
 dimw = function(X,w,target){
+  # Error handling
+  if (!is.matrix(X)) stop("`X` must be a matrix.")
+  if (!is.numeric(w) || length(w) != nrow(X) || any(w < 0)) {
+    stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `X`.")
+  }
+  if (!is.numeric(target) || length(target) != nrow(X) || any(!target %in% c(0, 1))) {
+    stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `X`.")
+  }
+  
   w1=w[target==1]/sum(w[target==1])
   w0=w[target!=1]/sum(w[target!=1])
 
@@ -212,7 +221,7 @@ dimw = function(X,w,target){
 
   R=list()
   R$dim=colMeans(X1)-colMeans(X0)
-  R$dimw=t(as.vector(w1))%*%X1-t(w0)%*%X0
+  R$dimw=t(as.vector(w1))%*%X1-t(as.vector(w0))%*%X0
   return(R)
 }
 
