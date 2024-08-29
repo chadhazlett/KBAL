@@ -29,6 +29,7 @@
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
 
+  allx = as.matrix(data.frame(lapply(as.data.frame(allx),as.numeric)))
   # Error handling
   if (!is.matrix(allx)) stop("`allx` must be a matrix.")
   if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx) || any(!useasbases %in% c(0, 1)))) {
@@ -131,7 +132,8 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
     if(is.null(w.pop)) {
         w.pop = rep(1,N)
     } else {
-        if(sum(sign(w.pop)) != length(observed)) {
+        sign2 <- function(x) sign(x) + (x == 0)
+        if(sum(sign2(w.pop)) != length(observed)) {
             stop("\"w.pop\" must be non-negative")
         }
         if(length(w.pop) != length(observed)) {
