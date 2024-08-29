@@ -1,4 +1,4 @@
 library(testthat)
-library(KBAL)
+library(kbal)
 
 test_check("KBAL")
