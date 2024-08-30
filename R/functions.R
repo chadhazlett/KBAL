@@ -489,6 +489,10 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' @importFrom stats model.matrix contrasts
 #' @export
 one_hot <- function(data) {
+
+    if (!is.data.frame(data) && !is.matrix(data)) {
+      stop("`data` must be a data frame or matrix.")
+    }
     onehot_data <- data.frame(lapply(data.frame(data),as.factor))
     onehot_data <- model.matrix(~ ., onehot_data,
                                 contrasts.arg = lapply(onehot_data[,,drop = F], 
