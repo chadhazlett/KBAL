@@ -127,22 +127,38 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' @export
 biasbound=function(observed, target, svd.out, w, w.pop = NULL,
                    hilbertnorm=1){
+
+    # Error handling
+
     N = nrow(svd.out$u)
+  
+    if (!is.numeric(observed) || length(observed) != N || any(!observed %in% c(0, 1))) {
+      stop("`observed` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.numeric(target) || length(target) != N || any(!target %in% c(0, 1))) {
+      stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.list(svd.out) || !all(c("u", "d") %in% names(svd.out))) {
+      stop("`svd.out` must be a list containing `u` (left singular vectors) and `d` (singular values).")
+    }
+    if (!is.numeric(w) || length(w) != N || any(w < 0)) {
+      stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.null(w.pop) && (!is.numeric(w.pop) || length(w.pop) != N || any(w.pop < 0))) {
+      stop("`w.pop` must be a non-negative numeric vector with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.numeric(hilbertnorm) || length(hilbertnorm) != 1 || hilbertnorm <= 0) {
+      stop("`hilbertnorm` must be a positive numeric value.")
+    }
+  
+    
     #error check for pop weights
     if(is.null(w.pop)) {
         w.pop = rep(1,N)
     } else {
-        sign2 <- function(x) sign(x) + (x == 0)
-        if(sum(sign2(w.pop)) != length(observed)) {
-            stop("\"w.pop\" must be non-negative")
-        }
-        if(length(w.pop) != length(observed)) {
-            stop("\"w.pop\" must have the same length as the total number of units")
-        }
         #sampledinpop == TRUE, check that w.pop = 1 for all sampled/control units
-        if(sum(target) == length(target) && !(sum(w.pop[observed]) == sum(observed)
-                                             & sd(w.pop[observed]) == 0)) {
-            stop("\"w.pop\" must the value 1 for all sampled/control units")
+        if (all(target == 1) && !all(w.pop[observed == 1] == 1)) {
+          stop("`w.pop` must be the value 1 for all sampled/control units.")
         }
         #check population weights sum to num of treated/population units
         if(round(sum(w.pop[target ==1 ])) != sum(target)) {
@@ -166,15 +182,16 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
    
     U=svd.out$u
     eigenvals=svd.out$d #singular values (A)
-    if(sum(sign(eigenvals) == -1) != 0) {
-        stop("Encountered negative eigenvalues. Cannot compute biasbound.")
+    if (any(eigenvals < 0)) {
+      stop("Encountered negative eigenvalues. Cannot compute biasbound.")
     }
     
     U1=U[target==1, , drop=FALSE]
     U0=U[observed==1, , drop=FALSE]
-    eigenimbal=as.vector(t(wtarget)%*%U1 - t(wobserved)%*%U0)
-    effectiveimbal=(eigenimbal*(eigenvals^.5))
-    biasbound=sqrt(hilbertnorm)*sqrt(t(effectiveimbal)%*%(effectiveimbal))
+    eigenimbal = as.vector(t(wtarget)%*%U1 - t(wobserved)%*%U0)
+    effectiveimbal= eigenimbal*sqrt(eigenvals)
+    biasbound = sqrt(hilbertnorm)*sqrt(sum(effectiveimbal^2))
+  
     return(biasbound)
 }
 
