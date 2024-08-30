@@ -76,7 +76,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
           #symmetric K, build faster using
           K = kernel_parallel(X = allx, b = b)
       } else {
-          #updated to build only triangle and mirror (4x faster)
+          
           K = kernel_parallel_2(X = allx, Y = bases, b = b)
           #K = kernel_parallel_old(X = allx, Y = bases, b = b)
 
