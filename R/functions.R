@@ -378,13 +378,13 @@ getdist <- function(target, observed, K, w.pop = NULL,
                     ebal.maxit = 500,
                     svd.U = NULL) {
 
+        if (!is.matrix(K)) stop("`K` must be a matrix.")
         if (!is.numeric(target) || length(target) != nrow(K) || any(!target %in% c(0, 1))) {
           stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
         }
         if (!is.numeric(observed) || length(observed) != nrow(K) || any(!observed %in% c(0, 1))) {
           stop("`observed` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
         }
-        if (!is.matrix(K)) stop("`K` must be a matrix.")
         if (!is.null(w.pop) && (!is.numeric(w.pop) || length(w.pop) != nrow(K) || any(w.pop < 0))) {
           stop("`w.pop` must be a non-negative numeric vector with the same length as the number of rows in `K`.")
         }
