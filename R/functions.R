@@ -612,34 +612,44 @@ b_maxvarK <- function(data,
 #' }
 #' @export
 drop_multicollin <- function(allx, printprogress = TRUE) {
-    
-    qr_X = qr(allx)
-    multicollin = FALSE
-    if(qr_X$rank < ncol(allx)) {
-        multicollin = TRUE
+
+    # Error handling
+    if (!is.matrix(allx) && !is.data.frame(allx)) {
+      stop("`allx` must be a matrix or data frame.")
     }
-    if(multicollin & printprogress) {
+    if (!all(sapply(allx, is.numeric))) {
+      stop("All columns in `allx` must be numeric.")
+    }
+  
+    qr_X = qr(allx)
+    multicollin = (qr_X$rank < ncol(allx))
+
+    if ((!multicollin) && printprogress) {
+        cat("No multicollinear columns detected. Matrix is already full rank.\n")
+    }
+    if(multicollin && printprogress) {
         cat("Dropping detected multicollinear columns\n")
     }
+  
     allx_update = allx
     dropped_cols = NULL
-    cor = cor(allx_update)
-    diag(cor) = 0
-    cor[lower.tri(cor)] = 0
-    cor = abs(cor)
-    all_cor <- sort(c(cor), decreasing = TRUE)
+    cor.mat = abs(cor(allx_update))
+    diag(cor.mat) = 0
+    cor.mat[lower.tri(cor.mat)] = 0
+
+    all_cor <- sort(c(cor.mat), decreasing = TRUE)
     i = 1
     rank_target = qr(allx)$rank
-    while(multicollin == TRUE){
-        drop = which(cor == all_cor[i], arr.ind = T)[1,1]
+    while(multicollin){
+        drop = which(cor.mat == all_cor[i], arr.ind = TRUE)[1,1]
         
         if(qr(allx_update[,-drop])$rank == rank_target) {
-            if(!is.null(rownames(which(cor == all_cor[i],
+            if(!is.null(rownames(which(cor.mat == all_cor[i],
                                        arr.ind  =TRUE)))) {
-                dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
+                dropped_cols = c(dropped_cols, rownames(which(cor.mat == all_cor[i],
                                                               arr.ind  =TRUE))[1])
             } else {
-                dropped_cols = c(dropped_cols, paste("column", (which(cor == all_cor[i],
+                dropped_cols = c(dropped_cols, paste("column", (which(cor.mat == all_cor[i],
                                                               arr.ind  =TRUE))[1]))
             }
             
