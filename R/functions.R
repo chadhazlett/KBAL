@@ -378,6 +378,30 @@ getdist <- function(target, observed, K, w.pop = NULL,
                     ebal.maxit = 500,
                     svd.U = NULL) {
 
+        if (!is.numeric(target) || length(target) != nrow(K) || any(!target %in% c(0, 1))) {
+          stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
+        }
+        if (!is.numeric(observed) || length(observed) != nrow(K) || any(!observed %in% c(0, 1))) {
+          stop("`observed` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
+        }
+        if (!is.matrix(K)) stop("`K` must be a matrix.")
+        if (!is.null(w.pop) && (!is.numeric(w.pop) || length(w.pop) != nrow(K) || any(w.pop < 0))) {
+          stop("`w.pop` must be a non-negative numeric vector with the same length as the number of rows in `K`.")
+        }
+        if (!is.null(w) && (!is.numeric(w) || length(w) != nrow(K) || any(w < 0))) {
+          stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `K`.")
+        }
+        if (!is.null(numdims) && (!is.numeric(numdims) || length(numdims) != 1 || numdims <= 0 || numdims != as.integer(numdims))) {
+          stop("`numdims` must be a positive integer.")
+        }
+        if (!is.numeric(ebal.tol) || length(ebal.tol) != 1 || ebal.tol <= 0) {
+          stop("`ebal.tol` must be a positive numeric value.")
+        }
+        if (!is.numeric(ebal.maxit) || length(ebal.maxit) != 1 || ebal.maxit <= 0 || ebal.maxit != as.integer(ebal.maxit)) {
+          stop("`ebal.maxit` must be a positive integer.")
+        }
+        if (!is.null(svd.U) && !is.matrix(svd.U)) stop("`svd.U` must be a matrix.")
+
         
         N=nrow(K)
         K_c=K[observed==1, ,drop = FALSE]
@@ -385,15 +409,9 @@ getdist <- function(target, observed, K, w.pop = NULL,
         if(is.null(w.pop)) {
             w.pop = rep(1,N)
         } else {
-            if(sum(sign(w.pop)) != length(observed)) {
-                stop("\"w.pop\" must be non-negative")
-            }
-            if(length(w.pop) != length(observed)) {
-                stop("\"w.pop\" must have the same length as the total number of units")
-            }
-            if(!(sum(w.pop[observed==1]) == sum(observed) & 
-                 (sum(observed) ==1 | sd(w.pop[observed==1]) == 0) ) ) {
-                stop("\"w.pop\" must the value 1 for all sampled units")
+            if(!( sum(w.pop[observed == 1]) == sum(observed) && 
+                 (all(w.pop[observed == 1] == 1) ) ) ) {
+                stop("`w.pop` must the value 1 for all sampled units")
             }
             #check population weights sum to num of treated/population units
             if(round(sum(w.pop[target ==1 ])) != sum(target)) {
@@ -408,7 +426,7 @@ getdist <- function(target, observed, K, w.pop = NULL,
         }
         #if user does not provide weights, go get them
         if(is.null(w)) {
-            if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
+            if(is.null(numdims)) {stop("If `w` is not specified, `numdims` must be provided to calculate weights internally.")}
             if(is.null(svd.U)) {
                 svd.U = svd(K)$u
             }
