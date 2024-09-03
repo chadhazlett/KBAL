@@ -38,7 +38,7 @@ test_that("getdist handles invalid observed input", {
 })
 
 test_that("getdist handles non-matrix K input", {
-  expect_error(getdist(target = target, observed = observed, K = list(1, 2, 3), w = weights, svd.U = svd.U), "`K` must be a matrix.")
+  expect_error(getdist(target = target, observed = observed, K = list('a', 2, 3), w = weights, svd.U = svd.U), "`K` should be able to be converted into a numeric matrix.")
 })
 
 test_that("getdist handles invalid w.pop input", {
