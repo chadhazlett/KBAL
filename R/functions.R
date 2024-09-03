@@ -29,9 +29,18 @@
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
 
-  allx = as.matrix(data.frame(lapply(as.data.frame(allx),as.numeric)))
+  allx <- tryCatch(
+  {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(allx), as.numeric))))},
+  error = function(e) {stop("`allx` should be able to be converted into a numeric matrix.")}
+  )
+  
+  # Check for NA values in the converted matrix
+  if (any(is.na(allx))) {
+    stop("`allx` should be able to be converted into a numeric matrix.")
+  }
+
+  
   # Error handling
-  if (!is.matrix(allx)) stop("`allx` must be a matrix.")
   if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx) || any(!useasbases %in% c(0, 1)))) {
     stop("`useasbases` must be a binary vector with the same length as the number of rows in `allx`.")
   }
@@ -222,7 +231,15 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #' @export
 dimw = function(X,w,target){
   # Error handling
-  if (!is.matrix(X)) stop("`X` must be a matrix.")
+
+  X <- tryCatch(
+  {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(X), as.numeric))))},
+  error = function(e) {stop("`X` should be able to be converted into a numeric matrix.")}
+  )
+  if (any(is.na(X))) {
+    stop("`X` should be able to be converted into a numeric matrix.")
+  }
+  
   if (!is.numeric(w) || length(w) != nrow(X) || any(w < 0)) {
     stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `X`.")
   }
@@ -395,7 +412,13 @@ getdist <- function(target, observed, K, w.pop = NULL,
                     ebal.maxit = 500,
                     svd.U = NULL) {
 
-        if (!is.matrix(K)) stop("`K` must be a matrix.")
+        K <- tryCatch(
+        {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(K), as.numeric))))},
+        error = function(e) {stop("`K` should be able to be converted into a numeric matrix.")}
+        )
+        if (any(is.na(K))) {
+          stop("`K` should be able to be converted into a numeric matrix.")
+        }
         if (!is.numeric(target) || length(target) != nrow(K) || any(!target %in% c(0, 1))) {
           stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
         }
@@ -549,9 +572,15 @@ b_maxvarK <- function(data,
                       maxsearch_b = 2000) {
 
     # Error handling
-    if (!is.matrix(data)) stop("`data` must be a matrix.")
+    data <- tryCatch(
+    {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(data), as.numeric))))},
+    error = function(e) {stop("`data` should be able to be converted into a numeric matrix.")}
+    )
+    if (any(is.na(data))) {
+      stop("`data` should be able to be converted into a numeric matrix.")
+    }
     if (!is.numeric(useasbases) || length(useasbases) != nrow(data)) stop("`useasbases` must be a binary vector with the same length as the number of rows in `data`.")
-    if (!is.logical(cat_data)) stop("`cat_data` must be a logical value.")
+    if (!is.logical(cat_data) || length(cat_data) != 1) stop("`cat_data` must be a logical value.")
     if (!is.numeric(maxsearch_b) || length(maxsearch_b) != 1) stop("`maxsearch_b` must be a single numeric value.")
     
     #categorical kernel + b range:
@@ -631,12 +660,18 @@ b_maxvarK <- function(data,
 drop_multicollin <- function(allx, printprogress = TRUE) {
 
     # Error handling
-    if (!is.matrix(allx) && !is.data.frame(allx)) {
-      stop("`allx` must be a matrix or data frame.")
+    allx <- tryCatch(
+    {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(allx), as.numeric))))},
+    error = function(e) {stop("`allx` should be able to be converted into a numeric matrix.")}
+    )
+    
+    # Check for NA values in the converted matrix
+    if (any(is.na(allx))) {
+      stop("`allx` should be able to be converted into a numeric matrix.")
     }
-    if (!all(sapply(allx, is.numeric))) {
-      stop("All columns in `allx` must be numeric.")
-    }
+      if (!all(sapply(allx, is.numeric))) {
+        stop("All columns in `allx` must be numeric.")
+      }
   
     qr_X = qr(allx)
     multicollin = (qr_X$rank < ncol(allx))
