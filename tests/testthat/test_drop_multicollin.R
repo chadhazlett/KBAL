@@ -23,12 +23,12 @@ test_that("drop_multicollin works correctly with valid input", {
 
 # Error handling tests
 test_that("drop_multicollin handles non-matrix or non-data frame input", {
-  expect_error(drop_multicollin(list(a = 1, b = 2)), "`allx` must be a matrix or data frame.")
+  expect_error(drop_multicollin(list(a = 'a', b = 2)), "`allx` should be able to be converted into a numeric matrix.")
 })
 
 test_that("drop_multicollin handles non-numeric columns", {
-  data <- data.frame(x = rnorm(100), y = factor(sample(c("a", "b"), 100, replace = TRUE)))
-  expect_error(drop_multicollin(data), "All columns in `allx` must be numeric.")
+  data <- data.frame(x = rnorm(100), y = (sample(c("a", "b"), 100, replace = TRUE)))
+  expect_error(drop_multicollin(data), "`allx` should be able to be converted into a numeric matrix.")
 })
 
 test_that("drop_multicollin handles already full-rank matrices", {
