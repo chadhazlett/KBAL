@@ -22,7 +22,7 @@ test_that("dimw works correctly with valid input", {
 
 # Error handling tests
 test_that("dimw handles non-matrix X input", {
-  expect_error(dimw(X = list(1, 2, 3), w = weights, target = target), "`X` must be a matrix.")
+  expect_error(dimw(X = list('a', 2, 3), w = weights, target = target), "`X` should be able to be converted into a numeric matrix.")
 })
 
 test_that("dimw handles invalid length of w", {
