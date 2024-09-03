@@ -336,7 +336,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
   #earlyfail = FALSE
   error = NULL
   if ("try-error"%in%class(bal.out.pc)[1]){
-          warning("\'ebalace_custom()\' encountered an error. Returning equal weights. See \"ebal_error\" for details. ", 
+          warning("\'ebalance_custom()\' encountered an error. Returning equal weights. See \"ebal_error\" for details. ", 
                   immediate. = T)
       error = bal.out.pc[1]
       
@@ -948,9 +948,18 @@ kbal = function(allx,
                 early.stopping = TRUE,
                 printprogress = TRUE) {
 
+    allx <- tryCatch(
+    {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(allx), as.numeric))))},
+    error = function(e) {stop("`allx` should be able to be converted into a numeric matrix.")}
+    )
+    
+    # Check for NA values in the converted matrix
+    if (any(is.na(allx))) {
+      stop("`allx` should be able to be converted into a numeric matrix.")
+    }
     N=nrow(allx)
     if(is.null(N)) {
-        stop("Please ensure \"allx\" is a matrix or dataframe. If subsetting to a single column, may need to use argument \"drop = F\" ")
+        stop("`allx` should be able to be converted into a numeric matrix.")
     }
     
     # Set ebal.convergence default according to whether there are constraints or not:
@@ -997,7 +1006,7 @@ kbal = function(allx,
     
 ############### ERROR CHECKS ##################    
     
-  #1. checking sampled and sampledinpop
+  #1. checking sampled and sampledinpop   
     if(!is.null(sampled)) {
         if(!(all(sampled %in% c(0,1)))) { #note this is still ok for logicals
           stop("\"sampled\" contains non-binary elements")
@@ -1033,7 +1042,7 @@ kbal = function(allx,
     
     #3. checking if user tried to pass in both
     if(!is.null(sampled) & !is.null(treatment)) {
-        stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
+        stop("\"sampled\" and \"treatment\" arguments cannot be specified simultaneously")
     }
     
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE
