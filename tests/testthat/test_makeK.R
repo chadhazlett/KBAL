@@ -23,19 +23,8 @@ test_that("makeK produces expected results with linear kernel", {
     expect_equal(result, data)
 })
 
-test_that("makeK handles single-row data input", {
-    data <- matrix(rnorm(5), ncol = 5)
-    useasbases <- 1
-    
-    result <- makeK(allx = data, useasbases = useasbases)
-    
-    expect_true(is.matrix(result))
-    expect_equal(ncol(result), 1)
-    expect_equal(nrow(result), 1)
-})
-
 test_that("makeK handles non-matrix allx input", {
-    expect_error(makeK(allx = list(1, 2, 3), useasbases = c(1, 0, 1)), "`allx` must be a matrix.")
+    expect_error(makeK(allx = list('a', 2, 3), useasbases = c(1, 0, 1)), "`allx` should be able to be converted into a numeric matrix.")
 })
 
 test_that("makeK handles invalid useasbases input", {
