@@ -29,9 +29,19 @@
 #' @export
 makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE){
 
+  allx <- tryCatch(
+  {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(allx), as.numeric))))},
+  error = function(e) {stop("`allx` should be able to be converted into a numeric matrix.")}
+  )
+  
+  # Check for NA values in the converted matrix
+  if (any(is.na(allx))) {
+    stop("`allx` should be able to be converted into a numeric matrix.")
+  }
+
+  
   # Error handling
-  if (!is.matrix(allx)) stop("`allx` must be a matrix.")
-  if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx))) {
+  if (!is.null(useasbases) && (!is.numeric(useasbases) || length(useasbases) != nrow(allx) || any(!useasbases %in% c(0, 1)))) {
     stop("`useasbases` must be a binary vector with the same length as the number of rows in `allx`.")
   }
   if (!is.null(b) && (!is.numeric(b) || length(b) != 1)) stop("`b` must be a single numeric value.")
@@ -42,6 +52,15 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
   N=nrow(allx)
   # If no "useasbasis" given, assume all observations are to be used.
   if(is.null(useasbases)) {useasbases = rep(1, N)}
+
+  single.base = ( sum(useasbases)==1 )
+  if(single.base) {
+    base.is.one = ( which(useasbases==1)==1 )
+    if(base.is.one){
+      useasbases[2] = 1
+      }else{
+      useasbases[1] = 1
+      }}
   
   #default b is set to 2ncol to match kbal for now
   if (is.null(b)){ b=2*ncol(allx) }
@@ -66,9 +85,16 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
           #symmetric K, build faster using
           K = kernel_parallel(X = allx, b = b)
       } else {
-          #updated to build only triangle and mirror (4x faster)
+          
           K = kernel_parallel_2(X = allx, Y = bases, b = b)
           #K = kernel_parallel_old(X = allx, Y = bases, b = b)
+
+          if(single.base) {
+            if(base.is.one){
+              K = as.matrix(K[,1])
+            }else{
+              K = as.matrix(K[,-1])
+            }}
           
       }
             #old non parallel
@@ -110,21 +136,38 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' @export
 biasbound=function(observed, target, svd.out, w, w.pop = NULL,
                    hilbertnorm=1){
+
+    # Error handling
+
     N = nrow(svd.out$u)
+  
+    if (!is.numeric(observed) || length(observed) != N || any(!observed %in% c(0, 1))) {
+      stop("`observed` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.numeric(target) || length(target) != N || any(!target %in% c(0, 1))) {
+      stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.list(svd.out) || !all(c("u", "d") %in% names(svd.out))) {
+      stop("`svd.out` must be a list containing `u` (left singular vectors) and `d` (singular values).")
+    }
+    if (!is.numeric(w) || length(w) != N || any(w < 0)) {
+      stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.null(w.pop) && (!is.numeric(w.pop) || length(w.pop) != N || any(w.pop < 0))) {
+      stop("`w.pop` must be a non-negative numeric vector with the same length as the number of rows in `svd.out$u`.")
+    }
+    if (!is.numeric(hilbertnorm) || length(hilbertnorm) != 1 || hilbertnorm <= 0) {
+      stop("`hilbertnorm` must be a positive numeric value.")
+    }
+  
+    
     #error check for pop weights
     if(is.null(w.pop)) {
         w.pop = rep(1,N)
     } else {
-        if(sum(sign(w.pop)) != length(observed)) {
-            stop("\"w.pop\" must be non-negative")
-        }
-        if(length(w.pop) != length(observed)) {
-            stop("\"w.pop\" must have the same length as the total number of units")
-        }
         #sampledinpop == TRUE, check that w.pop = 1 for all sampled/control units
-        if(sum(target) == length(target) && !(sum(w.pop[observed]) == sum(observed)
-                                             & sd(w.pop[observed]) == 0)) {
-            stop("\"w.pop\" must the value 1 for all sampled/control units")
+        if (all(target == 1) && !all(w.pop[observed == 1] == 1)) {
+          stop("`w.pop` must be the value 1 for all sampled/control units.")
         }
         #check population weights sum to num of treated/population units
         if(round(sum(w.pop[target ==1 ])) != sum(target)) {
@@ -148,15 +191,16 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
    
     U=svd.out$u
     eigenvals=svd.out$d #singular values (A)
-    if(sum(sign(eigenvals) == -1) != 0) {
-        stop("Encountered negative eigenvalues. Cannot compute biasbound.")
+    if (any(eigenvals < 0)) {
+      stop("Encountered negative eigenvalues. Cannot compute biasbound.")
     }
     
     U1=U[target==1, , drop=FALSE]
     U0=U[observed==1, , drop=FALSE]
-    eigenimbal=as.vector(t(wtarget)%*%U1 - t(wobserved)%*%U0)
-    effectiveimbal=(eigenimbal*(eigenvals^.5))
-    biasbound=sqrt(hilbertnorm)*sqrt(t(effectiveimbal)%*%(effectiveimbal))
+    eigenimbal = as.vector(t(wtarget)%*%U1 - t(wobserved)%*%U0)
+    effectiveimbal= eigenimbal*sqrt(eigenvals)
+    biasbound = sqrt(hilbertnorm)*sqrt(sum(effectiveimbal^2))
+  
     return(biasbound)
 }
 
@@ -186,6 +230,23 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #'  dimw(X = lalonde[,xvars], w = kbalout$w, target = lalonde$nsw)}
 #' @export
 dimw = function(X,w,target){
+  # Error handling
+
+  X <- tryCatch(
+  {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(X), as.numeric))))},
+  error = function(e) {stop("`X` should be able to be converted into a numeric matrix.")}
+  )
+  if (any(is.na(X))) {
+    stop("`X` should be able to be converted into a numeric matrix.")
+  }
+  
+  if (!is.numeric(w) || length(w) != nrow(X) || any(w < 0)) {
+    stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `X`.")
+  }
+  if (!is.numeric(target) || length(target) != nrow(X) || any(!target %in% c(0, 1))) {
+    stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `X`.")
+  }
+  
   w1=w[target==1]/sum(w[target==1])
   w0=w[target!=1]/sum(w[target!=1])
 
@@ -194,7 +255,7 @@ dimw = function(X,w,target){
 
   R=list()
   R$dim=colMeans(X1)-colMeans(X0)
-  R$dimw=t(as.vector(w1))%*%X1-t(w0)%*%X0
+  R$dimw=t(as.vector(w1))%*%X1-t(as.vector(w0))%*%X0
   return(R)
 }
 
@@ -209,25 +270,25 @@ dimw = function(X,w,target){
 #' @param target a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
 #' @param svd.U a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.
-#' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}
-#' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom}
-#' @return \item{w}{numeric vector of weights.}
+#' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is \code{1e-6}.
+#' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom}. Default is \code{500}.
+#' @return A list containing:
+#' \item{w}{A numeric vector of weights.}
 #' \item{converged}{boolean indicating if \code{ebalance_custom} converged}
 #' \item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 #' @examples
 #' \donttest{
-#' #load and clean data a bit
+#' #load and clean data
 #' data(lalonde)
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
-#' #need a kernel matrix to run SVD on then find weights with so get that first with makeK
+#' #need a kernel matrix to run SVD on then find weights with; so get that first with makeK.
 #' #running makeK with the sampled units as the bases
 #' K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 #'
-#' #svd on this kernel and get matrix with left singular values
+#' #SVD on this kernel and get matrix with left singular values
 #' U = svd(K)$u
-#' #usually search over all columns of U to find which produces weights with 
-#' #the minimum bias bound; in this ex, search only first 10 dims
+#' #Use the first 10 dimensions of U.
 #' U2=U[,1:10]
 #' getw.out=getw(target=lalonde$nsw, 
 #'               observed=1-lalonde$nsw, 
@@ -235,7 +296,22 @@ dimw = function(X,w,target){
 #'  }
 #' @export
 getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
-    
+
+  #Error handling
+  if (!is.numeric(target) || length(target) != nrow(svd.U) || any(!target %in% c(0, 1))) {
+    stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `svd.U`.")
+  }
+  if (!is.numeric(observed) || length(observed) != nrow(svd.U) || any(!observed %in% c(0, 1))) {
+    stop("`observed` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `svd.U`.")
+  }
+  if (!is.matrix(svd.U)) stop("`svd.U` must be a matrix.")
+  if (!is.numeric(ebal.tol) || length(ebal.tol) != 1 || ebal.tol <= 0) {
+    stop("`ebal.tol` must be a positive numeric value.")
+  }
+  if (!is.numeric(ebal.maxit) || length(ebal.maxit) != 1 || ebal.maxit <= 0 || ebal.maxit != as.integer(ebal.maxit)) {
+    stop("`ebal.maxit` must be a positive integer.")
+  }
+  
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
   # (1) anybody who is "observed" but also considered part of the target
@@ -260,7 +336,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
   #earlyfail = FALSE
   error = NULL
   if ("try-error"%in%class(bal.out.pc)[1]){
-          warning("\'ebalace_custom()\' encountered an error. Returning equal weights. See \"ebal_error\" for details. ", 
+          warning("\'ebalance_custom()\' encountered an error. Returning equal weights. See \"ebal_error\" for details. ", 
                   immediate. = T)
       error = bal.out.pc[1]
       
@@ -336,6 +412,36 @@ getdist <- function(target, observed, K, w.pop = NULL,
                     ebal.maxit = 500,
                     svd.U = NULL) {
 
+        K <- tryCatch(
+        {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(K), as.numeric))))},
+        error = function(e) {stop("`K` should be able to be converted into a numeric matrix.")}
+        )
+        if (any(is.na(K))) {
+          stop("`K` should be able to be converted into a numeric matrix.")
+        }
+        if (!is.numeric(target) || length(target) != nrow(K) || any(!target %in% c(0, 1))) {
+          stop("`target` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
+        }
+        if (!is.numeric(observed) || length(observed) != nrow(K) || any(!observed %in% c(0, 1))) {
+          stop("`observed` must be a binary vector containing only 0 and 1 with the same length as the number of rows in `K`.")
+        }
+        if (!is.null(w.pop) && (!is.numeric(w.pop) || length(w.pop) != nrow(K) || any(w.pop < 0))) {
+          stop("`w.pop` must be a non-negative numeric vector with the same length as the number of rows in `K`.")
+        }
+        if (!is.null(w) && (!is.numeric(w) || length(w) != nrow(K) || any(w < 0))) {
+          stop("`w` must be a non-negative numeric vector with the same length as the number of rows in `K`.")
+        }
+        if (!is.null(numdims) && (!is.numeric(numdims) || length(numdims) != 1 || numdims <= 0 || numdims != as.integer(numdims))) {
+          stop("`numdims` must be a positive integer.")
+        }
+        if (!is.numeric(ebal.tol) || length(ebal.tol) != 1 || ebal.tol <= 0) {
+          stop("`ebal.tol` must be a positive numeric value.")
+        }
+        if (!is.numeric(ebal.maxit) || length(ebal.maxit) != 1 || ebal.maxit <= 0 || ebal.maxit != as.integer(ebal.maxit)) {
+          stop("`ebal.maxit` must be a positive integer.")
+        }
+        if (!is.null(svd.U) && !is.matrix(svd.U)) stop("`svd.U` must be a matrix.")
+
         
         N=nrow(K)
         K_c=K[observed==1, ,drop = FALSE]
@@ -343,15 +449,9 @@ getdist <- function(target, observed, K, w.pop = NULL,
         if(is.null(w.pop)) {
             w.pop = rep(1,N)
         } else {
-            if(sum(sign(w.pop)) != length(observed)) {
-                stop("\"w.pop\" must be non-negative")
-            }
-            if(length(w.pop) != length(observed)) {
-                stop("\"w.pop\" must have the same length as the total number of units")
-            }
-            if(!(sum(w.pop[observed==1]) == sum(observed) & 
-                 (sum(observed) ==1 | sd(w.pop[observed==1]) == 0) ) ) {
-                stop("\"w.pop\" must the value 1 for all sampled units")
+            if(!( sum(w.pop[observed == 1]) == sum(observed) && 
+                 (all(w.pop[observed == 1] == 1) ) ) ) {
+                stop("`w.pop` must the value 1 for all sampled units")
             }
             #check population weights sum to num of treated/population units
             if(round(sum(w.pop[target ==1 ])) != sum(target)) {
@@ -366,7 +466,7 @@ getdist <- function(target, observed, K, w.pop = NULL,
         }
         #if user does not provide weights, go get them
         if(is.null(w)) {
-            if(is.null(numdims)) {stop("If weights w input is not specified, numdims must be in order to calculate these weights internally")}
+            if(is.null(numdims)) {stop("If `w` is not specified, `numdims` must be provided to calculate weights internally.")}
             if(is.null(svd.U)) {
                 svd.U = svd(K)$u
             }
@@ -429,6 +529,10 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' @importFrom stats model.matrix contrasts
 #' @export
 one_hot <- function(data) {
+
+    if (!is.data.frame(data) && !is.matrix(data)) {
+      stop("`data` must be a data frame or matrix.")
+    }
     onehot_data <- data.frame(lapply(data.frame(data),as.factor))
     onehot_data <- model.matrix(~ ., onehot_data,
                                 contrasts.arg = lapply(onehot_data[,,drop = F], 
@@ -468,9 +572,15 @@ b_maxvarK <- function(data,
                       maxsearch_b = 2000) {
 
     # Error handling
-    if (!is.matrix(data)) stop("`data` must be a matrix.")
+    data <- tryCatch(
+    {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(data), as.numeric))))},
+    error = function(e) {stop("`data` should be able to be converted into a numeric matrix.")}
+    )
+    if (any(is.na(data))) {
+      stop("`data` should be able to be converted into a numeric matrix.")
+    }
     if (!is.numeric(useasbases) || length(useasbases) != nrow(data)) stop("`useasbases` must be a binary vector with the same length as the number of rows in `data`.")
-    if (!is.logical(cat_data)) stop("`cat_data` must be a logical value.")
+    if (!is.logical(cat_data) || length(cat_data) != 1) stop("`cat_data` must be a logical value.")
     if (!is.numeric(maxsearch_b) || length(maxsearch_b) != 1) stop("`maxsearch_b` must be a single numeric value.")
     
     #categorical kernel + b range:
@@ -548,34 +658,50 @@ b_maxvarK <- function(data,
 #' }
 #' @export
 drop_multicollin <- function(allx, printprogress = TRUE) {
+
+    # Error handling
+    allx <- tryCatch(
+    {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(allx), as.numeric))))},
+    error = function(e) {stop("`allx` should be able to be converted into a numeric matrix.")}
+    )
     
-    qr_X = qr(allx)
-    multicollin = FALSE
-    if(qr_X$rank < ncol(allx)) {
-        multicollin = TRUE
+    # Check for NA values in the converted matrix
+    if (any(is.na(allx))) {
+      stop("`allx` should be able to be converted into a numeric matrix.")
     }
-    if(multicollin & printprogress) {
+      if (!all(sapply(allx, is.numeric))) {
+        stop("All columns in `allx` must be numeric.")
+      }
+  
+    qr_X = qr(allx)
+    multicollin = (qr_X$rank < ncol(allx))
+
+    if ((!multicollin) && printprogress) {
+        cat("No multicollinear columns detected. Matrix is already full rank.\n")
+    }
+    if(multicollin && printprogress) {
         cat("Dropping detected multicollinear columns\n")
     }
+  
     allx_update = allx
     dropped_cols = NULL
-    cor = cor(allx_update)
-    diag(cor) = 0
-    cor[lower.tri(cor)] = 0
-    cor = abs(cor)
-    all_cor <- sort(c(cor), decreasing = TRUE)
+    cor.mat = abs(cor(allx_update))
+    diag(cor.mat) = 0
+    cor.mat[lower.tri(cor.mat)] = 0
+
+    all_cor <- sort(c(cor.mat), decreasing = TRUE)
     i = 1
     rank_target = qr(allx)$rank
-    while(multicollin == TRUE){
-        drop = which(cor == all_cor[i], arr.ind = T)[1,1]
+    while(multicollin){
+        drop = which(cor.mat == all_cor[i], arr.ind = TRUE)[1,1]
         
         if(qr(allx_update[,-drop])$rank == rank_target) {
-            if(!is.null(rownames(which(cor == all_cor[i],
+            if(!is.null(rownames(which(cor.mat == all_cor[i],
                                        arr.ind  =TRUE)))) {
-                dropped_cols = c(dropped_cols, rownames(which(cor == all_cor[i],
+                dropped_cols = c(dropped_cols, rownames(which(cor.mat == all_cor[i],
                                                               arr.ind  =TRUE))[1])
             } else {
-                dropped_cols = c(dropped_cols, paste("column", (which(cor == all_cor[i],
+                dropped_cols = c(dropped_cols, paste("column", (which(cor.mat == all_cor[i],
                                                               arr.ind  =TRUE))[1]))
             }
             
@@ -822,9 +948,18 @@ kbal = function(allx,
                 early.stopping = TRUE,
                 printprogress = TRUE) {
 
+    allx <- tryCatch(
+    {suppressWarnings(as.matrix(data.frame(lapply(as.data.frame(allx), as.numeric))))},
+    error = function(e) {stop("`allx` should be able to be converted into a numeric matrix.")}
+    )
+    
+    # Check for NA values in the converted matrix
+    if (any(is.na(allx))) {
+      stop("`allx` should be able to be converted into a numeric matrix.")
+    }
     N=nrow(allx)
     if(is.null(N)) {
-        stop("Please ensure \"allx\" is a matrix or dataframe. If subsetting to a single column, may need to use argument \"drop = F\" ")
+        stop("`allx` should be able to be converted into a numeric matrix.")
     }
     
     # Set ebal.convergence default according to whether there are constraints or not:
@@ -871,7 +1006,7 @@ kbal = function(allx,
     
 ############### ERROR CHECKS ##################    
     
-  #1. checking sampled and sampledinpop
+  #1. checking sampled and sampledinpop   
     if(!is.null(sampled)) {
         if(!(all(sampled %in% c(0,1)))) { #note this is still ok for logicals
           stop("\"sampled\" contains non-binary elements")
@@ -907,7 +1042,7 @@ kbal = function(allx,
     
     #3. checking if user tried to pass in both
     if(!is.null(sampled) & !is.null(treatment)) {
-        stop("\"sampled\" and \"treatment\" arguments can not be specified simultaneously")
+        stop("\"sampled\" and \"treatment\" arguments cannot be specified simultaneously")
     }
     
     #4. For now we will only support ATT for "treatment" case.  This means sampledinpop is FALSE

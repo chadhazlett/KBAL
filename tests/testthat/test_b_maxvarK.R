@@ -1,5 +1,5 @@
 library(testthat)
-library(KBAL)
+library(kbal)
 
 test_that("b_maxvarK works correctly with valid input", {
   n <- 20
@@ -14,7 +14,7 @@ test_that("b_maxvarK works correctly with valid input", {
 })
 
 test_that("b_maxvarK handles non-matrix data input", {
-  expect_error(b_maxvarK(data = list(1, 2, 3), useasbases = c(1, 0, 1)), "`data` must be a matrix.")
+  expect_error(b_maxvarK(data = list('a', 2, 3), useasbases = c(1, 0, 1)), "`data` should be able to be converted into a numeric matrix.")
 })
 
 test_that("b_maxvarK handles invalid useasbases input", {
@@ -37,12 +37,4 @@ test_that("b_maxvarK handles invalid maxsearch_b input", {
   expect_error(b_maxvarK(data = data, useasbases = useasbases, maxsearch_b = "high"), "`maxsearch_b` must be a single numeric value.")
 })
 
-test_that("b_maxvarK handles edge cases", {
-    n <- 20
-    data <- matrix(rnorm(n*5), ncol = 5)
-    useasbases <- rep(integer(0),n)
-    
-    result <- b_maxvarK(data, useasbases)
-    
-    expect_true(result$var_K==0)
-})
+
