@@ -1107,7 +1107,7 @@ kbal = function(allx,
     #we will use all of them 
     if (is.null(useasbases) & linkernel) {
         #this does not get used in makeK just for the rest of the
-        useasbases = rep(1,ncol(allx))
+        useasbases = rep(1,nrow(allx))
     } 
  
     ###### Setting defaults: Population  weights #####
