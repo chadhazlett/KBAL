@@ -15,7 +15,7 @@
 #' \donttest{
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
@@ -124,7 +124,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' #load and clean data a bit
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
@@ -231,7 +231,7 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #' #load and clean data a bit
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
@@ -296,7 +296,7 @@ dimw = function(X,w,target){
 #' #load and clean data
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
@@ -402,7 +402,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' #loading and cleaning lalonde data
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
@@ -548,7 +548,12 @@ getdist <- function(target, observed, K, w.pop = NULL,
 #' onehot_dat = one_hot(dat)
 #' }
 #' #Ex 2. lalonde data
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Select a random subset of 500 rows
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' cat_vars=c("black","hisp","married","nodegr","u74","u75")
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
 #' @importFrom stats model.matrix contrasts
@@ -582,7 +587,7 @@ one_hot <- function(data) {
 #' #lalonde with only categorical data
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
@@ -824,7 +829,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' #1. Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
 #' set.seed(123)
 #' data("lalonde")
-#' # Sample 500 rows without replacement for faster execution
+#' # Select a random subset of 500 rows
 #' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
 #' lalonde <- lalonde[lalonde_sample, ]
 #'
