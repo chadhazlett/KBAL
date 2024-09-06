@@ -13,7 +13,12 @@
 #' @examples
 #' #load and clean data a bit
 #' \donttest{
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' xvars <- c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
@@ -117,7 +122,12 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' @examples
 #' \donttest{
 #' #load and clean data a bit
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need a kernel matrix to run SVD on and pass in so get that first with makeK
@@ -219,7 +229,12 @@ biasbound=function(observed, target, svd.out, w, w.pop = NULL,
 #' #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kbal
 #' #function with the lalonde data:
 #' #load and clean data a bit
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #get the kbal weights
@@ -279,7 +294,12 @@ dimw = function(X,w,target){
 #' @examples
 #' \donttest{
 #' #load and clean data
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need a kernel matrix to run SVD on then find weights with; so get that first with makeK.
@@ -380,7 +400,12 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' @examples
 #' \donttest{
 #' #loading and cleaning lalonde data
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'
 #' #need to first build gaussian kernel matrix
@@ -555,7 +580,12 @@ one_hot <- function(data) {
 #' @examples
 #' \donttest{
 #' #lalonde with only categorical data
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' cat_vars <- c("black","hisp","married","nodegr","u74","u75")
 #' #Convert to one-hot encoded data matrix:
 #' onehot_lalonde = one_hot(lalonde[, cat_vars])
@@ -792,7 +822,12 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' # Benchmark using Lalonde et al.
 #' #----------------------------------------------------------------
 #' #1. Rerun Lalonde example with settings as in Hazlett, C (2017). Statistica Sinica paper:
-#' data(lalonde)
+#' set.seed(123)
+#' data("lalonde")
+#' # Sample 500 rows without replacement for faster execution
+#' lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+#' lalonde <- lalonde[lalonde_sample, ]
+#'
 #' xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 #'  \donttest{
 #' 
