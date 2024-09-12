@@ -7,28 +7,32 @@
 drop_multicollin(allx, printprogress = TRUE)
 }
 \arguments{
-\item{allx}{a matrix of data to check for multicollinearity}
+\item{allx}{a matrix of data to check for multicollinearity. All columns must be numeric.}
 
-\item{printprogress}{logical to indicate if progress should be printed out to command line}
+\item{printprogress}{logical to indicate if progress should be printed out to the command line. Default is \code{TRUE}.}
 }
 \value{
-\item{allx_noMC}{resulting data matrix of full rank after multicolliear columns have been dropped}
-\item{dropped_cols}{column names of those dropped}
+A list containing:
+\item{allx_noMC}{resulting data matrix of full rank after multicollinear columns have been dropped.}
+\item{dropped_cols}{column names of the dropped columns.}
 }
 \description{
-Drops multicollinear columns in order of highest correlation
+Drops multicollinear columns in order of highest correlation using the correlation matrix. 
+This function uses the \code{cor} function from the \code{stats} package to calculate the correlations 
+between columns.
 }
 \examples{
 \donttest{
-# make data with multicollinearity 
+# Create data with multicollinearity 
 data <- data.frame(x = rnorm(100),
-                   y = sample.int(100,100), 
-                   z = runif(100, 3,6))
+                   y = sample.int(100, 100), 
+                   z = runif(100, 3, 6))
 test = data.frame(mc_1 = data$x,
-                  mc_2 = data$x*2 + data$y - data$z)
+                  mc_2 = data$x * 2 + data$y - data$z)
 dat = cbind(test, data)
-#run
-mc_check= drop_multicollin(dat)
+# Run function
+mc_check = drop_multicollin(dat)
 mc_check$dropped_cols 
 }
+
 }

@@ -117,7 +117,7 @@ makeK = function(allx, useasbases=NULL, b=NULL, linkernel = FALSE, scale = TRUE)
 #' @param svd.out the list object output from \code{svd()} performed on the kernel matrix. Requires a list object with left singular vectors in \code{svd.out$u} and singular values in \code{svd.out$d}
 #' @param w numeric vector containing the weight for every corresponding unit. Note that these weights should sum to the total number of units, not to one. They are divided by the number of control or sample and treated or population units internally.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
-#' @param hilbertnorm numeric value of the hilbertnorm. Default is \code{1}.
+#' @param hilbertnorm numeric value of the Hilbert norm. Default is \code{1}.
 #' @return \item{biasbound}{value of worst-case bias bound due to incomplete balance with inputted weights}
 #' @examples
 #' \donttest{
@@ -387,7 +387,7 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
 #' @param K the kernel matrix
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
-#' @param w a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the ouput of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}. 
+#' @param w a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the output of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}. 
 #' @param numdims an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.
 #' @param ebal.tol an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. Default is \code{1e-6}.
 #' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom} when \code{w} is not specified. Default is \code{500}.
@@ -757,18 +757,18 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 # The main event: Actual kbal function!
 #' Kernel Balancing
 #'
-#' @description Kernel balancing (\code{kbal}) is non-parametric weighting tool to make two groups have a similar distribution of covariates, not only in terms of means or marginal distributions but also on (i) general smooth functions of the covariates, including on (ii) a smoothing estimator of the joint distribution of the covariates. It was originally designed (Hazlett, 2017) to make control and treated groups look alike, as desired when estimating causal effects under conditional ignorabiity. This package also facilitates use of this approach for more general distribution-alignment tasks, such as making a sampled group have a similar distribution of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings.
+#' @description Kernel balancing (\code{kbal}) is non-parametric weighting tool to make two groups have a similar distribution of covariates, not only in terms of means or marginal distributions but also on (i) general smooth functions of the covariates, including on (ii) a smoothing estimator of the joint distribution of the covariates. It was originally designed (Hazlett, 2017) to make control and treated groups look alike, as desired when estimating causal effects under conditional ignorability. This package also facilitates use of this approach for more general distribution-alignment tasks, such as making a sampled group have a similar distribution of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings.
 #' 
 #' To proceed in the causal effect setting, kbal assumes that the expectation of the non-treatment potential outcome conditional on the covariates falls in a large, flexible space of functions associated with a kernel. It then constructs linear bases for this function space and achieves approximate balance on these bases. The approximation is one that minimizes the worst-case bias that could persist due to remaining imbalances. 
 #' 
-#' The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then returns these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bais, as well as an original bias using naive group size weights for comparison. Note that while kernel balancing goes far beyond simple mean balancing, it may not result in perfect mean balance. Users who wish to require mean balancing can specify \code{meanfirst = T} to require mean balance on as many dimensions of the data as optimally feasible. Alternatively, users can manually specify \code{constraint} to append additional vector constraints to the kernel matrix in the bias bound optimization, requiring mean balance on these columns. Note further that \code{kbal} supports three types of input data: fully categorical, fully continuous, or mixed. When data is only categorical, as is common with demographic variables for survey reweighting, users should use argument \code{cat_data = TRUE} and can input their data as factors, numeric, or characters and \code{kbal} will internally transform the data to a more appropriate one-hot encoding and search for the value of \code{b}, the denominator of the exponent in the Gaussian, which maximizes the variance of the kernel matrix. When data is fully continuous, users should use default settings (\code{cat_data = FALSE} and \code{cont_data = FAlSE}, which will scale all columns and again conduct an internal search for the value of \code{b} which maximizes the variance of \code{K}. Note that with continuous data, this search may take considerably more computational time than the categorical case. When data is a mix of continuous and categorical data, users should use argument \code{mixed_data = TRUE}, specify by name what columns are categorical with \code{cat_columns}, and also set the scaling of the continuous variables with \code{cont_scale}. This will result in a one-hot encoding of categorical columns concatenated with the continous columns scaled in accordance with \code{cont_scale} and again an internal search for the value of \code{b} which maximizes the variance in the kernel matrix. Again note that compared to the categorical case, this search will take more computational time. 
+#' The \code{kbal} function implements kernel balancing using a gaussian kernel to expand the features of \eqn{X_i} to infinite dimensions.  It finds approximate mean balance for the control or sample group and treated group or target population in this expanded feature space by using the first \code{numdims} dimensions of the singular value decomposition of the gaussian kernel matrix. It employs entropy balancing to find the weights for each unit which produce this approximate balance. When \code{numdims} is not user-specified, it searches through increasing dimensions of the SVD of the kernel matrix to find the number of dimensions which produce weights that minimizes the worst-case bias bound with a given \code{hilbertnorm}. It then returns these optimal weights, along with the minimized bias, the kernel matrix, a record of the number of dimensions used and the corresponding bias, as well as an original bias using naive group size weights for comparison. Note that while kernel balancing goes far beyond simple mean balancing, it may not result in perfect mean balance. Users who wish to require mean balancing can specify \code{meanfirst = T} to require mean balance on as many dimensions of the data as optimally feasible. Alternatively, users can manually specify \code{constraint} to append additional vector constraints to the kernel matrix in the bias bound optimization, requiring mean balance on these columns. Note further that \code{kbal} supports three types of input data: fully categorical, fully continuous, or mixed. When data is only categorical, as is common with demographic variables for survey reweighting, users should use argument \code{cat_data = TRUE} and can input their data as factors, numeric, or characters and \code{kbal} will internally transform the data to a more appropriate one-hot encoding and search for the value of \code{b}, the denominator of the exponent in the Gaussian, which maximizes the variance of the kernel matrix. When data is fully continuous, users should use default settings (\code{cat_data = FALSE} and \code{cont_data = FAlSE}, which will scale all columns and again conduct an internal search for the value of \code{b} which maximizes the variance of \code{K}. Note that with continuous data, this search may take considerably more computational time than the categorical case. When data is a mix of continuous and categorical data, users should use argument \code{mixed_data = TRUE}, specify by name what columns are categorical with \code{cat_columns}, and also set the scaling of the continuous variables with \code{cont_scale}. This will result in a one-hot encoding of categorical columns concatenated with the continuous columns scaled in accordance with \code{cont_scale} and again an internal search for the value of \code{b} which maximizes the variance in the kernel matrix. Again note that compared to the categorical case, this search will take more computational time. 
 #' 
 #'
 #' @references Hazlett, C. (2017), "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Forthcoming in Statistica Sinica. https://doi.org/10.5705/ss.202017.0555
 #' 
 #' @param allx a data matrix containing all observations where rows are units and columns are covariates. When using only continuous covariates (\code{cat_data = F} and \code{mixed_data = F}), all columns must be numeric. When using categorical data (either \code{cat_data = T} or \code{mixed_data = T}), categorical columns can be characters or numerics which will be treated as factors. Users should one-hot encoded categorical covariates as this transformation occurs internally.
 #' @param useasbases optional binary vector to specify what observations are to be used in forming bases (columns) of the kernel matrix to get balance on.  If the number of observations is under 4000, the default is to use all observations. When the number of observations is over 4000, the default is to use the sampled (control) units only.
-#' @param b scaling factor in the calculation of gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is to search for the value which maximizes the variance of the kernel matrix.
+#' @param b scaling factor in the calculation of Gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is to search for the value which maximizes the variance of the kernel matrix.
 #' @param sampled a numeric vector of length equal to the total number of units where sampled units take a value of 1 and population units take a value of 0.
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that, when \code{TRUE}, indicates that sampled units should also be included in the target population when searching for optimal weights.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated). When specified, \code{sampledinpop} is forced to be \code{FALSE}.
@@ -789,22 +789,22 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' @param numdims optional numeric argument specifying the number of dimensions of the left singular vectors of the kernel matrix to find balance bypassing the optimization search for the number of dimensions which minimize the biasbound.
 #' @param minnumdims numeric argument to specify the minimum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimensions which minimize the bias. Default minimum is 1.
 #' @param maxnumdims numeric argument to specify the maximum number of the left singular vectors of the kernel matrix to seek balance on in the search for the number of dimensions which minimize the bias. For a Gaussian kernel, the default is the minimum between 500 and the number of bases given by \code{useasbases}. With a linear kernel, the default is the minimum between 500 and the number of columns in \code{allx}. 
-#' @param fullSVD logical argument for whether the full SVD should be conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of improving run time. When \code{FALSE}, the code computes only the SVD up to the either 80 percent of the columns of \code{K} or \code{maxnumdims} singular vectors, whichever is larger. When the number of columns is less thanm 80 percent the  number of rows, defaults to full svd. Default is \code{FALSE}.
+#' @param fullSVD logical argument for whether the full SVD should be conducted internally. When \code{FALSE}, the code uses truncated svd methods from the \code{Rspectra} package in the interest of improving run time. When \code{FALSE}, the code computes only the SVD up to the either 80 percent of the columns of \code{K} or \code{maxnumdims} singular vectors, whichever is larger. When the number of columns is less than 80 percent the  number of rows, defaults to full svd. Default is \code{FALSE}.
 #' @param incrementby numeric argument to specify the number of dimensions to increase by from \code{minnumdims} to \code{maxnumdims} in each iteration of the search for the number of dimensions which minimizes the bias. Default is 1.
 #' @param ebal.maxit maximum number of iterations used by \code{ebalance_custom()} in optimization in the search for weights \code{w}. Default is \code{500}.
 #' @param ebal.tol tolerance level used by \code{ebalance_custom()}. Default is \code{1e-6}.
 #' @param ebal.convergence logical to require ebalance convergence when selecting the optimal \code{numdims} dimensions of \code{K} that minimize the biasbound. When constraints are appended to the left singular vectors of \code{K} via \code{meanfirst=TRUE} or \code{constraints}, forced to be \code{TRUE} and otherwise \code{FALSE}.
 #' @param maxsearch_b optional argument to specify the maximum b in search for maximum variance of \code{K} in \code{b_maxvarK()}. Default is \code{2000}.
-#' @param early.stopping logical argument indicating whether bias balance optimization should stop twenty rounds aftering finding a minimum. Default is \code{TRUE}.
+#' @param early.stopping logical argument indicating whether bias balance optimization should stop twenty rounds after finding a minimum. Default is \code{TRUE}.
 #' @param printprogress logical argument to print updates throughout. Default is \code{TRUE}.
 #'
 #' @return \item{w}{a vector of the weights found using entropy balancing on \code{numdims} dimensions of the SVD of the kernel matrix.}
-#' \item{biasbound_opt}{a numeric giving the minimal bias bound found using \code{numdims} as the number of dimesions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
+#' \item{biasbound_opt}{a numeric giving the minimal bias bound found using \code{numdims} as the number of dimensions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the bias bound using this number of dimensions of the kernel matrix.}
 #'  \item{biasbound_orig}{a numeric giving the bias bound found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
 #'  \item{biasbound_ratio}{a numeric giving the ratio of \code{biasbound_orig} to\code{biasbound_opt}. Can be informative when comparing the performance of different \code{b} values.} 
 #'  \item{dist_record}{a matrix recording the bias bound corresponding to balance on increasing dimensions of the SVD of the kernel matrix starting from \code{minnumdims} increasing by \code{incrementby} to \code{maxnumdims} or until the bias grows to be 1.25 times the minimal bias found.}
 #'  \item{numdims}{a numeric giving the optimal number of dimensions of the SVD of the kernel matrix which minimizes the bias bound.}
-#'  \item{L1_orig}{a numeric givingthe L1 distance found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
+#'  \item{L1_orig}{a numeric giving the L1 distance found when all sampled (control) units have a weight equal to one over the number of sampled (control) units and all target units have a weight equal to one over the number of target units.}
 #'  \item{L1_opt}{a numeric giving the L1 distance at the minimum bias bound found using \code{numdims} as the number of dimensions of the SVD of the kernel matrix. When \code{numdims} is user-specified, the L1 distance using this number of dimensions of the kernel matrix.}
 #'  \item{K}{the kernel matrix}
 #'  \item{onehot_dat}{when categorical data is specified, the resulting one-hot encoded categorical data used in the construction of \code{K}. When mixed data is specified, returns concatenated one-hot encoded categorical data and scaled continuous data used to construct \code{K}.}
@@ -1229,11 +1229,11 @@ kbal = function(allx,
         if(meanfirst == TRUE & !is.null(mf_columns)) {
             #note these will be scaled if allx is also scaled (happens above)
             #colnames conversion for mf_columns
-            if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
-               (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
+            if((is.character(mf_columns) & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
+               (is.numeric(mf_columns) &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
                 stop("One or more \"mf_columns\" elements does not match the column names in \"allx\" or exceeds the number of columns in \"allx\" ")
             }
-            if(class(mf_columns) == "character") { #switch to numeric for ease if input is colnames
+            if(is.character(mf_columns)) { #switch to numeric for ease if input is colnames
                 mf_columns = which(colnames(allx) %in% mf_columns)
             }
             allx_mf = allx[, mf_columns]
@@ -1251,12 +1251,12 @@ kbal = function(allx,
         #mf cols:
         if(meanfirst == TRUE & !is.null(mf_columns)) {
             
-            if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
-               (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
+            if((is.character(mf_columns) & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
+               (is.numeric(mf_columns) &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
                 stop("One or more \"mf_columns\" elements does not match the column names in \"allx\" or exceeds the number of columns in \"allx\" ")
             }
             #colnames conversion for mf_columns
-            if(class(mf_columns) == "character") { #switch to numeric for ease if input is colnames
+            if(is.character(mf_columns)) { #switch to numeric for ease if input is colnames
                 mf_columns = which(colnames(allx) %in% mf_columns)
             }
             allx_mf = one_hot(allx[, mf_columns])
@@ -1333,9 +1333,9 @@ kbal = function(allx,
         } else {
             if(is.null(cat_columns)) {
                 stop("\"cat_columns\" argument must be specified when \"mixed_data\" is TRUE.")
-            } else if(class(cat_columns) == "character" & sum(cat_columns %in% colnames(allx)) != length(cat_columns)) {
+            } else if(is.character(cat_columns) & sum(cat_columns %in% colnames(allx)) != length(cat_columns)) {
                 stop("One or more \"cat_columns\" elements does not match the column names in \"allx\".")
-            } else if(class(cat_columns) == "character") { #switch to numeric for ease if input is colnames
+            } else if(is.character(cat_columns)) { #switch to numeric for ease if input is colnames
                 cat_columns = which(colnames(allx) %in% cat_columns)
             }
             if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) != 0) | sum(dim(apply(allx, 2, unique))[1] == 1) != 0) {
@@ -1369,13 +1369,13 @@ kbal = function(allx,
             #get mf cols before combining all these columns together
             #mf cols
             if(meanfirst == T & !is.null(mf_columns)) {
-                if(class(cat_columns) != class(mf_columns)) {
+                if(!inherits(cat_columns, class(mf_columns)[1])) {
                     stop("please ensure \"mf_columns\" and \"cat_columns\" are of the same type, either character or numeric")
                 }
                 #this inherits the scaling decisions about all x
                 #colnames conversion for mf_columns
-                if((class(mf_columns) == "character" & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
-                   (class(mf_columns) == "numeric" &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
+                if((is.character(mf_columns) & sum(mf_columns %in% colnames(allx)) != length(mf_columns)) |
+                   (is.numeric(mf_columns) &  sum(mf_columns %in% c(1:ncol(allx))) != length(mf_columns))  ) {
                     stop("One or more \"mf_columns\" elements does not match the column names in \"allx\" or exceeds the number of columns in \"allx\" ")
                 } 
                 

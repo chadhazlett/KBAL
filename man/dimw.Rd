@@ -25,7 +25,12 @@ Calculates the simple difference in means or weighted difference in means betwee
 #let's say we want to get the unweighted DIM and the weighted DIM using weights from the kbal
 #function with the lalonde data:
 #load and clean data a bit
-data(lalonde)
+set.seed(123)
+data("lalonde")
+# Select a random subset of 500 rows
+lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+lalonde <- lalonde[lalonde_sample, ]
+
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #get the kbal weights

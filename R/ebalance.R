@@ -1,5 +1,5 @@
 #' Modified version of ebalance (originally from Jens Hainmueller)
-#' @description  This is a custom version of the \code{ebal} (entropy balancing) pacakge by Jens Hainmueller.  Chooses weights on controls to make
+#' @description  This is a custom version of the \code{ebal} (entropy balancing) package by Jens Hainmueller.  Chooses weights on controls to make
 #' covariate means equal to those of treated. This version differs from \code{ebal} only in that it handles
 #' cases where there is only a single unit, which otherwise causes a problem in the original code.
 #' @param Treatment a numeric vector of length equal to the total number of units where treated (population) units take a value of 1 and control (sampled) units take a value of 0.
@@ -13,7 +13,7 @@
 #' @importFrom stats var optimize
 #' @return \item{target.margins}{Column sums of \code{X} among the treated units.}
 #' \item{co.xdata}{Covariate matrix for the controls only built from \code{X} with an additional appended column of ones.}
-#' \item{w}{weights found using ebalance. Note that treated units all recieve flat weights of 1}
+#' \item{w}{weights found using ebalance. Note that treated units all receive flat weights of 1}
 #' \item{maxdiff}{absolute value of the largest component of the gradient in the last iteration.}
 #' \item{norm.constant}{norm constant used}
 #' \item{constraint.tolerance}{tolerance used to evaluate convergence}

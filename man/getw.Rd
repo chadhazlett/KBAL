@@ -13,12 +13,13 @@ getw(target, observed, svd.U, ebal.tol = 1e-06, ebal.maxit = 500)
 
 \item{svd.U}{a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.}
 
-\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}}
+\item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is \code{1e-6}.}
 
-\item{ebal.maxit}{maximum number of iterations in optimization search used by \code{ebalance_custom}}
+\item{ebal.maxit}{maximum number of iterations in optimization search used by \code{ebalance_custom}. Default is \code{500}.}
 }
 \value{
-\item{w}{numeric vector of weights.}
+A list containing:
+\item{w}{A numeric vector of weights.}
 \item{converged}{boolean indicating if \code{ebalance_custom} converged}
 \item{ebal_error}{returns error message if \code{ebalance_custom} encounters an error}
 }
@@ -27,18 +28,22 @@ Uses entropy balancing to find and return the weights that produce mean balance 
 }
 \examples{
 \donttest{
-#load and clean data a bit
-data(lalonde)
+#load and clean data
+set.seed(123)
+data("lalonde")
+# Select a random subset of 500 rows
+lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+lalonde <- lalonde[lalonde_sample, ]
+
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
-#need a kernel matrix to run SVD on then find weights with so get that first with makeK
+#need a kernel matrix to run SVD on then find weights with; so get that first with makeK.
 #running makeK with the sampled units as the bases
 K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw)
 
-#svd on this kernel and get matrix with left singular values
+#SVD on this kernel and get matrix with left singular values
 U = svd(K)$u
-#usually search over all columns of U to find which produces weights with 
-#the minimum bias bound; in this ex, search only first 10 dims
+#Use the first 10 dimensions of U.
 U2=U[,1:10]
 getw.out=getw(target=lalonde$nsw, 
               observed=1-lalonde$nsw, 

@@ -17,7 +17,7 @@ biasbound(observed, target, svd.out, w, w.pop = NULL, hilbertnorm = 1)
 
 \item{w.pop}{an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.out}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.}
 
-\item{hilbertnorm}{numeric value of the hilbertnorm.}
+\item{hilbertnorm}{numeric value of the Hilbert norm. Default is \code{1}.}
 }
 \value{
 \item{biasbound}{value of worst-case bias bound due to incomplete balance with inputted weights}
@@ -28,7 +28,12 @@ Calculate the upper bound on the bias induced by approximate balance with a give
 \examples{
 \donttest{
 #load and clean data a bit
-data(lalonde)
+set.seed(123)
+data("lalonde")
+# Select a random subset of 500 rows
+lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+lalonde <- lalonde[lalonde_sample, ]
+
 xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #need a kernel matrix to run SVD on and pass in so get that first with makeK

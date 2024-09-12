@@ -7,26 +7,31 @@
 b_maxvarK(data, useasbases, cat_data = TRUE, maxsearch_b = 2000)
 }
 \arguments{
-\item{data}{a matrix of data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{one_hot()} to produce) with \code{cat_data} argument true.}
+\item{data}{a matrix of data where rows are all units and columns are covariates. Where all covariates are categorical, this matrix should be one-hot encoded (refer to \code{\link{one_hot}} to produce) with \code{cat_data} argument true.}
 
 \item{useasbases}{binary vector specifying what observations are to be used in forming bases (columns) of the kernel matrix. Suggested default is: if the number of observations is under 4000, use all observations; when the number of observations is over 4000, use the sampled (control) units only.}
 
-\item{cat_data}{logical for whether kernel contains only categorical data or not}
+\item{cat_data}{logical for whether kernel contains only categorical data or not. Default is \code{TRUE}.}
 
-\item{maxsearch_b}{the maximum value of \eqn{b}, the denominator of the Gaussian, in searched during maximization.}
+\item{maxsearch_b}{the maximum value of \eqn{b}, the denominator of the Gaussian, searched during maximization. Default is \code{2000}.}
 }
 \value{
 \item{b_maxvar}{numeric \eqn{b} value, the denominator of the Gaussian, which produces the maximum variance of \eqn{K} kernel matrix}
 \item{var_K}{numeric maximum variance of \eqn{K} kernel matrix found with \eqn{b} as \code{b_maxvar}}
 }
 \description{
-Searches for the argmax of the variance of the Kernel matrix
+Searches for the argmax of the variance of the Kernel matrix.
 }
 \examples{
 \donttest{
 #lalonde with only categorical data
-data(lalonde)
-cat_vars=c("black","hisp","married","nodegr","u74","u75")
+set.seed(123)
+data("lalonde")
+# Select a random subset of 500 rows
+lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+lalonde <- lalonde[lalonde_sample, ]
+
+cat_vars <- c("black","hisp","married","nodegr","u74","u75")
 #Convert to one-hot encoded data matrix:
 onehot_lalonde = one_hot(lalonde[, cat_vars])
 colnames(onehot_lalonde)
