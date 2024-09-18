@@ -7,15 +7,15 @@
 makeK(allx, useasbases = NULL, b = NULL, linkernel = FALSE, scale = TRUE)
 }
 \arguments{
-\item{allx}{A data matrix containing all observations where rows are units and columns are covariates.}
+\item{allx}{a data matrix containing all observations where rows are units and columns are covariates.}
 
-\item{useasbases}{Vector argument containing one's and zero's with length equal to the number of observations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.}
+\item{useasbases}{a binary vector with length equal to the number of observations (rows in \code{allx}) to specify which bases to use when constructing the kernel matrix (columns of \eqn{K}). If not specified, the default is to use all observations.}
 
 \item{b}{Scaling factor in the calculation of Gaussian kernel distance equivalent to the entire denominator \eqn{2\sigma^2} of the exponent. Default is twice the number of covariates or columns in \code{allx}.}
 
-\item{linkernel}{Indicates that user wants linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}.}
+\item{linkernel}{a logical value indicating whether to use a linear kernel, \eqn{K=XX'}, which in practice employs \eqn{K=X}. Default is \code{FALSE}.}
 
-\item{scale}{boolean flag for whether or not to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix}
+\item{scale}{a logical value indicating whether to standardize \code{allx} (demeaned with sd=1) before constructing the kernel matrix. Default is \code{TRUE}.}
 }
 \value{
 \item{K}{The kernel matrix}
@@ -26,12 +26,17 @@ Builds the Gaussian kernel matrix using Rcpp.
 \examples{
 #load and clean data a bit
 \donttest{
-data(lalonde)
-xvars=c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
+set.seed(123)
+data("lalonde")
+# Select a random subset of 500 rows
+lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+lalonde <- lalonde[lalonde_sample, ]
+
+xvars <- c("age","black","educ","hisp","married","re74","re75","nodegr","u74","u75")
 
 #note that lalonde$nsw is the treatment vector, so the observed is 1-lalonde$nsw
 #running makeK with the sampled/control units as the bases given 
 #the large size of the data
-K = makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) 
+K <- makeK(allx = lalonde[,xvars], useasbases = 1-lalonde$nsw) 
 }
 }

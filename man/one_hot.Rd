@@ -27,7 +27,12 @@ dat = data.frame(pid = c(rep("Rep", 20),
 onehot_dat = one_hot(dat)
 }
 #Ex 2. lalonde data
-data(lalonde)
+set.seed(123)
+data("lalonde")
+# Select a random subset of 500 rows
+lalonde_sample <- sample(1:nrow(lalonde), 500, replace = FALSE)
+lalonde <- lalonde[lalonde_sample, ]
+
 cat_vars=c("black","hisp","married","nodegr","u74","u75")
 onehot_lalonde = one_hot(lalonde[, cat_vars])
 }
