@@ -1728,42 +1728,90 @@ kbal = function(allx,
             if(printprogress) {cat("Running truncated SVD on kernel matrix up to",
                                  trunc_svd_dims, "dimensions \n")}
             #for a symmetric K just do eigs_sym as is:
-            if(nrow(K) == ncol(K)) {
-                rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
-                rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] = 0
-                if(sum(sign(rspec.out$values) == -1) != 0) {
-                    stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
-                }
-                svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
-                               v= rspec.out$vectors)
-                var_explained = round(sum(svd.out$d)/nrow(K),6)
-                if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
-                                     "first singular values accounts for", var_explained,
-                                     "of the variance of \"K\" \n")}
-              
-                if(var_explained < .999) {
-                    warning("Truncated SVD with ", trunc_svd_dims,
-                          " first singular values only accounts for ", var_explained,
-                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
-                }
-            } else { #use truncated svd
-                svd.out= RSpectra::svds(K, round(trunc_svd_dims))
-                if(sum(sign(svd.out$d) == -1) != 0) {
-                    stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
-                }
-                #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
-                max_rank = min(nrow(K), ncol(K))
-                worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
-                var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
+            
+            #if(nrow(K) == ncol(K)) {
+            #    rspec.out= suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
+            #    rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] = 0
+            #    if(sum(sign(rspec.out$values) == -1) != 0) {
+            #        stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+            #    }
+            #    svd.out = list(u = rspec.out$vectors, d = rspec.out$values,
+            #                   v= rspec.out$vectors)
+            #    var_explained = round(sum(svd.out$d)/nrow(K),6)
+            #    if(printprogress) {cat("Truncated SVD with", trunc_svd_dims,
+            #                         "first singular values accounts for", var_explained,
+            #                         "of the variance of \"K\" \n")}
+            #  
+            #    if(var_explained < .999) {
+            #        warning("Truncated SVD with ", trunc_svd_dims,
+            #              " first singular values only accounts for ", var_explained,
+            #              " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n", immediate. = TRUE)
+            #    }
+            #} else { #use truncated svd
+            #    svd.out= RSpectra::svds(K, round(trunc_svd_dims))
+            #    if(sum(sign(svd.out$d) == -1) != 0) {
+            #        stop("Trucated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\" ")
+            #    }
+            #    #don't know the total sum of eigenvalues, but sum up to calculated and assume all remaining are = to last
+            #    max_rank = min(nrow(K), ncol(K))
+            #    worst_remaining_var <- sum(svd.out$d) + (max_rank-trunc_svd_dims)*svd.out$d[length(svd.out$d)]
+            #    var_explained <- round(sum(svd.out$d)/worst_remaining_var,6)
 
-                if(printprogress) {
-                    cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only",
-                        trunc_svd_dims,
-                        "first singular values is lower bounded (worst-case) to explain",
-                        round(100*var_explained, 2), "% of the variance of \"K\" \n")
+            #    if(printprogress) {
+            #        cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only",
+            #            trunc_svd_dims,
+            #            "first singular values is lower bounded (worst-case) to explain",
+            #            round(100*var_explained, 2), "% of the variance of \"K\" \n")
+            #    }
+            #}
+            #U=svd.out$u
+          
+            ##Udate 0.1.2: Add fallback mechanism to avoid CRAN's error
+            fallback_fullSVD <- FALSE  # initialize fallback flag
+            svd.out <- tryCatch({
+              if(nrow(K) == ncol(K)) {
+                rspec.out <- suppressWarnings(RSpectra::eigs_sym(K, trunc_svd_dims))
+                rspec.out$values[ abs(rspec.out$values) <= 1e-12 ] <- 0
+                if(sum(sign(rspec.out$values) == -1) != 0) {
+                  stop("Truncated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\"")
                 }
-            }
-            U=svd.out$u
+                temp.svd <- list(u = rspec.out$vectors, d = rspec.out$values, v = rspec.out$vectors)
+                var_explained <- round(sum(temp.svd$d) / nrow(K), 6)
+                if(printprogress) {
+                  cat("Truncated SVD with", trunc_svd_dims, "first singular values accounts for", var_explained, "of the variance of \"K\" \n")
+                }
+                if(var_explained < .999) {
+                  warning("Truncated SVD with only ", trunc_svd_dims, " first singular values accounts for ", var_explained,
+                          " of the variance of \"K\". The biasbound optimization may not perform as expected. You many want to increase \"maxnumdims\" to capture more of the variance of \"K\" \n",
+                          immediate. = TRUE)
+                }
+                temp.svd
+              } else {
+                temp.svd <- RSpectra::svds(K, round(trunc_svd_dims))
+                if(sum(sign(temp.svd$d) == -1) != 0) {
+                  stop("Truncated SVD produced negative eigenvalues, please rerun using \"fullSVD=TRUE\"")
+                }
+                max_rank <- min(nrow(K), ncol(K))
+                worst_remaining_var <- sum(temp.svd$d) + (max_rank - trunc_svd_dims) * temp.svd$d[length(temp.svd$d)]
+                var_explained <- round(sum(temp.svd$d) / worst_remaining_var, 6)
+                if(printprogress) {
+                  cat("When bases are chosen such that \"K\" is nonsymmetric, the proportion of total variance in \"K\" accounted for by the truncated SVD with only", trunc_svd_dims,
+                      "first singular values is lower bounded (worst-case) to explain", round(100 * var_explained, 2), "% of the variance of \"K\" \n")
+                }
+                temp.svd
+              }
+            }, error = function(err) {
+              warning("Truncated SVD failed with error: ", conditionMessage(err),
+                      "\nFalling back to full SVD on kernel matrix.\n", immediate. = TRUE)
+              fallback_fullSVD <- TRUE
+              svd(K)
+            })
+          U <- svd.out$u
+          if(fallback_fullSVD) { 
+            fullSVD <- TRUE
+            var_explained <- NULL
+          } ##end: Update
+          
         #if user askes for full svd, go get it
         } else {
             if(printprogress) {cat("Running full SVD on kernel matrix \n")}
