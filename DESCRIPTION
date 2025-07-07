@@ -1,14 +1,14 @@
 Package: kbal
 Type: Package
 Title: Kernel Balancing
-Version: 0.1.2
-Date: 2025-03-12
+Version: 0.1.3
+Date: 2025-07-05
 Authors@R: c(person("Chad", "Hazlett", email = "chazlett@ucla.edu", role = c("aut", "cph")),
             person("Ciara", "Sterbenz", email = "cster@g.ucla.edu", role = "aut"),
             person("Erin", "Hartman", email = "ekhartman@ucla.edu", role = "ctb"),
             person("Alex", "Kravetz", email = "alexdkravetz@gmail.com", role = "ctb"),
             person("Borna", "Bateni", email = "borna@ucla.edu", role = c("aut", "cre")))
-Description: Provides a weighting approach that employs kernels to make one group have a similar distribution to another group on covariates. This method matches not only means or marginal distributions but also higher-order transformations implied by the choice of kernel. 'kbal' is applicable to both treatment effect estimation and survey reweighting problems. Based on Hazlett, C. (2020) "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Statistica Sinica. <https://www.researchgate.net/publication/299013953_Kernel_Balancing_A_flexible_non-parametric_weighting_procedure_for_estimating_causal_effects/stats>.
+Description: Provides a weighting approach that employs kernels to make one group have a similar distribution to another group on covariates. This method matches not only means or marginal distributions but also higher-order transformations implied by the choice of kernel. 'kbal' is applicable to both treatment effect estimation and survey reweighting problems. Based on Hazlett, C. (2020) "Kernel Balancing: A flexible non-parametric weighting procedure for estimating causal effects." Statistica Sinica. <https://www.researchgate.net/publication/299013953_Kernel_Balancing_A_flexible_non-parametric_weighting_procedure_for_estimating_causal_effects>.
 URL: https://github.com/chadhazlett/kbal
 License: GPL (>=2)
 LazyData: TRUE

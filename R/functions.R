@@ -1724,6 +1724,9 @@ kbal = function(allx,
                       linkernel = TRUE)
         }
         #if user does not ask for full svd, and does not pass in numdims, get svd upto maxnumdim
+        ##Update 0.1.3: Ensure var_explained is always defined to prevent CRAN error
+        var_explained <- NULL
+        ##end: Update 0.1.3
         if(!fullSVD) {
             if(printprogress) {cat("Running truncated SVD on kernel matrix up to",
                                  trunc_svd_dims, "dimensions \n")}
@@ -1810,7 +1813,7 @@ kbal = function(allx,
           if(fallback_fullSVD) { 
             fullSVD <- TRUE
             var_explained <- NULL
-          } ##end: Update
+          } ##end: Update 0.1.2
           
         #if user askes for full svd, go get it
         } else {
