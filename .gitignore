@@ -1,3 +1,10 @@
 .Rproj.user
 .Rhistory
 .RData
+
+# compiled artifacts
+src/*.o
+src/*.so
+src/*.dll
+src/*.obj
+src/*.a
