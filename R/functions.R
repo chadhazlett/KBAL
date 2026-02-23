@@ -282,9 +282,12 @@ dimw = function(X,w,target){
 #' Find Weights using Entropy Balancing.
 #' @description Uses entropy balancing to find and return the weights that produce mean balance on \eqn{\phi(X_i)}, the expanded features of \eqn{X_i} using a given kernel \eqn{\phi(.)}, for the control or sample group and treated group or target population.
 #'
-#' @param target a numeric vector of length equal to the total number of units where population/treated units take a value of 1 and sample/control units take a value of 0.
-#' @param observed a numeric vector of length equal to the total number of units where sampled/control units take a value of 1 and population/treated units take a value of 0.
+#' @param target binary length-N vector: 1 = target/population, 0 = not in target.
+#' @param observed binary length-N vector: 1 = observed/sample, 0 = not observed.
 #' @param svd.U a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.
+#' @param base.weights optional positive length-N vector of base/design weights.
+#'   These are only used for sample units (\code{observed==1 & target==0});
+#'   all other units are treated as having base weight 1 inside entropy balancing.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is \code{1e-6}.
 #' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom}. Default is \code{500}.
 #' @return A list containing:
@@ -315,7 +318,7 @@ dimw = function(X,w,target){
 #'               svd.U=U2)
 #'  }
 #' @export
-getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
+getw = function(target, observed, svd.U, base.weights=NULL, ebal.tol=1e-6, ebal.maxit = 500){
 
   #Error handling
   if (!is.numeric(target) || length(target) != nrow(svd.U) || any(!target %in% c(0, 1))) {
@@ -332,6 +335,19 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
     stop("`ebal.maxit` must be a positive integer.")
   }
   
+  ##new update 01.3.: checks and balances for base weights:
+  N=nrow(svd.U)
+  if(!is.null(base.weights)) {
+    if(!is.numeric(base.weights) || length(base.weights) != N) {
+      stop("`base.weights` must be a numeric vector with length equal to nrow(svd.U).")
+    }
+    if(any(is.na(base.weights))) stop("`base.weights` contains missing data.")
+    if(any(base.weights <= 0)) stop("`base.weights` must be positive.")
+    if(sum(base.weights[observed==1]) <= 0) {
+      stop("`base.weights` must have positive total weight on observed==1 units.")
+    }
+  }
+  
   # To trick ebal into using a control group that corresponds to the
   # observed and a treated that corresponds to the "target" group,
   # (1) anybody who is "observed" but also considered part of the target
@@ -339,46 +355,115 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
   # (2) construct a variables target_ebal that = 1 when target=1
   # but =0 in the appended data, i.e. for the observed who are
   # entering a second time.
-  Xappended = rbind(svd.U,  svd.U[observed==1 & target==1, , drop=FALSE] )
-  target_ebal = c(target, rep(0, sum(observed==1 & target==1)))
+  
+  ## ----------------------------
+  ## Define groups we actually want:
+  ##   - Donors (controls in the conceptual problem): observed==1
+  ##   - Targets (treated in the conceptual problem): target==1
+  ##
+  ## Overlap: observed==1 & target==1
+  ## These must be duplicated because one row can't be both treated and control.
+  ## ----------------------------
+  overlap_idx = which(observed == 1 & target == 1)
+  dup_count = length(overlap_idx)
+  
+  
+  ## Construct the EB data:
+  ## - Start with all original rows (1..N) with Treatment = target
+  ## - Append duplicates of overlap rows, but force Treatment=0 on those duplicates
+  Xappended = rbind(svd.U, svd.U[overlap_idx, , drop = FALSE])
+  target_ebal = c(target, rep(0, dup_count))
+  
+  ## Controls in EB are those with target_ebal==0.
+  ## That set equals:
+  ##   A) all original rows with target==0   (count = n_target0)
+  ##   B) the appended overlap duplicates    (count = dup_count)
+  n_target0 = sum(target == 0)
+  
+  ## ---------------------------- update 0.1.4
+  ## Build base.weight for EB controls, correctly aligned.
+  ##
+  ## ebalance_custom wants base.weight of length sum(Treatment==0).
+  ## We want base.weights to apply ONLY to real donor/sample units:
+  ##   donors = observed==1 & target==0
+  ## Everything else in EB controls gets base.weight=1:
+  ##   - unobserved target==0 units
+  ##   - duplicated overlap rows
+  ## ----------------------------
+  base.weight.ebal = NULL
+  if (!is.null(base.weights)) {
+    base.weight.ebal = rep(1, n_target0 + dup_count)
+    target0_idx = which(target == 0)                 # original target==0 rows, in original order
+    donor_in_target0 = which(observed[target0_idx] == 1)  # positions within target0_idx that are donors
+    
+    # Apply base.weights only to donors among the target==0 rows
+    base.weight.ebal[donor_in_target0] = base.weights[target0_idx[donor_in_target0]]
+    
+    # The appended overlap duplicates stay at 1 (by construction)
+  }
 
-    bal.out.pc=try(ebalance_custom(Treatment = target_ebal,
-                                   X = Xappended,
-                                   base.weight = NULL,
-                                   norm.constant  = NULL,
-                                   coefs = NULL ,
-                                   max.iterations = ebal.maxit,
-                                   constraint.tolerance = ebal.tol,
-                                   print.level=0),
-                   silent=TRUE)
-  N=nrow(svd.U)
+
+  ## ----------------------------
+  ## Run EB
+  ## ----------------------------
+  bal.out.pc = try(
+    ebalance_custom(
+      Treatment = target_ebal,
+      X = Xappended,
+      base.weight = base.weight.ebal,
+      norm.constant = NULL,
+      coefs = NULL,
+      max.iterations = ebal.maxit,
+      constraint.tolerance = ebal.tol,
+      print.level = 0
+    ),
+    silent = TRUE
+  )
+  
   converged = FALSE
   #earlyfail = FALSE
   error = NULL
+  w = rep(1, N)
   if ("try-error"%in%class(bal.out.pc)[1]){
           warning("\'ebalance_custom()\' encountered an error. Returning equal weights. See \"ebal_error\" for details. ", 
                   immediate. = T)
       error = bal.out.pc[1]
       
-    w=rep(1,N)
+      return(list(w = w, converged = FALSE, ebal_error = error))
     
   }
 
-  if (class(bal.out.pc)[1]!="try-error"){
-    w=rep(1,N)
-    w[observed==1]=bal.out.pc$w
-    #rescale to mean=1 among the donors
-    w[observed==1]=w[observed==1]/mean(w[observed==1])
-    #biasbound.out = biasbound(D = D, w=w, V=svd.out$v, a = svd.out$d, hilbertnorm = 1)
-    #R$dist= biasbound.out  ##experimenting with using biasbound instead of L1
-    #R$biasbound = biasbound.out
-    converged = bal.out.pc$converged
-  }
+  ## ----------------------------
+  ## Map EB weights back to the N original units.
+  ##
+  ## IMPORTANT:
+  ## bal.out.pc$w are weights for EB-controls (Treatment==0 in target_ebal),
+  ## in THIS order:
+  ##   1..n_target0                = original rows with target==0 (in original order)
+  ##   (n_target0+1)..(n_target0+dup_count) = appended overlap duplicates
+  ##
+  ## We only want weights for real donors: observed==1 & target==0.
+  ## Those correspond to a subset of the first n_target0 entries.
+  ## ----------------------------
+  w_controls_all = bal.out.pc$w
+  w_target0 = w_controls_all[1:n_target0]  # ignore the appended duplicates for output weights
+  
+  target0_idx = which(target == 0)
+  donor_idx = which(observed == 1 & target == 0)
+  
+  # Identify which target==0 rows are donors (this gives positions into w_target0)
+  donor_pos_in_target0 = which(observed[target0_idx] == 1)
+  
+  # Extract donor weights and place them into the length-N w vector
+  w[donor_idx] = w_target0[donor_pos_in_target0]
+  
+  # Rescale so mean weight among donors is 1 (your convention)
+  w[donor_idx] = w[donor_idx] / mean(w[donor_idx])
+  
+  converged = bal.out.pc$converged
+  
+  return(list(w = w, converged = converged, ebal_error = NULL))
  
-    out <- list(w = w, 
-                converged=converged, 
-                ebal_error = error)
-  return(out)
 } # end of getw.
 
 #' L1 Distance
@@ -389,6 +474,9 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
 #' @param w a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the output of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}. 
 #' @param numdims an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.
+#' @param base.weights optional positive vector of base/design weights.
+#'   These are only used for sample units (\code{observed==1 & target==0});
+#'   all other units are treated as having base weight 1 inside entropy balancing.
 #' @param ebal.tol an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. Default is \code{1e-6}.
 #' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom} when \code{w} is not specified. Default is \code{500}.
 #' @param svd.U an optional matrix of left singular vectors from performing \code{svd()} on the kernel matrix in the case that \code{w} is unspecified. If unspecified when \code{w} also not specified, internally computes the svd of \code{K}.
@@ -433,7 +521,8 @@ getw = function(target, observed, svd.U, ebal.tol=1e-6, ebal.maxit = 500){
 #' @export
 getdist <- function(target, observed, K, w.pop = NULL, 
                     w=NULL, numdims = NULL, 
-                    ebal.tol= 1e-6, 
+                    base.weights=NULL,
+                    ebal.tol= 1e-6,
                     ebal.maxit = 500,
                     svd.U = NULL) {
 
@@ -467,6 +556,17 @@ getdist <- function(target, observed, K, w.pop = NULL,
         }
         if (!is.null(svd.U) && !is.matrix(svd.U)) stop("`svd.U` must be a matrix.")
 
+        # --- NEW update 0.1.4: base weights option ---
+        if (!is.null(base.weights)) {
+          if (!is.numeric(base.weights) || length(base.weights) != nrow(K)) {
+            stop("`base.weights` must be a numeric vector with length equal to nrow(K).")
+          }
+          if (any(is.na(base.weights))) stop("`base.weights` contains missing data.")
+          if (any(base.weights <= 0)) stop("`base.weights` must be positive.")
+          if (sum(base.weights[observed == 1 & target == 0]) <= 0) {
+            stop("`base.weights` must have positive total weight on sample units (observed==1 & target==0).")
+          }
+        }
         
         N=nrow(K)
         K_c=K[observed==1, ,drop = FALSE]
@@ -497,7 +597,7 @@ getdist <- function(target, observed, K, w.pop = NULL,
             }
             U_w.pop <- w.pop*svd.U
             w = suppressWarnings(getw(target = target, observed=observed,
-                     svd.U = U_w.pop[,1:numdims, drop=FALSE],
+                     svd.U = U_w.pop[,1:numdims, drop=FALSE], base.weights = base.weights,
                      ebal.tol=ebal.tol, ebal.maxit = ebal.maxit)$w)
 
             #if ebal fails we get weights of 1 for everyone
@@ -773,6 +873,10 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that, when \code{TRUE}, indicates that sampled units should also be included in the target population when searching for optimal weights.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated). When specified, \code{sampledinpop} is forced to be \code{FALSE}.
 #' @param population.w optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.
+#' @param base.weights optional positive length-N vector of base/design weights.
+#'   These are only used for sampled/control units (e.g., \code{sampled==1} or
+#'   \code{observed==1 & target==0}, depending on which interface is used);
+#'   all other units are treated as having base weight 1 internally.
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound.
 #' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include three objects \code{K.svd$u}, a matrix of left-singular vectors, \code{K.svd$v}, a matrix of right-singular vectors, and their corresponding singular values \code{K.svd$d}. 
 #' @param cat_data logical argument that when true indicates \code{allx} contains only categorical data. When true, the internal construction of the kernel matrix uses a one-hot encoding of \code{allx} (multiplied by a factor of \eqn{\sqrt{0.5}} to compensate for double counting) and the value of \code{b} which maximizes the variance of this kernel matrix. When true, \code{mixed_data}, \code{scale_data}, \code{linkernel}, and \code{drop_MC} should be \code{FALSE}. Default is \code{FALSE}.
@@ -818,6 +922,7 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #'  \item{meanfirst_dims}{when \code{meanfirst=TRUE} the optimal number of the singular vectors of \code{allx} selected and appended to the front of the left singular vectors of \code{K}}
 #'  \item{meanfirst_cols}{when \code{meanfirst=TRUE} \code{meanfirst_dims} first left singular vectors of \code{allx} selected that are appended to the front of the left singular vectors of \code{K} and balanced on}
 #'  \item{ebal_error}{when ebalance is unable to find convergent weights, the associated error message it reports}
+#'  \item{base.weights}{The base/design weights supplied via \code{base.weights}.}
 #' @examples
 #' #----------------------------------------------------------------
 #' # Example 1: Reweight a control group to a treated to estimate ATT. 
@@ -960,6 +1065,7 @@ kbal = function(allx,
                 sampledinpop=NULL,
                 treatment=NULL,
                 population.w = NULL,
+                base.weights=NULL,
                 K=NULL,
                 K.svd = NULL,
                 cat_data = FALSE,
@@ -1113,6 +1219,31 @@ kbal = function(allx,
         observed = 1-treatment
         target = treatment
     }
+    
+    ##### New update 0.1.4: validate base.weights #####
+    # Convention: base.weights is length N and is intended to apply to DONORS only:
+    # donors := (observed==1 & target==0). Scale is irrelevant.
+    if(!is.null(base.weights)) {
+      if(!is.numeric(base.weights) || length(base.weights) != N) {
+        stop("`base.weights` must be a numeric vector with length equal to nrow(allx).")
+      }
+      if(any(is.na(base.weights))) stop("`base.weights` contains missing data.")
+      if(any(base.weights <= 0)) stop("`base.weights` must be positive.")
+      
+      donor_idx <- which(observed == 1 & target == 0)
+      if(length(donor_idx) == 0) {
+        stop("`base.weights` was supplied but there are no samples (observed==1 & target==0).")
+      }
+      if(sum(base.weights[donor_idx]) <= 0) {
+        stop("`base.weights` must have positive total weight on sample units (observed==1 & target==0).")
+      }
+    }
+    
+    n_nondonor_non1 <- sum((observed == 0 | target == 1) & abs(base.weights - 1) > 1e-12)
+    if(n_nondonor_non1 > 0) {
+      warning("`base.weights` is only used on sample (observed==1 & target==0). Non-sample entries will be ignored.", immediate. = TRUE)
+    }
+    #####
     
     ###### Setting defaults - useasbases #####
     #7. checking useasbases if passed in
@@ -1279,7 +1410,7 @@ kbal = function(allx,
                dim(apply(allx, 2, unique))[1] == N) {
                 stop("\"cat_data\"=TRUE, but all columns of \"allx\" contain n=nrow(allx) unique values indicating continuous data.")
             } 
-            if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) == 1) > 10) | sum(dim(apply(allx, 2, unique))[1] > 10) != 0) {
+            if((is.null(dim(apply(allx, 2, unique))) && sum(lapply(apply(allx, 2, unique), length) > 10) != 0) | sum(dim(apply(allx, 2, unique))[1] > 10) != 0) {
                 warning("One or more column in \"allx\" has more than 10 unique values while \"cat_data\"= TRUE. Ensure that all variables are categorical.",
                         immediate. = TRUE)
             }
@@ -1541,6 +1672,7 @@ kbal = function(allx,
         kbalout.mean = suppressWarnings(kbal(allx=allx_mf, 
                            treatment=treatment,
                            sampled = sampled,
+                           base.weights = base.weights, ##update 0.1.4
                            scale_data = TRUE, 
                            #we don't want to do drop mc cols with cat data
                            #with mf routine we take the svd anyway so even w other data
@@ -1862,7 +1994,7 @@ kbal = function(allx,
                              svd.out = svd.out, hilbertnorm = 1)
     #NB: not well defined when pass in K.svd not K (added warning above)
     getdist.orig = getdist(target=target, observed = observed,
-                           w = rep(1,N), w.pop = w.pop, K=K)
+                           w = rep(1,N), w.pop = w.pop, K=K, base.weights = base.weights)
     L1_orig = getdist.orig$L1
     if(printprogress==TRUE) {
         cat("Without balancing, biasbound (norm=1) is",
@@ -1875,6 +2007,7 @@ kbal = function(allx,
         U2=U[,1:numdims, drop=FALSE]
         U2.w.pop <- w.pop*U2
         getw.out= getw(target=target, observed=observed, svd.U=U2.w.pop, 
+                       base.weights = base.weights,
                        ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
         converged = getw.out$converged
         biasboundnow=biasbound( w = getw.out$w,
@@ -1904,7 +2037,7 @@ kbal = function(allx,
         biasbound_opt = biasboundnow
         dist.orig= biasbound_orig
         L1_optim = getdist(target=target, observed = observed,
-                           w = getw.out$w, w.pop = w.pop, K=K)$L1
+                           w = getw.out$w, w.pop = w.pop, K=K, base.weights = base.weights)$L1
     }
  
   
@@ -1925,6 +2058,7 @@ kbal = function(allx,
             U_try.w.pop <- w.pop*U_try
             getw.out= suppressWarnings(getw(target = target,
                                             observed=observed, svd.U = U_try.w.pop, 
+                                            base.weights = base.weights,
                                             ebal.tol = ebal.tol, ebal.maxit = ebal.maxit))
             convergence.record = c(convergence.record, getw.out$converged)
             
@@ -2002,7 +2136,7 @@ kbal = function(allx,
                 U_final.w.pop <- w.pop*U[,1:(numdims+ncol(constraint)), drop = FALSE]
             }
             getw.out = getw(target= target, observed=observed, 
-                            svd.U=U_final.w.pop, 
+                            svd.U=U_final.w.pop, base.weights = base.weights,
                             ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
             biasbound_opt= biasbound(w = getw.out$w, observed=observed, target = target, 
                                      svd.out = svd.out, 
@@ -2010,14 +2144,15 @@ kbal = function(allx,
                                      hilbertnorm = 1)
             #NB: not well defined iF K.svd passed in
             L1_optim = getdist(target=target, observed = observed,
-                               w = getw.out$w, w.pop = w.pop, K=K)$L1
+                               w = getw.out$w, w.pop = w.pop, K=K,base.weights = base.weights)$L1
         #2) user asked for convergence, but NO CONVERGED DIMS  
         } else if(ebal.convergence) {
             #if we sent in constraints let's return weights just on these 
             if(!is.null(constraint)) {
                 U_constraint=U[,1:(minnumdims-1), drop=FALSE]
                 U_c.w.pop <- w.pop*U_constraint
-                getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop, 
+                getw.out= getw(target = target, observed=observed, svd.U = U_c.w.pop,
+                               base.weights = base.weights,
                                ebal.tol = ebal.tol, ebal.maxit = ebal.maxit)
                 convergence.record = getw.out$converged
                 warning("Ebalance did not converge within tolerance for any ",
@@ -2033,7 +2168,7 @@ kbal = function(allx,
                                         w.pop = w.pop, 
                                         hilbertnorm = 1)
                 L1_optim = getdist(target=target, observed = observed,
-                                   w = getw.out$w, w.pop = w.pop, K=K)$L1
+                                   w = getw.out$w, w.pop = w.pop, K=K,base.weights = base.weights)$L1
                 numdims = NULL
             } else { #no constraint and no convergence
                 warning("Ebalance did not converge within tolerance for any ",dist_pass[1,1],"-",
@@ -2051,7 +2186,7 @@ kbal = function(allx,
                                          hilbertnorm = 1)
                 #NB: not well defined iF K.svd passed in
                 L1_optim = getdist(target=target, observed = observed,
-                                   w = getw.out$w, w.pop = w.pop, K=K)$L1
+                                   w = getw.out$w, w.pop = w.pop, K=K,base.weights = base.weights)$L1
             }   
         #3) User did not ask for convergence
         } else { #we don't for convergence at all, we just find min biasbound
@@ -2089,7 +2224,7 @@ kbal = function(allx,
                                      hilbertnorm = 1)
             #NB: not well defined iF K.svd passed in
             L1_optim = getdist(target=target, observed = observed,
-                               w = getw.out$w, w.pop = w.pop, K=K)$L1
+                               w = getw.out$w, w.pop = w.pop, K=K,base.weights = base.weights)$L1
     
         }
     }
@@ -2121,6 +2256,7 @@ kbal = function(allx,
     R$meanfirst_dims = meanfirst_dims
     R$appended_constraint_cols = constraint
     R$ebal_error = ebal_error
+    R$base.weights = base.weights #update 0.1.4
   return(R)
 } # end kbal main function
 

@@ -10,3 +10,7 @@
 
 ## Version 0.1.3 (2025-07-05)
 - Minor fix: fullSVD <- TRUE is set when falling back to full SVD after a truncated SVD failure.
+
+## Version 0.1.4 (2026-02-23)
+- Ensured that `base.weights` are consistently propagated through weight construction.
+- Added `base.weights` support to `getw()`, `getdist()`, and `kbal()` to allow baseline sampling weights in balancing and discrepancy calculations.

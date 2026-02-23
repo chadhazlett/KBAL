@@ -12,6 +12,7 @@ kbal(
   sampledinpop = NULL,
   treatment = NULL,
   population.w = NULL,
+  base.weights = NULL,
   K = NULL,
   K.svd = NULL,
   cat_data = FALSE,
@@ -52,6 +53,11 @@ kbal(
 \item{treatment}{an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated). When specified, \code{sampledinpop} is forced to be \code{FALSE}.}
 
 \item{population.w}{optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.}
+
+\item{base.weights}{optional positive length-N vector of base/design weights.
+These are only used for sampled/control units (e.g., \code{sampled==1} or
+\code{observed==1 & target==0}, depending on which interface is used);
+all other units are treated as having base weight 1 internally.}
 
 \item{K}{optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound.}
 
@@ -122,6 +128,7 @@ kbal(
  \item{meanfirst_dims}{when \code{meanfirst=TRUE} the optimal number of the singular vectors of \code{allx} selected and appended to the front of the left singular vectors of \code{K}}
  \item{meanfirst_cols}{when \code{meanfirst=TRUE} \code{meanfirst_dims} first left singular vectors of \code{allx} selected that are appended to the front of the left singular vectors of \code{K} and balanced on}
  \item{ebal_error}{when ebalance is unable to find convergent weights, the associated error message it reports}
+ \item{base.weights}{The base/design weights supplied via \code{base.weights}.}
 }
 \description{
 Kernel balancing (\code{kbal}) is non-parametric weighting tool to make two groups have a similar distribution of covariates, not only in terms of means or marginal distributions but also on (i) general smooth functions of the covariates, including on (ii) a smoothing estimator of the joint distribution of the covariates. It was originally designed (Hazlett, 2017) to make control and treated groups look alike, as desired when estimating causal effects under conditional ignorability. This package also facilitates use of this approach for more general distribution-alignment tasks, such as making a sampled group have a similar distribution of covariates as a target population, as in survey reweighting. The examples below provide an introduction to both settings.
