@@ -11,6 +11,7 @@ getdist(
   w.pop = NULL,
   w = NULL,
   numdims = NULL,
+  base.weights = NULL,
   ebal.tol = 1e-06,
   ebal.maxit = 500,
   svd.U = NULL
@@ -28,6 +29,10 @@ getdist(
 \item{w}{a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the output of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}.}
 
 \item{numdims}{an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.}
+
+\item{base.weights}{optional positive vector of base/design weights.
+These are only used for sample units (\code{observed==1 & target==0});
+all other units are treated as having base weight 1 inside entropy balancing.}
 
 \item{ebal.tol}{an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. Default is \code{1e-6}.}
 
