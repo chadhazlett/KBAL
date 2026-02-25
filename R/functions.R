@@ -285,9 +285,9 @@ dimw = function(X,w,target){
 #' @param target binary length-N vector: 1 = target/population, 0 = not in target.
 #' @param observed binary length-N vector: 1 = observed/sample, 0 = not observed.
 #' @param svd.U a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.
-#' @param base.weights optional positive length-N vector of base/design weights.
-#'   These are only used for sample units (\code{observed==1 & target==0});
-#'   all other units are treated as having base weight 1 inside entropy balancing.
+#' @param base.weights optional positive vector of base/design weights, of length
+#'   equal to the number of sample/donor units (\code{sum(observed==1 & target==0)}).
+#'   These apply only to those units; the population/target side always uses weight 1.
 #' @param ebal.tol tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is \code{1e-6}.
 #' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom}. Default is \code{500}.
 #' @return A list containing:
@@ -337,14 +337,16 @@ getw = function(target, observed, svd.U, base.weights=NULL, ebal.tol=1e-6, ebal.
   
   ##new update 01.3.: checks and balances for base weights:
   N=nrow(svd.U)
+  n_donors <- sum(observed == 1 & target == 0)
   if(!is.null(base.weights)) {
-    if(!is.numeric(base.weights) || length(base.weights) != N) {
-      stop("`base.weights` must be a numeric vector with length equal to nrow(svd.U).")
+    if(!is.numeric(base.weights) || length(base.weights) != n_donors) {
+      stop(paste0("`base.weights` must be a numeric vector with length equal to the ",
+                  "number of sample/donor units (sum(observed==1 & target==0) = ", n_donors, ")."))
     }
     if(any(is.na(base.weights))) stop("`base.weights` contains missing data.")
     if(any(base.weights <= 0)) stop("`base.weights` must be positive.")
-    if(sum(base.weights[observed==1]) <= 0) {
-      stop("`base.weights` must have positive total weight on observed==1 units.")
+    if(sum(base.weights) <= 0) {
+      stop("`base.weights` must have positive total weight.")
     }
   }
   
@@ -396,8 +398,8 @@ getw = function(target, observed, svd.U, base.weights=NULL, ebal.tol=1e-6, ebal.
     target0_idx = which(target == 0)                 # original target==0 rows, in original order
     donor_in_target0 = which(observed[target0_idx] == 1)  # positions within target0_idx that are donors
     
-    # Apply base.weights only to donors among the target==0 rows
-    base.weight.ebal[donor_in_target0] = base.weights[target0_idx[donor_in_target0]]
+    # base.weights is already donor-length, ordered as donors appear in the data
+    base.weight.ebal[donor_in_target0] = base.weights
     
     # The appended overlap duplicates stay at 1 (by construction)
   }
@@ -474,9 +476,9 @@ getw = function(target, observed, svd.U, base.weights=NULL, ebal.tol=1e-6, ebal.
 #' @param w.pop an optional vector input to specify population weights. Must be of length equal to the total number of units (rows in \code{svd.U}) with all sampled units receiving a weight of 1. The sum of the weights for population units must be either 1 or the number of population units.
 #' @param w a optional numeric vector of weights for every observation. Note that these weights should sum to the total number of units, where treated or population units have a weight of 1 and control or sample units have appropriate weights derived from kernel balancing with mean 1, is consistent with the output of \code{getw()}. If unspecified, these weights are found internally using \code{numdims} dimensions of the SVD of the kernel matrix \code{svd.U} with \code{ebalance_custom()}. 
 #' @param numdims an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.
-#' @param base.weights optional positive vector of base/design weights.
-#'   These are only used for sample units (\code{observed==1 & target==0});
-#'   all other units are treated as having base weight 1 inside entropy balancing.
+#' @param base.weights optional positive vector of base/design weights, of length
+#'   equal to the number of sample/donor units (\code{sum(observed==1 & target==0)}).
+#'   These apply only to those units; the population/target side always uses weight 1.
 #' @param ebal.tol an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. Default is \code{1e-6}.
 #' @param ebal.maxit maximum number of iterations in optimization search used by \code{ebalance_custom} when \code{w} is not specified. Default is \code{500}.
 #' @param svd.U an optional matrix of left singular vectors from performing \code{svd()} on the kernel matrix in the case that \code{w} is unspecified. If unspecified when \code{w} also not specified, internally computes the svd of \code{K}.
@@ -557,14 +559,16 @@ getdist <- function(target, observed, K, w.pop = NULL,
         if (!is.null(svd.U) && !is.matrix(svd.U)) stop("`svd.U` must be a matrix.")
 
         # --- NEW update 0.1.4: base weights option ---
+        n_donors <- sum(observed == 1 & target == 0)
         if (!is.null(base.weights)) {
-          if (!is.numeric(base.weights) || length(base.weights) != nrow(K)) {
-            stop("`base.weights` must be a numeric vector with length equal to nrow(K).")
+          if (!is.numeric(base.weights) || length(base.weights) != n_donors) {
+            stop(paste0("`base.weights` must be a numeric vector with length equal to the ",
+                        "number of sample/donor units (sum(observed==1 & target==0) = ", n_donors, ")."))
           }
           if (any(is.na(base.weights))) stop("`base.weights` contains missing data.")
           if (any(base.weights <= 0)) stop("`base.weights` must be positive.")
-          if (sum(base.weights[observed == 1 & target == 0]) <= 0) {
-            stop("`base.weights` must have positive total weight on sample units (observed==1 & target==0).")
+          if (sum(base.weights) <= 0) {
+            stop("`base.weights` must have positive total weight.")
           }
         }
         
@@ -873,9 +877,9 @@ drop_multicollin <- function(allx, printprogress = TRUE) {
 #' @param sampledinpop a logical to be used in combination with input \code{sampled} that, when \code{TRUE}, indicates that sampled units should also be included in the target population when searching for optimal weights.
 #' @param treatment an alternative input to \code{sampled} and \code{sampledinpop} that is a numeric vector of length equal to the total number of units. Current version supports the ATT estimand. Accordingly, the treated units are the target population, and the control are equivalent to the sampled. Weights play the role of making the control groups (sampled) look like the target population (treated). When specified, \code{sampledinpop} is forced to be \code{FALSE}.
 #' @param population.w optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.
-#' @param base.weights optional positive length-N vector of base/design weights.
-#'   These are only used for sampled/control units (e.g., \code{sampled==1} or
-#'   \code{observed==1 & target==0}, depending on which interface is used);
+#' @param base.weights optional positive vector of base/design weights, of length
+#'   equal to the number of sampled/control units (e.g., \code{sum(sampled==1)} or
+#'   \code{sum(observed==1 & target==0)}, depending on which interface is used);
 #'   all other units are treated as having base weight 1 internally.
 #' @param K optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound.
 #' @param K.svd optional list input that takes a user-specified singular value decomposition of the kernel matrix. This list must include three objects \code{K.svd$u}, a matrix of left-singular vectors, \code{K.svd$v}, a matrix of right-singular vectors, and their corresponding singular values \code{K.svd$d}. 
@@ -1221,27 +1225,23 @@ kbal = function(allx,
     }
     
     ##### New update 0.1.4: validate base.weights #####
-    # Convention: base.weights is length N and is intended to apply to DONORS only:
-    # donors := (observed==1 & target==0). Scale is irrelevant.
+    # base.weights must be donor-length: length == sum(observed==1 & target==0).
+    # Only donor units are reweighted; the population/target side always uses weight 1.
+    donor_idx <- which(observed == 1 & target == 0)
     if(!is.null(base.weights)) {
-      if(!is.numeric(base.weights) || length(base.weights) != N) {
-        stop("`base.weights` must be a numeric vector with length equal to nrow(allx).")
+      if(length(donor_idx) == 0) {
+        stop("`base.weights` was supplied but there are no sample/donor units (observed==1 & target==0).")
+      }
+      if(!is.numeric(base.weights) || length(base.weights) != length(donor_idx)) {
+        stop(paste0("`base.weights` must be a numeric vector with length equal to the ",
+                    "number of sample/donor units (sum(observed==1 & target==0) = ",
+                    length(donor_idx), ")."))
       }
       if(any(is.na(base.weights))) stop("`base.weights` contains missing data.")
       if(any(base.weights <= 0)) stop("`base.weights` must be positive.")
-      
-      donor_idx <- which(observed == 1 & target == 0)
-      if(length(donor_idx) == 0) {
-        stop("`base.weights` was supplied but there are no samples (observed==1 & target==0).")
+      if(sum(base.weights) <= 0) {
+        stop("`base.weights` must have positive total weight.")
       }
-      if(sum(base.weights[donor_idx]) <= 0) {
-        stop("`base.weights` must have positive total weight on sample units (observed==1 & target==0).")
-      }
-    }
-    
-    n_nondonor_non1 <- sum((observed == 0 | target == 1) & abs(base.weights - 1) > 1e-12)
-    if(n_nondonor_non1 > 0) {
-      warning("`base.weights` is only used on sample (observed==1 & target==0). Non-sample entries will be ignored.", immediate. = TRUE)
     }
     #####
     
