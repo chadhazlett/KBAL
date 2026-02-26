@@ -22,5 +22,5 @@ Imports:
     RSpectra
 LinkingTo: Rcpp, RcppParallel
 Maintainer: Borna Bateni <borna@ucla.edu>
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 Encoding: UTF-8

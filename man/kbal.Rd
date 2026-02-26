@@ -54,9 +54,9 @@ kbal(
 
 \item{population.w}{optional vector of population weights length equal to the number of population units. Must sum to either 1 or the number of population units.}
 
-\item{base.weights}{optional positive length-N vector of base/design weights.
-These are only used for sampled/control units (e.g., \code{sampled==1} or
-\code{observed==1 & target==0}, depending on which interface is used);
+\item{base.weights}{optional positive vector of base/design weights, of length
+equal to the number of sampled/control units (e.g., \code{sum(sampled==1)} or
+\code{sum(observed==1 & target==0)}, depending on which interface is used);
 all other units are treated as having base weight 1 internally.}
 
 \item{K}{optional matrix input that takes a user-specified kernel matrix and performs SVD on it internally in the search for weights which minimize the bias bound.}

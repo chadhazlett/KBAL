@@ -30,9 +30,9 @@ getdist(
 
 \item{numdims}{an optional numeric input specifying the number of columns of the singular value decomposition of the kernel matrix to use when finding weights when \code{w} is not specified.}
 
-\item{base.weights}{optional positive vector of base/design weights.
-These are only used for sample units (\code{observed==1 & target==0});
-all other units are treated as having base weight 1 inside entropy balancing.}
+\item{base.weights}{optional positive vector of base/design weights, of length
+equal to the number of sample/donor units (\code{sum(observed==1 & target==0)}).
+These apply only to those units; the population/target side always uses weight 1.}
 
 \item{ebal.tol}{an optional numeric input specifying the tolerance level used by custom entropy balancing function \code{ebalance_custom()} in the case that \code{w} is not specified. Default is \code{1e-6}.}
 
