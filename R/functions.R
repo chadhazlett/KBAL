@@ -2261,6 +2261,91 @@ kbal = function(allx,
 } # end kbal main function
 
 
+#' Kernel balancing for survey reweighting (kpop).
+#'
+#' @description A convenience wrapper around \code{\link{kbal}} for the survey
+#'   reweighting use case: weighting a sample of respondents to match a target
+#'   population. Handles the stacking of sample and population data, construction
+#'   of the \code{sampled} indicator, and fixes \code{sampledinpop = FALSE}
+#'   internally, so callers only need to supply the two data frames and any
+#'   weighting or tuning arguments.
+#'
+#' @param sample_data A data frame or matrix of covariates for the survey
+#'   respondents (the units to be reweighted).
+#' @param population_data A data frame or matrix of covariates for the target
+#'   population frame. Must have the same column names as \code{sample_data}.
+#' @param base.weights Optional positive numeric vector of first-stage
+#'   (design) weights for the respondents, of length \code{nrow(sample_data)}.
+#'   Passed to \code{kbal()} as \code{base.weights}.
+#' @param population.w Optional numeric vector of weights for the population
+#'   frame units, of length \code{nrow(population_data)}. Defines the target
+#'   moments: e.g., pass turnout scores here to target a likely-voter
+#'   population rather than the simple unweighted population average.
+#'   Passed to \code{kbal()} as \code{population.w}.
+#' @param cat_data Logical. Set \code{TRUE} if all covariates are categorical.
+#'   Passed to \code{kbal()}.
+#' @param mixed_data Logical. Set \code{TRUE} if covariates include a mix of
+#'   categorical and continuous variables. Passed to \code{kbal()}.
+#' @param cat_columns Character vector of column names that are categorical.
+#'   Required when \code{mixed_data = TRUE}. Passed to \code{kbal()}.
+#' @param ... Additional arguments passed to \code{\link{kbal}} (e.g.,
+#'   \code{meanfirst}, \code{incrementby}, \code{minnumdims}, \code{maxnumdims},
+#'   \code{ebal.tol}, \code{ebal.maxit}).
+#'
+#' @return The list returned by \code{\link{kbal}}. Weights for the respondents
+#'   are in \code{result$w[1:nrow(sample_data)]}.
+#'
+#' @examples
+#' \donttest{
+#' data("lalonde")
+#' set.seed(1)
+#' sample_rows <- lalonde$nsw == 0   # use non-NSW as "respondents"
+#' pop_rows    <- lalonde$nsw == 1   # use NSW as "population"
+#' xvars <- c("age", "black", "educ", "hisp", "married", "re74", "re75")
+#' out <- kpop(sample_data     = lalonde[sample_rows, xvars],
+#'             population_data = lalonde[pop_rows,    xvars],
+#'             mixed_data      = FALSE,
+#'             minnumdims      = 1,
+#'             maxnumdims      = 10)
+#' sample_weights <- out$w[1:sum(sample_rows)]
+#' }
+#' @export
+kpop <- function(sample_data,
+                 population_data,
+                 base.weights  = NULL,
+                 population.w  = NULL,
+                 cat_data      = FALSE,
+                 mixed_data    = FALSE,
+                 cat_columns   = NULL,
+                 ...) {
 
+  if (!is.data.frame(sample_data) && !is.matrix(sample_data))
+    stop("`sample_data` must be a data frame or matrix.")
+  if (!is.data.frame(population_data) && !is.matrix(population_data))
+    stop("`population_data` must be a data frame or matrix.")
+  if (!identical(sort(colnames(sample_data)), sort(colnames(population_data))))
+    stop("`sample_data` and `population_data` must have the same column names.")
+
+  n_sample <- nrow(sample_data)
+  n_pop    <- nrow(population_data)
+
+  if (!is.null(base.weights) && length(base.weights) != n_sample)
+    stop(paste0("`base.weights` must have length equal to nrow(sample_data) (", n_sample, ")."))
+  if (!is.null(population.w) && length(population.w) != n_pop)
+    stop(paste0("`population.w` must have length equal to nrow(population_data) (", n_pop, ")."))
+
+  allx    <- rbind(as.data.frame(sample_data), as.data.frame(population_data))
+  sampled <- c(rep(1, n_sample), rep(0, n_pop))
+
+  kbal(allx         = allx,
+       sampled      = sampled,
+       sampledinpop = FALSE,
+       base.weights = base.weights,
+       population.w = population.w,
+       cat_data     = cat_data,
+       mixed_data   = mixed_data,
+       cat_columns  = cat_columns,
+       ...)
+}
 
 
