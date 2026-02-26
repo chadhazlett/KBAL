@@ -20,9 +20,9 @@ getw(
 
 \item{svd.U}{a matrix of left singular vectors from performing \code{svd()} on the kernel matrix.}
 
-\item{base.weights}{optional positive length-N vector of base/design weights.
-These are only used for sample units (\code{observed==1 & target==0});
-all other units are treated as having base weight 1 inside entropy balancing.}
+\item{base.weights}{optional positive vector of base/design weights, of length
+equal to the number of sample/donor units (\code{sum(observed==1 & target==0)}).
+These apply only to those units; the population/target side always uses weight 1.}
 
 \item{ebal.tol}{tolerance level used by custom entropy balancing function \code{ebalance_custom}. Default is \code{1e-6}.}
 
