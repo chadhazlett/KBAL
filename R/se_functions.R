@@ -1,11 +1,11 @@
 ##############################
 ## SE functions for kpop output
 ##
-## calc_fixedweight_var  — internal helper
-## calc_linearized_var   — exported
-## calc_ses_cat_var      — exported
-## kpop_summary          — exported
-## print.kpop_summary    — exported
+## calc_fixedweight_var  -- internal helper
+## calc_linearized_var   -- exported
+## calc_ses_cat_var      -- exported
+## kpop_summary          -- exported
+## print.kpop_summary    -- exported
 ##############################
 
 
@@ -134,7 +134,7 @@ calc_linearized_var <- function(kpop_object,
 #'   \code{\link{kbal}}.
 #' @param poll Data frame of respondent data containing \code{outcome_var}.
 #'   \code{nrow(poll)} must equal the number of sample units (the full sample
-#'   data frame, not pre-filtered — NA filtering is handled internally).
+#'   data frame, not pre-filtered -- NA filtering is handled internally).
 #' @param outcome_var Quoted column name of the categorical outcome variable.
 #' @param sample_size Optional override passed to
 #'   \code{\link{calc_linearized_var}}. Defaults to the number of non-NA
@@ -368,10 +368,10 @@ kpop_summary <- function(kpop_object,
 print.kpop_summary <- function(x, digits = 3, ...) {
   d <- x$diagnostics
   cat(sprintf(
-    "── kpop diagnostics ──────────────────────────────────────\n  n = %d  |  ESS = %.1f (%.1f%%)  |  bias-bound ratio = %.4f  |  dims = %d\n",
+    "-- kpop diagnostics ------------------------------------------\n  n = %d  |  ESS = %.1f (%.1f%%)  |  bias-bound ratio = %.4f  |  dims = %d\n",
     d$n_sample, d$ESS, d$ESS_pct * 100, d$biasbound_ratio, d$numdims
   ))
-  cat("── estimates ─────────────────────────────────────────────\n")
+  cat("-- estimates -------------------------------------------------\n")
   est <- x$estimates
   num_cols <- c("unweighted", "kpop_weighted", "linearized_SE", "fixed_SE")
   for (col in intersect(num_cols, names(est))) {
