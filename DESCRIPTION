@@ -19,7 +19,8 @@ Imports:
     Rcpp (>= 0.11.0),
     RcppParallel (>= 4.4.4),
     dplyr,
-    RSpectra
+    RSpectra,
+    glmnet
 LinkingTo: Rcpp, RcppParallel
 Maintainer: Borna Bateni <borna@ucla.edu>
 RoxygenNote: 7.3.3
