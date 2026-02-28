@@ -321,7 +321,7 @@ kpop_summary <- function(kpop_object,
 
       data.frame(
         outcome       = var,
-        level         = NA_character_,
+        level         = "(cont.)",
         n             = sum(keep),
         unweighted    = unwtd,
         kpop_weighted = kpop_wtd,

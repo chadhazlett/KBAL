@@ -12,7 +12,7 @@ calc_ses_cat_var(kpop_object, poll, outcome_var, sample_size = NULL)
 
 \item{poll}{Data frame of respondent data containing \code{outcome_var}.
 \code{nrow(poll)} must equal the number of sample units (the full sample
-data frame, not pre-filtered — NA filtering is handled internally).}
+data frame, not pre-filtered -- NA filtering is handled internally).}
 
 \item{outcome_var}{Quoted column name of the categorical outcome variable.}
 
